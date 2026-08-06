@@ -9,11 +9,11 @@ ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 # Development uses PostgreSQL if configured, otherwise uses SQLite from base.py
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 env = environ.Env(
-    DATABASE_NAME=(str, 'pulsedesk_db'),
-    DATABASE_USER=(str, 'pulsedesk_user'),
-    DATABASE_PASSWORD=(str, ''),
-    DATABASE_HOST=(str, 'localhost'),
-    DATABASE_PORT=(int, 5432),
+    DATABASE_NAME=(str, 'DB_NAME'),
+    DATABASE_USER=(str, 'DB_USER'),
+    DATABASE_PASSWORD=(str, 'DB_PASSWORD'),
+    DATABASE_HOST=(str, 'DB_HOST'),
+    DATABASE_PORT=(int, 5433),
 )
 env.read_env(BASE_DIR / '.env')
 
