@@ -6,7 +6,7 @@ import environ
 DEBUG = True
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
-# Use PostgreSQL if configured, otherwise fallback to SQLite
+# Development uses PostgreSQL if configured, otherwise uses SQLite from base.py
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 env = environ.Env(
     DATABASE_NAME=(str, 'pulsedesk_db'),
@@ -17,6 +17,7 @@ env = environ.Env(
 )
 env.read_env(BASE_DIR / '.env')
 
+# Override with PostgreSQL if DATABASE_PASSWORD is provided
 if env('DATABASE_PASSWORD', default=None):
     DATABASES = {
         'default': {

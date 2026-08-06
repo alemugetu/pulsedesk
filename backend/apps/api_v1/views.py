@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from django.urls import reverse
 
 
 class HealthCheckView(APIView):
@@ -14,6 +15,26 @@ class HealthCheckView(APIView):
             {
                 'status': 'healthy',
                 'message': 'PulseDesk API is running',
+            },
+            status=status.HTTP_200_OK
+        )
+
+
+class APIRootView(APIView):
+    """
+    API root endpoint showing available endpoints.
+    """
+    permission_classes = []  # No authentication required
+    
+    def get(self, request):
+        health_url = request.build_absolute_uri(reverse('api_v1:health'))
+        return Response(
+            {
+                'name': 'PulseDesk API',
+                'version': 'v1',
+                'endpoints': {
+                    'health': health_url,
+                }
             },
             status=status.HTTP_200_OK
         )
