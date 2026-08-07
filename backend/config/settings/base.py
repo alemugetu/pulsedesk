@@ -116,10 +116,47 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
-
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 50,
+}
+
+# drf-spectacular — OpenAPI 3 schema configuration
+SPECTACULAR_SETTINGS = {
+    "TITLE": "PulseDesk API",
+    "DESCRIPTION": (
+        "PulseDesk is a multi-tenant incident and escalation operations platform. "
+        "This API provides authentication, organization management, and membership "
+        "operations. All protected endpoints require a Bearer JWT in the "
+        "Authorization header."
+    ),
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    # Security scheme — must match the project's actual JWT setup
+    "SECURITY": [{"BearerAuth": []}],
+    "COMPONENTS": {
+        "securitySchemes": {
+            "BearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+                "description": (
+                    "Enter your JWT access token. "
+                    "Obtain one via POST /api/v1/auth/login/."
+                ),
+            }
+        }
+    },
+    # Schema quality
+    "SORT_OPERATIONS": False,
+    "ENUM_GENERATE_CHOICE_DESCRIPTION": True,
+    "POSTPROCESSING_HOOKS": [
+        "drf_spectacular.hooks.postprocess_schema_enums",
+    ],
+    # Contact
+    "CONTACT": {"name": "PulseDesk Engineering"},
+    # Servers
+    "SERVERS": [{"url": "/", "description": "Current server"}],
 }
 
 # JWT Configuration
