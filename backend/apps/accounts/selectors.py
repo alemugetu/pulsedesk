@@ -7,10 +7,10 @@ User = get_user_model()
 def get_user_by_email(email: str):
     """
     Get user by email address.
-    
+
     Args:
         email: User's email address
-        
+
     Returns:
         User instance or None if not found
     """
@@ -23,10 +23,10 @@ def get_user_by_email(email: str):
 def get_user_by_id(user_id: str):
     """
     Get user by ID.
-    
+
     Args:
         user_id: User's UUID
-        
+
     Returns:
         User instance or None if not found
     """
@@ -39,24 +39,24 @@ def get_user_by_id(user_id: str):
 def search_users(query: str):
     """
     Search users by email, first name, or last name.
-    
+
     Args:
         query: Search query string
-        
+
     Returns:
         QuerySet of matching users
     """
     return User.objects.filter(
-        Q(email__icontains=query) |
-        Q(first_name__icontains=query) |
-        Q(last_name__icontains=query)
+        Q(email__icontains=query)
+        | Q(first_name__icontains=query)
+        | Q(last_name__icontains=query)
     )
 
 
 def get_all_users():
     """
     Get all users.
-    
+
     Returns:
         QuerySet of all users
     """
@@ -66,7 +66,7 @@ def get_all_users():
 def get_active_users():
     """
     Get all active users.
-    
+
     Returns:
         QuerySet of active users
     """
@@ -76,7 +76,7 @@ def get_active_users():
 def get_verified_users():
     """
     Get all verified users.
-    
+
     Returns:
         QuerySet of verified users
     """

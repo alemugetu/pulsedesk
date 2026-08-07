@@ -1,10 +1,9 @@
+from accounts.models import User
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
-from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
-
-from accounts.models import User
+from rest_framework_simplejwt.tokens import RefreshToken
 
 
 class AuthService:
@@ -20,18 +19,18 @@ class AuthService:
     def register_user(
         email: str,
         password: str,
-        first_name: str = '',
-        last_name: str = '',
+        first_name: str = "",
+        last_name: str = "",
     ) -> User:
         email = email.lower()
 
         if User.objects.filter(email=email).exists():
-            raise ValidationError({'email': ['A user with this email already exists.']})
+            raise ValidationError({"email": ["A user with this email already exists."]})
 
         try:
             validate_password(password)
         except DjangoValidationError as exc:
-            raise ValidationError({'password': list(exc.messages)}) from exc
+            raise ValidationError({"password": list(exc.messages)}) from exc
 
         return User.objects.create_user(
             email=email,
@@ -45,23 +44,23 @@ class AuthService:
         user = authenticate(email=email, password=password)
 
         if not user:
-            raise ValidationError({'non_field_errors': ['Invalid email or password.']})
+            raise ValidationError({"non_field_errors": ["Invalid email or password."]})
 
         if not user.is_active:
-            raise ValidationError({'non_field_errors': ['User account is disabled.']})
+            raise ValidationError({"non_field_errors": ["User account is disabled."]})
 
         refresh = RefreshToken.for_user(user)
         return {
-            'refresh': str(refresh),
-            'access': str(refresh.access_token),
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
         }
 
     @staticmethod
     def logout_user(refresh_token: str) -> None:
         try:
-            token = RefreshToken(refresh_token)
+            token = RefreshToken(refresh_token)  # type: ignore[arg-type]
             token.blacklist()
         except Exception as exc:
             raise ValidationError(
-                {'non_field_errors': ['Invalid refresh token.']}
+                {"non_field_errors": ["Invalid refresh token."]}
             ) from exc
