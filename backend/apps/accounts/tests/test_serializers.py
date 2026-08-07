@@ -1,5 +1,8 @@
-from accounts.serializers import (UserLoginSerializer, UserProfileSerializer,
-                                  UserRegistrationSerializer)
+from accounts.serializers import (
+    UserLoginSerializer,
+    UserProfileSerializer,
+    UserRegistrationSerializer,
+)
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 

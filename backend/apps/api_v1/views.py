@@ -37,6 +37,7 @@ class APIRootView(APIView):
                 "endpoints": {
                     "health": health_url,
                     "auth": request.build_absolute_uri("/api/v1/auth/"),
+                    "organizations": request.build_absolute_uri("/api/v1/organizations/"),
                 },
             },
             status=status.HTTP_200_OK,
