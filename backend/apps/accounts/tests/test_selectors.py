@@ -1,3 +1,5 @@
+import uuid
+
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from accounts.selectors import get_user_by_email, get_user_by_id
@@ -32,5 +34,5 @@ class UserSelectorsTest(TestCase):
     
     def test_get_user_by_id_not_found(self):
         """Test getting non-existent user by ID"""
-        user = get_user_by_id(user_id=99999)
+        user = get_user_by_id(user_id=uuid.uuid4())
         self.assertIsNone(user)
