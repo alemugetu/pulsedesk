@@ -9,6 +9,7 @@ backend/**/*.py[cod]
 backend/.pytest_cache/
 backend/.mypy_cache/
 backend/.ruff_cache/
+.agents/skills/supabase-postgres-best-practices/
 
 # ==========================
 # Django

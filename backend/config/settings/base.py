@@ -67,12 +67,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
-}
+# DATABASES is intentionally not set here.
+# Each environment (development, production, testing) configures its own
+# database in the corresponding settings module.
 
 # Custom User Model
 AUTH_USER_MODEL = "accounts.User"

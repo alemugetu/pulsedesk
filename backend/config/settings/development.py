@@ -4,30 +4,25 @@ import environ
 
 from .base import *
 
-# Development-specific overrides
+# ---------------------------------------------------------------------------
+# Development settings
+# ---------------------------------------------------------------------------
 DEBUG = True
 ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
-# Development uses PostgreSQL if configured, otherwise uses SQLite from base.py
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-env = environ.Env(
-    DATABASE_NAME=(str, "DB_NAME"),
-    DATABASE_USER=(str, "DB_USER"),
-    DATABASE_PASSWORD=(str, "DB_PASSWORD"),
-    DATABASE_HOST=(str, "DB_HOST"),
-    DATABASE_PORT=(int, 5433),
-)
+
+env = environ.Env()
 env.read_env(BASE_DIR / ".env")
 
-# Override with PostgreSQL if DATABASE_PASSWORD is provided
-if env("DATABASE_PASSWORD", default=None):
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": env("DATABASE_NAME"),
-            "USER": env("DATABASE_USER"),
-            "PASSWORD": env("DATABASE_PASSWORD"),
-            "HOST": env("DATABASE_HOST"),
-            "PORT": env("DATABASE_PORT"),
-        }
-    }
+# DB_URL must be present — no silent SQLite fallback.
+# A missing or invalid DB_URL will raise ImproperlyConfigured immediately,
+# preventing accidental development against the wrong database.
+DATABASES = {
+    "default": env.db("DB_URL"),
+}
+
+# Supabase requires SSL. django-environ parses sslmode from the connection
+# string if present; add it explicitly as a safe default for Supabase.
+DATABASES["default"].setdefault("OPTIONS", {})
+DATABASES["default"]["OPTIONS"].setdefault("sslmode", "require")
