@@ -1,4 +1,4 @@
-from django.urls import include, path
+from django.urls import path
 
 from . import views
 
@@ -9,5 +9,4 @@ urlpatterns = [
     path("", views.APIRootView.as_view(), name="root"),
     # Health check endpoint
     path("health/", views.HealthCheckView.as_view(), name="health"),
-    
 ]

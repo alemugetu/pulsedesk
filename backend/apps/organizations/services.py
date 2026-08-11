@@ -90,6 +90,49 @@ INITIAL_PERMISSIONS = [
         "action": "assign",
         "description": "Assign roles to organization members.",
     },
+    # Incidents (Phase 5)
+    {
+        "codename": "incident.view",
+        "name": "View Incidents",
+        "resource": "incident",
+        "action": "view",
+        "description": "View organization incidents and incident categories.",
+    },
+    {
+        "codename": "incident.create",
+        "name": "Create Incidents",
+        "resource": "incident",
+        "action": "create",
+        "description": "Create new incidents and categories in the organization.",
+    },
+    {
+        "codename": "incident.update",
+        "name": "Update Incidents",
+        "resource": "incident",
+        "action": "update",
+        "description": "Update incident details and status transitions.",
+    },
+    {
+        "codename": "incident.assign",
+        "name": "Assign Incidents",
+        "resource": "incident",
+        "action": "assign",
+        "description": "Assign incidents to organization members.",
+    },
+    {
+        "codename": "incident.resolve",
+        "name": "Resolve Incidents",
+        "resource": "incident",
+        "action": "resolve",
+        "description": "Mark incidents as resolved.",
+    },
+    {
+        "codename": "incident.close",
+        "name": "Close Incidents",
+        "resource": "incident",
+        "action": "close",
+        "description": "Mark incidents as closed.",
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -97,15 +140,30 @@ INITIAL_PERMISSIONS = [
 # ---------------------------------------------------------------------------
 
 _ALL_PERMISSIONS = {p["codename"] for p in INITIAL_PERMISSIONS}
-_READ_ONLY = {"organization.view", "member.view", "role.view"}
-_AGENT = _READ_ONLY
-_OPS_MANAGER = _READ_ONLY | {
-    "member.invite",
-    "member.remove",
-    "member.suspend",
-    "role.assign",
+_BASE_READ_ONLY = {"organization.view", "member.view", "role.view"}
+_INCIDENT_VIEW = {"incident.view"}
+_INCIDENT_AGENT = _INCIDENT_VIEW | {"incident.create", "incident.update"}
+_INCIDENT_FULL = _INCIDENT_AGENT | {
+    "incident.assign",
+    "incident.resolve",
+    "incident.close",
 }
-_ADMIN = _OPS_MANAGER | {"organization.update", "role.view", "role.manage"}
+
+_VIEWER = _BASE_READ_ONLY | _INCIDENT_VIEW
+_AGENT = _BASE_READ_ONLY | _INCIDENT_AGENT
+_OPS_MANAGER = (
+    _BASE_READ_ONLY
+    | {
+        "member.invite",
+        "member.remove",
+        "member.suspend",
+        "role.assign",
+    }
+    | _INCIDENT_FULL
+)
+_ADMIN = (
+    _OPS_MANAGER | {"organization.update", "role.view", "role.manage"} | _INCIDENT_FULL
+)
 _OWNER = _ALL_PERMISSIONS
 
 SYSTEM_ROLES = [
@@ -118,26 +176,26 @@ SYSTEM_ROLES = [
     {
         "name": "Organization Admin",
         "slug": "organization-admin",
-        "description": "Manages members, roles, and organization settings.",
+        "description": "Manages members, roles, organization settings, and incidents.",
         "permissions": _ADMIN,
     },
     {
         "name": "Operations Manager",
         "slug": "operations-manager",
-        "description": "Manages members and assigns roles. Cannot change org settings.",
+        "description": "Manages members, assigns roles, and manages incidents. Cannot change org settings.",
         "permissions": _OPS_MANAGER,
     },
     {
         "name": "Agent",
         "slug": "agent",
-        "description": "Operational user with read access to org, members, and roles.",
+        "description": "Operational user with read/write access to incidents and read access to org.",
         "permissions": _AGENT,
     },
     {
         "name": "Viewer",
         "slug": "viewer",
-        "description": "Read-only access to organization, members, and roles.",
-        "permissions": _READ_ONLY,
+        "description": "Read-only access to organization, members, roles, and incidents.",
+        "permissions": _VIEWER,
     },
 ]
 

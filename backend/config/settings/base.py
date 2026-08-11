@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "api_v1",
     "accounts",
     "organizations",
+    "incidents",
 ]
 
 MIDDLEWARE = [

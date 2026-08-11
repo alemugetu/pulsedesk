@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from common.models import BaseModel
 from django.db import models
 from organizations.models import Organization
@@ -8,7 +10,7 @@ class TenantScopedQuerySet(models.QuerySet):
 
     def for_organization(self, organization):
         if organization is None:
-            raise ValueError('organization is required for tenant-scoped queries')
+            raise ValueError("organization is required for tenant-scoped queries")
         return self.filter(organization=organization)
 
 
@@ -17,7 +19,7 @@ class TenantScopedManager:
 
     def for_organization(self, organization):
         if organization is None:
-            raise ValueError('organization is required for tenant-scoped queries')
+            raise ValueError("organization is required for tenant-scoped queries")
         return self
 
 
@@ -37,13 +39,13 @@ class TenantScopedModel(BaseModel):
     organization = models.ForeignKey(
         Organization,
         on_delete=models.CASCADE,
-        related_name='%(app_label)s_%(class)s_set',
+        related_name="%(app_label)s_%(class)s_set",
     )
 
     objects = TenantScopedDescriptor()
 
     class Meta:
         abstract = True
-        indexes = [
-            models.Index(fields=['organization']),
-        ]
+        indexes: ClassVar[tuple[models.Index, ...]] = (
+            models.Index(fields=["organization"]),
+        )

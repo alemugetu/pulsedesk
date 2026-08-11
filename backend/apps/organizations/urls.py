@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import include, path
 from organizations import views
 
 app_name = "organizations"
@@ -35,5 +35,10 @@ urlpatterns = [
         "<uuid:organization_id>/roles/<uuid:role_id>/",
         views.RoleDetailView.as_view(),
         name="role-detail",
+    ),
+    # Incidents & Incident Categories
+    path(
+        "<uuid:organization_id>/",
+        include("incidents.urls"),
     ),
 ]

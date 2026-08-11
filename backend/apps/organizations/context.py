@@ -1,7 +1,13 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from django.contrib.auth import get_user_model
 from organizations.models import Membership, Organization
+
+if TYPE_CHECKING:
+    from django.contrib.auth.models import AbstractBaseUser
 
 User = get_user_model()
 
@@ -10,7 +16,7 @@ User = get_user_model()
 class TenantContext:
     """Request-scoped tenant context bound to an authenticated user."""
 
-    user: User
+    user: AbstractBaseUser
     organization: Organization
     membership: Membership
 
