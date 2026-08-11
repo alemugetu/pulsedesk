@@ -14,26 +14,26 @@ User = get_user_model()
 class OrganizationModelTest(TestCase):
     def test_create_organization(self):
         organization = Organization.objects.create(
-            name='Acme Corp',
-            slug='acme-corp',
+            name="Acme Corp",
+            slug="acme-corp",
         )
-        self.assertEqual(organization.name, 'Acme Corp')
-        self.assertEqual(organization.slug, 'acme-corp')
+        self.assertEqual(organization.name, "Acme Corp")
+        self.assertEqual(organization.slug, "acme-corp")
         self.assertEqual(organization.status, OrganizationStatus.ACTIVE)
         self.assertIsNotNone(organization.id)
 
     def test_slug_uniqueness(self):
-        Organization.objects.create(name='Acme Corp', slug='acme-corp')
+        Organization.objects.create(name="Acme Corp", slug="acme-corp")
         with self.assertRaises(IntegrityError):
-            Organization.objects.create(name='Acme Corp 2', slug='acme-corp')
+            Organization.objects.create(name="Acme Corp 2", slug="acme-corp")
 
     def test_slug_normalization(self):
-        self.assertEqual(Organization.normalize_slug('Acme Corp'), 'acme-corp')
+        self.assertEqual(Organization.normalize_slug("Acme Corp"), "acme-corp")
 
     def test_status_choices(self):
         organization = Organization.objects.create(
-            name='Suspended Org',
-            slug='suspended-org',
+            name="Suspended Org",
+            slug="suspended-org",
             status=OrganizationStatus.SUSPENDED,
         )
         self.assertEqual(organization.status, OrganizationStatus.SUSPENDED)
@@ -42,12 +42,12 @@ class OrganizationModelTest(TestCase):
 class MembershipModelTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
-            email='member@example.com',
-            password='testpass123',
+            email="member@example.com",
+            password="testpass123",
         )
         self.organization = Organization.objects.create(
-            name='Acme Corp',
-            slug='acme-corp',
+            name="Acme Corp",
+            slug="acme-corp",
         )
 
     def test_create_membership(self):

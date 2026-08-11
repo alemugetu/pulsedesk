@@ -4,6 +4,9 @@ from organizations.models import (
     MembershipStatus,
     Organization,
     OrganizationStatus,
+    Permission,
+    Role,
+    RolePermission,
 )
 from rest_framework.exceptions import ValidationError
 
@@ -16,6 +19,134 @@ class OrganizationAccessValidationError(ValidationError):
         self.code = code
 
 
+# ---------------------------------------------------------------------------
+# Initial permissions — only for currently implemented functionality
+# ---------------------------------------------------------------------------
+
+INITIAL_PERMISSIONS = [
+    # Organization
+    {
+        "codename": "organization.view",
+        "name": "View Organization",
+        "resource": "organization",
+        "action": "view",
+        "description": "View organization details.",
+    },
+    {
+        "codename": "organization.update",
+        "name": "Update Organization",
+        "resource": "organization",
+        "action": "update",
+        "description": "Update organization name and settings.",
+    },
+    # Members
+    {
+        "codename": "member.view",
+        "name": "View Members",
+        "resource": "member",
+        "action": "view",
+        "description": "List and view organization members.",
+    },
+    {
+        "codename": "member.invite",
+        "name": "Invite Members",
+        "resource": "member",
+        "action": "invite",
+        "description": "Invite new users to the organization.",
+    },
+    {
+        "codename": "member.remove",
+        "name": "Remove Members",
+        "resource": "member",
+        "action": "remove",
+        "description": "Remove members from the organization.",
+    },
+    {
+        "codename": "member.suspend",
+        "name": "Suspend Members",
+        "resource": "member",
+        "action": "suspend",
+        "description": "Suspend member access to the organization.",
+    },
+    # Roles
+    {
+        "codename": "role.view",
+        "name": "View Roles",
+        "resource": "role",
+        "action": "view",
+        "description": "List and view roles in the organization.",
+    },
+    {
+        "codename": "role.manage",
+        "name": "Manage Roles",
+        "resource": "role",
+        "action": "manage",
+        "description": "Create, update, delete custom roles and assign permissions.",
+    },
+    {
+        "codename": "role.assign",
+        "name": "Assign Roles",
+        "resource": "role",
+        "action": "assign",
+        "description": "Assign roles to organization members.",
+    },
+]
+
+# ---------------------------------------------------------------------------
+# System role permission matrix
+# ---------------------------------------------------------------------------
+
+_ALL_PERMISSIONS = {p["codename"] for p in INITIAL_PERMISSIONS}
+_READ_ONLY = {"organization.view", "member.view", "role.view"}
+_AGENT = _READ_ONLY
+_OPS_MANAGER = _READ_ONLY | {
+    "member.invite",
+    "member.remove",
+    "member.suspend",
+    "role.assign",
+}
+_ADMIN = _OPS_MANAGER | {"organization.update", "role.view", "role.manage"}
+_OWNER = _ALL_PERMISSIONS
+
+SYSTEM_ROLES = [
+    {
+        "name": "Organization Owner",
+        "slug": "organization-owner",
+        "description": "Full control over the organization. Only one owner per organization.",
+        "permissions": _OWNER,
+    },
+    {
+        "name": "Organization Admin",
+        "slug": "organization-admin",
+        "description": "Manages members, roles, and organization settings.",
+        "permissions": _ADMIN,
+    },
+    {
+        "name": "Operations Manager",
+        "slug": "operations-manager",
+        "description": "Manages members and assigns roles. Cannot change org settings.",
+        "permissions": _OPS_MANAGER,
+    },
+    {
+        "name": "Agent",
+        "slug": "agent",
+        "description": "Operational user with read access to org, members, and roles.",
+        "permissions": _AGENT,
+    },
+    {
+        "name": "Viewer",
+        "slug": "viewer",
+        "description": "Read-only access to organization, members, and roles.",
+        "permissions": _READ_ONLY,
+    },
+]
+
+
+# ---------------------------------------------------------------------------
+# Organization service
+# ---------------------------------------------------------------------------
+
+
 class OrganizationService:
     """Business logic for organization and membership operations."""
 
@@ -24,14 +155,14 @@ class OrganizationService:
         base_slug = Organization.normalize_slug(slug or name)
         if not base_slug:
             raise OrganizationAccessValidationError(
-                {'slug': ['A valid slug could not be generated.']},
-                code='invalid_slug',
+                {"slug": ["A valid slug could not be generated."]},
+                code="invalid_slug",
             )
 
         candidate = base_slug
         counter = 1
         while Organization.objects.filter(slug=candidate).exists():
-            candidate = f'{base_slug}-{counter}'
+            candidate = f"{base_slug}-{counter}"
             counter += 1
         return candidate
 
@@ -40,8 +171,8 @@ class OrganizationService:
     def create_organization(user, name: str, slug: str | None = None) -> Organization:
         if not name or not name.strip():
             raise OrganizationAccessValidationError(
-                {'name': ['Organization name is required.']},
-                code='invalid_name',
+                {"name": ["Organization name is required."]},
+                code="invalid_name",
             )
 
         normalized_slug = OrganizationService.generate_unique_slug(name.strip(), slug)
@@ -51,9 +182,20 @@ class OrganizationService:
             slug=normalized_slug,
             status=OrganizationStatus.ACTIVE,
         )
+
+        # Seed system roles for this new organization.
+        RBACService.seed_system_roles(organization)
+
+        # Assign the owner role to the founding member.
+        owner_role = Role.objects.get(
+            organization=organization,
+            slug="organization-owner",
+            is_system_role=True,
+        )
         Membership.objects.create(
             user=user,
             organization=organization,
+            role=owner_role,
             status=MembershipStatus.ACTIVE,
         )
         return organization
@@ -67,34 +209,322 @@ class OrganizationService:
         """
         if organization.status != OrganizationStatus.ACTIVE:
             raise OrganizationAccessValidationError(
-                {'detail': 'Organization is not accessible.'},
-                code='organization_inactive',
+                {"detail": "Organization is not accessible."},
+                code="organization_inactive",
             )
 
         try:
             membership = Membership.objects.get(user=user, organization=organization)
         except Membership.DoesNotExist:
             raise OrganizationAccessValidationError(
-                {'detail': 'Organization not found.'},
-                code='not_found',
+                {"detail": "Organization not found."},
+                code="not_found",
             ) from None
 
         if membership.status == MembershipStatus.REMOVED:
             raise OrganizationAccessValidationError(
-                {'detail': 'You do not have access to this organization.'},
-                code='membership_removed',
+                {"detail": "You do not have access to this organization."},
+                code="membership_removed",
             )
 
         if membership.status == MembershipStatus.SUSPENDED:
             raise OrganizationAccessValidationError(
-                {'detail': 'Your membership in this organization is suspended.'},
-                code='membership_suspended',
+                {"detail": "Your membership in this organization is suspended."},
+                code="membership_suspended",
             )
 
         if membership.status != MembershipStatus.ACTIVE:
             raise OrganizationAccessValidationError(
-                {'detail': 'You do not have access to this organization.'},
-                code='membership_inactive',
+                {"detail": "You do not have access to this organization."},
+                code="membership_inactive",
             )
 
         return membership
+
+
+# ---------------------------------------------------------------------------
+# RBAC service
+# ---------------------------------------------------------------------------
+
+
+class RBACService:
+    """Business logic for roles and permissions."""
+
+    @staticmethod
+    @transaction.atomic
+    def seed_permissions() -> None:
+        """Create all initial permissions if they don't exist. Idempotent."""
+        for pdata in INITIAL_PERMISSIONS:
+            Permission.objects.get_or_create(
+                codename=pdata["codename"],
+                defaults={
+                    "name": pdata["name"],
+                    "resource": pdata["resource"],
+                    "action": pdata["action"],
+                    "description": pdata["description"],
+                },
+            )
+
+    @staticmethod
+    @transaction.atomic
+    def seed_system_roles(organization: Organization) -> None:
+        """
+        Create system roles with their permissions for an organization.
+        Idempotent — safe to call on an org that already has system roles.
+        """
+        # Ensure all permissions exist first.
+        RBACService.seed_permissions()
+
+        for rdata in SYSTEM_ROLES:
+            role, _ = Role.objects.get_or_create(
+                organization=organization,
+                slug=rdata["slug"],
+                defaults={
+                    "name": rdata["name"],
+                    "description": rdata["description"],
+                    "is_system_role": True,
+                },
+            )
+            # Attach permissions.
+            for codename in rdata["permissions"]:
+                try:
+                    perm = Permission.objects.get(codename=codename)
+                    RolePermission.objects.get_or_create(role=role, permission=perm)
+                except Permission.DoesNotExist:
+                    pass
+
+    @staticmethod
+    @transaction.atomic
+    def create_role(
+        organization: Organization,
+        name: str,
+        description: str = "",
+        permission_codenames: list[str] | None = None,
+        actor_membership: Membership | None = None,
+    ) -> Role:
+        """
+        Create a custom role in an organization.
+
+        actor_membership — the membership of the user performing the action.
+        They must have role.manage permission.
+        """
+        if actor_membership is not None:
+            from organizations.selectors import user_has_permission
+
+            if not user_has_permission(
+                actor_membership.user, organization, "role.manage"
+            ):
+                raise OrganizationAccessValidationError(
+                    {"detail": "You do not have permission to manage roles."},
+                    code="permission_denied",
+                )
+
+        if not name or not name.strip():
+            raise OrganizationAccessValidationError(
+                {"name": ["Role name is required."]},
+                code="invalid_name",
+            )
+
+        slug = Role.normalize_slug(name.strip())
+        if not slug:
+            raise OrganizationAccessValidationError(
+                {"name": ["Role name could not be slugified."]},
+                code="invalid_name",
+            )
+
+        if Role.objects.filter(organization=organization, slug=slug).exists():
+            raise OrganizationAccessValidationError(
+                {
+                    "name": [
+                        "A role with this name already exists in this organization."
+                    ]
+                },
+                code="duplicate_role",
+            )
+
+        role = Role.objects.create(
+            organization=organization,
+            name=name.strip(),
+            slug=slug,
+            description=description,
+            is_system_role=False,
+        )
+
+        if permission_codenames:
+            RBACService._attach_permissions(
+                role, permission_codenames, actor_membership
+            )
+
+        return role
+
+    @staticmethod
+    @transaction.atomic
+    def update_role(
+        role: Role,
+        actor_membership: Membership,
+        name: str | None = None,
+        description: str | None = None,
+        permission_codenames: list[str] | None = None,
+    ) -> Role:
+        from organizations.selectors import user_has_permission
+
+        if not user_has_permission(
+            actor_membership.user, role.organization, "role.manage"
+        ):
+            raise OrganizationAccessValidationError(
+                {"detail": "You do not have permission to manage roles."},
+                code="permission_denied",
+            )
+
+        if role.is_system_role:
+            raise OrganizationAccessValidationError(
+                {"detail": "System roles cannot be modified."},
+                code="system_role_protected",
+            )
+
+        if name is not None:
+            name = name.strip()
+            if not name:
+                raise OrganizationAccessValidationError(
+                    {"name": ["Role name is required."]},
+                    code="invalid_name",
+                )
+            new_slug = Role.normalize_slug(name)
+            existing = Role.objects.filter(
+                organization=role.organization, slug=new_slug
+            ).exclude(id=role.id)
+            if existing.exists():
+                raise OrganizationAccessValidationError(
+                    {"name": ["A role with this name already exists."]},
+                    code="duplicate_role",
+                )
+            role.name = name
+            role.slug = new_slug
+
+        if description is not None:
+            role.description = description
+
+        role.save(update_fields=["name", "slug", "description", "updated_at"])
+
+        if permission_codenames is not None:
+            RolePermission.objects.filter(role=role).delete()
+            RBACService._attach_permissions(
+                role, permission_codenames, actor_membership
+            )
+
+        return role
+
+    @staticmethod
+    @transaction.atomic
+    def delete_role(role: Role, actor_membership: Membership) -> None:
+        from organizations.selectors import user_has_permission
+
+        if not user_has_permission(
+            actor_membership.user, role.organization, "role.manage"
+        ):
+            raise OrganizationAccessValidationError(
+                {"detail": "You do not have permission to manage roles."},
+                code="permission_denied",
+            )
+
+        if role.is_system_role:
+            raise OrganizationAccessValidationError(
+                {"detail": "System roles cannot be deleted."},
+                code="system_role_protected",
+            )
+
+        role.delete()
+
+    @staticmethod
+    @transaction.atomic
+    def assign_role_to_membership(
+        membership: Membership,
+        role: Role | None,
+        actor_membership: Membership,
+    ) -> Membership:
+        """
+        Assign (or remove) a role from a membership.
+
+        Security invariants enforced:
+        - Actor must have role.assign permission in the organization.
+        - The role must belong to the same organization as the membership.
+        - The owner role may only be transferred by the current owner (not self-granted).
+        - An owner cannot remove their own role if they are the sole owner.
+        """
+        from organizations.selectors import user_has_permission
+
+        organization = membership.organization
+
+        if not user_has_permission(actor_membership.user, organization, "role.assign"):
+            raise OrganizationAccessValidationError(
+                {"detail": "You do not have permission to assign roles."},
+                code="permission_denied",
+            )
+
+        if role is not None and role.organization_id != organization.pk:
+            raise OrganizationAccessValidationError(
+                {"detail": "Role does not belong to this organization."},
+                code="cross_tenant_role",
+            )
+
+        # Prevent owner self-elevation: a non-owner cannot assign the owner role.
+        if role is not None and role.slug == "organization-owner":
+            actor_role = actor_membership.role
+            if actor_role is None or actor_role.slug != "organization-owner":
+                raise OrganizationAccessValidationError(
+                    {
+                        "detail": "Only the organization owner can assign the owner role."
+                    },
+                    code="owner_escalation",
+                )
+
+        # Prevent sole-owner from removing their own owner role.
+        if (  # noqa: SIM102
+            membership.role is not None and membership.role.slug == "organization-owner"
+        ):
+            if role is None or role.slug != "organization-owner":
+                owner_count = Membership.objects.filter(
+                    organization=organization,
+                    status=MembershipStatus.ACTIVE,
+                    role__slug="organization-owner",
+                ).count()
+                if owner_count <= 1:
+                    raise OrganizationAccessValidationError(
+                        {
+                            "detail": (
+                                "Cannot remove the sole owner. "
+                                "Transfer ownership before changing this role."
+                            )
+                        },
+                        code="sole_owner_protected",
+                    )
+
+        membership.role = role
+        membership.save(update_fields=["role", "updated_at"])
+        return membership
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _attach_permissions(
+        role: Role,
+        codenames: list[str],
+        actor_membership: Membership | None,
+    ) -> None:
+        """
+        Attach a list of permissions to a role.
+        Actor may only attach permissions that exist.
+        """
+        permissions = Permission.objects.filter(codename__in=codenames)
+        found = {p.codename for p in permissions}
+        unknown = set(codenames) - found
+        if unknown:
+            raise OrganizationAccessValidationError(
+                {"permissions": [f"Unknown permissions: {sorted(unknown)}"]},
+                code="unknown_permissions",
+            )
+
+        for perm in permissions:
+            RolePermission.objects.get_or_create(role=role, permission=perm)

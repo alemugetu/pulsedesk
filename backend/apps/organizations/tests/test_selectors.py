@@ -15,12 +15,12 @@ User = get_user_model()
 class OrganizationSelectorsTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
-            email='member@example.com',
-            password='testpass123',
+            email="member@example.com",
+            password="testpass123",
         )
         self.organization = Organization.objects.create(
-            name='Acme Corp',
-            slug='acme-corp',
+            name="Acme Corp",
+            slug="acme-corp",
         )
         self.membership = Membership.objects.create(
             user=self.user,
@@ -43,7 +43,7 @@ class OrganizationSelectorsTest(TestCase):
 
     def test_list_user_organizations_excludes_suspended_membership(self):
         self.membership.status = MembershipStatus.SUSPENDED
-        self.membership.save(update_fields=['status'])
+        self.membership.save(update_fields=["status"])
         self.assertEqual(list_user_organizations(self.user).count(), 0)
 
     def test_get_active_membership(self):

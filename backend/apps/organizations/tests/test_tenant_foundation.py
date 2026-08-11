@@ -8,7 +8,7 @@ class TenantFoundationTest(TestCase):
         self.assertTrue(TenantScopedModel._meta.abstract)
 
     def test_tenant_scoped_model_has_organization_field(self):
-        field = TenantScopedModel._meta.get_field('organization')
+        field = TenantScopedModel._meta.get_field("organization")
         self.assertEqual(field.related_model, Organization)
 
     def test_tenant_scoped_manager_requires_organization(self):

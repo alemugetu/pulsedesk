@@ -11,16 +11,16 @@ User = get_user_model()
 class OrganizationServiceTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
-            email='owner@example.com',
-            password='testpass123',
+            email="owner@example.com",
+            password="testpass123",
         )
 
     def test_create_organization_with_membership(self):
         organization = OrganizationService.create_organization(
             user=self.user,
-            name='Acme Corp',
+            name="Acme Corp",
         )
-        self.assertEqual(organization.name, 'Acme Corp')
+        self.assertEqual(organization.name, "Acme Corp")
         self.assertTrue(
             Membership.objects.filter(
                 user=self.user,
@@ -32,27 +32,27 @@ class OrganizationServiceTest(TestCase):
     def test_create_organization_generates_slug(self):
         organization = OrganizationService.create_organization(
             user=self.user,
-            name='Acme Corp',
+            name="Acme Corp",
         )
-        self.assertEqual(organization.slug, 'acme-corp')
+        self.assertEqual(organization.slug, "acme-corp")
 
     def test_create_organization_requires_name(self):
         with self.assertRaises(ValidationError):
-            OrganizationService.create_organization(user=self.user, name='   ')
+            OrganizationService.create_organization(user=self.user, name="   ")
 
     def test_create_organization_generates_unique_slug_on_collision(self):
-        Organization.objects.create(name='Acme Corp', slug='acme-corp')
+        Organization.objects.create(name="Acme Corp", slug="acme-corp")
         organization = OrganizationService.create_organization(
             user=self.user,
-            name='Acme Corp',
+            name="Acme Corp",
         )
-        self.assertEqual(organization.slug, 'acme-corp-1')
+        self.assertEqual(organization.slug, "acme-corp-1")
         self.assertEqual(Membership.objects.filter(user=self.user).count(), 1)
 
     def test_validate_organization_access_active_member(self):
         organization = OrganizationService.create_organization(
             user=self.user,
-            name='Acme Corp',
+            name="Acme Corp",
         )
         membership = OrganizationService.validate_organization_access(
             self.user,
@@ -61,42 +61,42 @@ class OrganizationServiceTest(TestCase):
         self.assertEqual(membership.status, MembershipStatus.ACTIVE)
 
     def test_validate_organization_access_not_member(self):
-        organization = Organization.objects.create(name='Acme Corp', slug='acme-corp')
+        organization = Organization.objects.create(name="Acme Corp", slug="acme-corp")
         with self.assertRaises(ValidationError) as exc:
             OrganizationService.validate_organization_access(self.user, organization)
-        self.assertEqual(exc.exception.code, 'not_found')
+        self.assertEqual(exc.exception.code, "not_found")
 
     def test_validate_organization_access_suspended_membership(self):
         organization = OrganizationService.create_organization(
             user=self.user,
-            name='Acme Corp',
+            name="Acme Corp",
         )
         membership = Membership.objects.get(user=self.user, organization=organization)
         membership.status = MembershipStatus.SUSPENDED
-        membership.save(update_fields=['status'])
+        membership.save(update_fields=["status"])
 
         with self.assertRaises(ValidationError) as exc:
             OrganizationService.validate_organization_access(self.user, organization)
-        self.assertEqual(exc.exception.code, 'membership_suspended')
+        self.assertEqual(exc.exception.code, "membership_suspended")
 
     def test_validate_organization_access_removed_membership(self):
         organization = OrganizationService.create_organization(
             user=self.user,
-            name='Acme Corp',
+            name="Acme Corp",
         )
         membership = Membership.objects.get(user=self.user, organization=organization)
         membership.status = MembershipStatus.REMOVED
-        membership.save(update_fields=['status'])
+        membership.save(update_fields=["status"])
 
         with self.assertRaises(ValidationError) as exc:
             OrganizationService.validate_organization_access(self.user, organization)
-        self.assertEqual(exc.exception.code, 'membership_removed')
+        self.assertEqual(exc.exception.code, "membership_removed")
 
     def test_transaction_rolls_back_on_membership_failure(self):
-        organization = Organization.objects.create(name='Existing', slug='existing')
+        organization = Organization.objects.create(name="Existing", slug="existing")
 
-        with self.assertRaises(Exception), transaction.atomic():
-            Organization.objects.create(name='Broken', slug='broken')
+        with self.assertRaises(Exception), transaction.atomic():  # noqa: B017
+            Organization.objects.create(name="Broken", slug="broken")
             Membership.objects.create(
                 user=self.user,
                 organization=organization,
@@ -106,4 +106,4 @@ class OrganizationServiceTest(TestCase):
                 organization=organization,
             )
 
-        self.assertFalse(Organization.objects.filter(slug='broken').exists())
+        self.assertFalse(Organization.objects.filter(slug="broken").exists())

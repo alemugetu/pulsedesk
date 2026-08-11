@@ -24,4 +24,4 @@ def set_tenant_context(request, context: TenantContext) -> None:
 
 def get_tenant_context(request) -> TenantContext | None:
     """Return tenant context previously bound to the request."""
-    return getattr(request, '_tenant_context', None)
+    return getattr(request, "_tenant_context", None)
