@@ -68,9 +68,17 @@ class IncidentAssigneeSerializer(serializers.Serializer):
 
 
 class IncidentSerializer(serializers.ModelSerializer):
+    """
+    Full incident representation including embedded SLA summary.
+
+    The `sla` field is None when no SLA policy was configured at incident
+    creation time (graceful degradation).
+    """
+
     category = IncidentCategoryMinimalSerializer(read_only=True)
     reporter = serializers.SerializerMethodField()
     assignee = serializers.SerializerMethodField()
+    sla = serializers.SerializerMethodField()
 
     class Meta:
         model = Incident
@@ -84,6 +92,7 @@ class IncidentSerializer(serializers.ModelSerializer):
             "category",
             "reporter",
             "assignee",
+            "sla",
             "created_at",
             "updated_at",
             "resolved_at",
@@ -108,6 +117,23 @@ class IncidentSerializer(serializers.ModelSerializer):
                 "email": obj.assignee.user.email,
             },
         }
+
+    def get_sla(self, obj) -> dict | None:
+        """
+        Return embedded SLA summary or None if no SLA record exists.
+        Uses hasattr / try-except to safely handle missing reverse relation.
+        """
+        try:
+            sla = obj.sla
+        except Exception:  # noqa: BLE001
+            return None
+        if sla is None:
+            return None
+
+        # Import here to avoid circular import at module level
+        from sla.serializers import IncidentSLASummarySerializer
+
+        return IncidentSLASummarySerializer(sla).data
 
 
 class IncidentCreateSerializer(serializers.Serializer):

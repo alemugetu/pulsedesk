@@ -133,6 +133,21 @@ INITIAL_PERMISSIONS = [
         "action": "close",
         "description": "Mark incidents as closed.",
     },
+    # SLA (Phase 6)
+    {
+        "codename": "sla.view",
+        "name": "View SLA Policies",
+        "resource": "sla",
+        "action": "view",
+        "description": "View SLA policies and targets in the organization.",
+    },
+    {
+        "codename": "sla.manage",
+        "name": "Manage SLA Policies",
+        "resource": "sla",
+        "action": "manage",
+        "description": "Create and update SLA policies and targets.",
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -149,8 +164,18 @@ _INCIDENT_FULL = _INCIDENT_AGENT | {
     "incident.close",
 }
 
-_VIEWER = _BASE_READ_ONLY | _INCIDENT_VIEW
-_AGENT = _BASE_READ_ONLY | _INCIDENT_AGENT
+# SLA permission sets (Phase 6)
+# Permission matrix:
+#   Owner            → sla.view + sla.manage  (via _ALL_PERMISSIONS)
+#   Admin            → sla.view + sla.manage
+#   Operations Mgr   → sla.view               (read-only; cannot create/change policies)
+#   Agent            → sla.view
+#   Viewer           → sla.view
+_SLA_VIEW = {"sla.view"}
+_SLA_MANAGE = _SLA_VIEW | {"sla.manage"}
+
+_VIEWER = _BASE_READ_ONLY | _INCIDENT_VIEW | _SLA_VIEW
+_AGENT = _BASE_READ_ONLY | _INCIDENT_AGENT | _SLA_VIEW
 _OPS_MANAGER = (
     _BASE_READ_ONLY
     | {
@@ -160,9 +185,13 @@ _OPS_MANAGER = (
         "role.assign",
     }
     | _INCIDENT_FULL
+    | _SLA_VIEW
 )
 _ADMIN = (
-    _OPS_MANAGER | {"organization.update", "role.view", "role.manage"} | _INCIDENT_FULL
+    _OPS_MANAGER
+    | {"organization.update", "role.view", "role.manage"}
+    | _INCIDENT_FULL
+    | _SLA_MANAGE
 )
 _OWNER = _ALL_PERMISSIONS
 

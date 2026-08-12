@@ -40,7 +40,7 @@ def get_incidents(
 ):
     """
     Return queryset of incidents for an organization with optimized joins.
-    Avoids N+1 queries.
+    Avoids N+1 queries — includes SLA tracking record.
     """
     qs = (
         Incident.objects.filter(organization=organization)
@@ -50,6 +50,8 @@ def get_incidents(
             "assignee",
             "assignee__user",
             "assignee__role",
+            "sla",
+            "sla__policy",
         )
         .order_by("-created_at")
     )
@@ -69,6 +71,7 @@ def get_incidents(
 def get_incident(organization: Organization, incident_id) -> Incident | None:
     """
     Retrieve a single incident by UUID scoped to an organization.
+    Includes SLA tracking record.
     """
     try:
         return Incident.objects.select_related(
@@ -77,6 +80,8 @@ def get_incident(organization: Organization, incident_id) -> Incident | None:
             "assignee",
             "assignee__user",
             "assignee__role",
+            "sla",
+            "sla__policy",
         ).get(id=incident_id, organization=organization)
     except (Incident.DoesNotExist, DjangoValidationError, TypeError, ValueError):
         return None
@@ -87,6 +92,7 @@ def get_incident_by_number(
 ) -> Incident | None:
     """
     Retrieve a single incident by human-readable incident number scoped to an organization.
+    Includes SLA tracking record.
     """
     try:
         return Incident.objects.select_related(
@@ -95,6 +101,8 @@ def get_incident_by_number(
             "assignee",
             "assignee__user",
             "assignee__role",
+            "sla",
+            "sla__policy",
         ).get(incident_number=incident_number, organization=organization)
     except (Incident.DoesNotExist, DjangoValidationError, TypeError, ValueError):
         return None

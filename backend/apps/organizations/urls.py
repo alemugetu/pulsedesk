@@ -41,4 +41,9 @@ urlpatterns = [
         "<uuid:organization_id>/",
         include("incidents.urls"),
     ),
+    # SLA Policies & Targets
+    path(
+        "<uuid:organization_id>/",
+        include("sla.urls"),
+    ),
 ]

@@ -259,6 +259,13 @@ class IncidentService:
             resolved_at=None,
         )
 
+        # Calculate and attach SLA if an active default policy exists.
+        # Intentionally imported here to avoid circular imports at module level.
+        # If no policy is configured this is a no-op — incident creation never fails.
+        from sla.services import SLACalculationService
+
+        SLACalculationService.calculate_incident_sla(incident)
+
         return incident
 
     @staticmethod
@@ -398,4 +405,17 @@ class IncidentService:
             incident.resolved_at = timezone.now()
 
         incident.save()
+
+        # SLA completion hooks — must run inside the same transaction.
+        # Imported here to avoid circular imports at module level.
+        from sla.services import SLACalculationService
+
+        if new_status == IncidentStatus.ACKNOWLEDGED:
+            # OPEN → ACKNOWLEDGED: mark response SLA as completed.
+            SLACalculationService.complete_response_sla(incident)
+
+        elif new_status == IncidentStatus.RESOLVED:
+            # IN_PROGRESS → RESOLVED: mark resolution SLA as completed.
+            SLACalculationService.complete_resolution_sla(incident)
+
         return incident

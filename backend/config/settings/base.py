@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "accounts",
     "organizations",
     "incidents",
+    "sla",
 ]
 
 MIDDLEWARE = [
