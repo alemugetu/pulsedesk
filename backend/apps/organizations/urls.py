@@ -46,4 +46,9 @@ urlpatterns = [
         "<uuid:organization_id>/",
         include("sla.urls"),
     ),
+    # Escalation Policies, Levels, Rules & Incident Escalation History
+    path(
+        "<uuid:organization_id>/",
+        include("escalation.urls"),
+    ),
 ]

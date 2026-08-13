@@ -148,6 +148,28 @@ INITIAL_PERMISSIONS = [
         "action": "manage",
         "description": "Create and update SLA policies and targets.",
     },
+    # Escalation (Phase 7)
+    {
+        "codename": "escalation.view",
+        "name": "View Escalation Policies",
+        "resource": "escalation",
+        "action": "view",
+        "description": "View escalation policies, levels, rules, and incident escalation history.",
+    },
+    {
+        "codename": "escalation.manage",
+        "name": "Manage Escalation Policies",
+        "resource": "escalation",
+        "action": "manage",
+        "description": "Create and update escalation policies, levels, and rules.",
+    },
+    {
+        "codename": "escalation.evaluate",
+        "name": "Evaluate Escalations",
+        "resource": "escalation",
+        "action": "evaluate",
+        "description": "Manually trigger escalation evaluation for incidents.",
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -174,8 +196,18 @@ _INCIDENT_FULL = _INCIDENT_AGENT | {
 _SLA_VIEW = {"sla.view"}
 _SLA_MANAGE = _SLA_VIEW | {"sla.manage"}
 
-_VIEWER = _BASE_READ_ONLY | _INCIDENT_VIEW | _SLA_VIEW
-_AGENT = _BASE_READ_ONLY | _INCIDENT_AGENT | _SLA_VIEW
+# Escalation permission sets (Phase 7)
+# Permission matrix:
+#   Owner              → escalation.view + escalation.manage + escalation.evaluate
+#   Admin              → escalation.view + escalation.manage + escalation.evaluate
+#   Operations Manager → escalation.view + escalation.manage + escalation.evaluate
+#   Agent              → escalation.view  (read-only; cannot manage or evaluate)
+#   Viewer             → escalation.view
+_ESCALATION_VIEW = {"escalation.view"}
+_ESCALATION_MANAGE = _ESCALATION_VIEW | {"escalation.manage", "escalation.evaluate"}
+
+_VIEWER = _BASE_READ_ONLY | _INCIDENT_VIEW | _SLA_VIEW | _ESCALATION_VIEW
+_AGENT = _BASE_READ_ONLY | _INCIDENT_AGENT | _SLA_VIEW | _ESCALATION_VIEW
 _OPS_MANAGER = (
     _BASE_READ_ONLY
     | {
@@ -186,12 +218,14 @@ _OPS_MANAGER = (
     }
     | _INCIDENT_FULL
     | _SLA_VIEW
+    | _ESCALATION_MANAGE
 )
 _ADMIN = (
     _OPS_MANAGER
     | {"organization.update", "role.view", "role.manage"}
     | _INCIDENT_FULL
     | _SLA_MANAGE
+    | _ESCALATION_MANAGE
 )
 _OWNER = _ALL_PERMISSIONS
 
