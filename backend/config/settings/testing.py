@@ -15,3 +15,11 @@ DATABASES = {
 # Email — never send real email during tests; inspect via django.core.mail.outbox
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 DEFAULT_FROM_EMAIL = "PulseDesk Test <test@pulsedesk.io>"
+
+# ---------------------------------------------------------------------------
+# Celery — deterministic in-process execution (no real Redis required)
+# ---------------------------------------------------------------------------
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = True
+CELERY_BROKER_URL = "memory://"
+CELERY_RESULT_BACKEND = "cache+memory://"

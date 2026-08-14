@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
     # Local apps
-    "common",
+    "common.apps.CommonConfig",
     "api_v1",
     "accounts",
     "organizations",
@@ -200,6 +200,35 @@ SIMPLE_JWT = {
     "TOKEN_TYPE_CLAIM": "token_type",
 }
 
+# ---------------------------------------------------------------------------
+# Celery — shared configuration
+# Broker and result backend URLs are set per environment (development,
+# production, testing). Celery Beat is intentionally deferred to a later phase.
+# ---------------------------------------------------------------------------
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_ENABLE_UTC = USE_TZ
+
+# Safe JSON serialization only — never use pickle for task payloads.
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_ACCEPT_CONTENT = ["json"]
+
+CELERY_TASK_TRACK_STARTED = True
+
+# Execution limits: most PulseDesk tasks should complete well under 4 minutes.
+# Soft limit allows graceful cleanup; hard limit terminates the worker process.
+CELERY_TASK_SOFT_TIME_LIMIT = 240
+CELERY_TASK_TIME_LIMIT = 300
+
+# Reliability: acknowledge after task completion so unacked tasks are redelivered
+# if a worker dies mid-execution. Prefetch=1 avoids one worker hoarding tasks.
+CELERY_TASK_ACKS_LATE = True
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
+# Default retry policy for tasks that opt into autoretry_for.
+CELERY_TASK_DEFAULT_RETRY_DELAY = 60
+
 # Logging Configuration
 LOGGING = {
     "version": 1,
@@ -233,6 +262,16 @@ LOGGING = {
         "django.db.backends": {
             "handlers": ["console"],
             "level": "WARNING",
+            "propagate": False,
+        },
+        "celery": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "celery.task": {
+            "handlers": ["console"],
+            "level": "INFO",
             "propagate": False,
         },
     },

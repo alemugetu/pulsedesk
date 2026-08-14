@@ -40,3 +40,12 @@ EMAIL_HOST_USER = env("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
 
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL")
+
+# ---------------------------------------------------------------------------
+# Celery — local Redis broker/result backend
+# CELERY_BROKER_URL and CELERY_RESULT_BACKEND take precedence.
+# REDIS_URL is a convenience fallback for local development only.
+# ---------------------------------------------------------------------------
+_default_redis_url = env("REDIS_URL", default="redis://127.0.0.1:6379/0")
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=_default_redis_url)
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=_default_redis_url)

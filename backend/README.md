@@ -14,6 +14,9 @@ Backend service for PulseDesk.
 
 - Phase 1 — Backend Foundation: complete
 - Phase 2 — Authentication & Identity Foundation: complete
+- Phase 8 — Asynchronous Processing Infrastructure: complete
+
+See [docs/celery.md](docs/celery.md) for Celery/Redis setup, worker startup, and testing.
 
 ## Authentication (Phase 2)
 
