@@ -1,0 +1,26 @@
+Verify Your Email Address - PulseDesk
+======================================
+
+Hello {{ user.first_name|default:user.email }},
+
+Thank you for registering with PulseDesk.
+
+Click the link below to verify your email address and activate your account:
+
+{{ verification_url }}
+
+---
+USING THE API DIRECTLY (Swagger or API client)?
+POST /api/v1/auth/verify-email/
+Body: {"token": "{{ token }}"}
+
+---
+SECURITY NOTICE: This link expires in 24 hours.
+If you did not create a PulseDesk account, ignore this email.
+
+Best regards,
+The PulseDesk Team
+
+---
+© {% now "Y" %} PulseDesk. All rights reserved.
+This is an automated email. Please do not reply.

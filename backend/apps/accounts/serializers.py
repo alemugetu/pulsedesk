@@ -69,6 +69,8 @@ class UserLoginSerializer(serializers.Serializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     """Serializer for the authenticated user profile."""
 
+    is_verified = serializers.BooleanField(read_only=True)
+
     class Meta:
         model = User
         fields: ClassVar[tuple[str, ...]] = (
@@ -77,6 +79,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "is_active",
+            "is_verified",
         )
         read_only_fields: ClassVar[tuple[str, ...]] = fields
 
@@ -85,3 +88,41 @@ class LogoutSerializer(serializers.Serializer):
     """Serializer for logout."""
 
     refresh = serializers.CharField(required=True)
+
+
+class EmailVerificationSerializer(serializers.Serializer):
+    """Serializer for email verification."""
+
+    token = serializers.CharField(required=True)
+
+
+class ResendVerificationSerializer(serializers.Serializer):
+    """Serializer for resending verification email."""
+
+    email = serializers.EmailField(required=True)
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    """Serializer for password reset request."""
+
+    email = serializers.EmailField(required=True)
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    """Serializer for password reset confirmation."""
+
+    user_id = serializers.UUIDField(required=True)
+    token = serializers.CharField(required=True)
+    new_password = serializers.CharField(
+        required=True, style={"input_type": "password"}
+    )
+    new_password_confirm = serializers.CharField(
+        required=True, style={"input_type": "password"}
+    )
+
+    def validate(self, attrs):
+        if attrs["new_password"] != attrs["new_password_confirm"]:
+            raise serializers.ValidationError(
+                {"new_password_confirm": ["Passwords do not match."]}
+            )
+        return attrs

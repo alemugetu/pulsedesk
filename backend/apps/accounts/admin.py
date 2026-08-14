@@ -16,12 +16,12 @@ class UserAdmin(BaseUserAdmin):
         "email",
         "first_name",
         "last_name",
-        "is_verified",
+        "email_verified_at",
         "is_active",
         "created_at",
     )
     list_filter: ClassVar[tuple[str, ...]] = (
-        "is_verified",
+        "email_verified_at",
         "is_active",
         "is_staff",
         "is_superuser",
@@ -36,7 +36,7 @@ class UserAdmin(BaseUserAdmin):
             {
                 "fields": (
                     "is_active",
-                    "is_verified",
+                    "email_verified_at",
                     "is_staff",
                     "is_superuser",
                     "groups",

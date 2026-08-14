@@ -1,12 +1,17 @@
 import sys
 from pathlib import Path
 
+import environ
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # Add project root and apps directory to Python path
 sys.path.insert(0, str(BASE_DIR))
 sys.path.insert(0, str(BASE_DIR / "apps"))
+
+# Initialize environ for base settings
+env = environ.Env()
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
@@ -56,7 +61,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -91,6 +96,25 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
+
+# ---------------------------------------------------------------------------
+# Email — shared defaults only
+# Each environment overrides EMAIL_BACKEND and credentials.
+# ---------------------------------------------------------------------------
+DEFAULT_FROM_EMAIL = "PulseDesk <noreply@pulsedesk.io>"
+
+# Email verification / password-reset token lifetimes (seconds)
+EMAIL_VERIFICATION_TIMEOUT = 60 * 60 * 24  # 24 hours
+PASSWORD_RESET_TIMEOUT = 60 * 60 * 1  # 1 hour (also used by Django's built-in checker)
+
+# Base URL for links in emails.
+# In development this is the Django dev server.
+# When a frontend is deployed, set FRONTEND_URL in the environment instead
+# and update email_services.py to use it.
+BACKEND_URL = "http://127.0.0.1:8000"
+
+# Frontend URL for email verification and password reset links
+FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5173")
 
 LANGUAGE_CODE = "en-us"
 

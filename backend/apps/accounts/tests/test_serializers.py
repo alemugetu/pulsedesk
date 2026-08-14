@@ -52,10 +52,14 @@ class UserLoginSerializerTest(TestCase):
     """Test cases for UserLoginSerializer"""
 
     def setUp(self):
-        """Set up test user"""
+        """Set up test user — must be verified for login to succeed."""
+        from django.utils import timezone
+
         self.user = User.objects.create_user(
             email="test@example.com", password="testpass123"
         )
+        self.user.email_verified_at = timezone.now()
+        self.user.save(update_fields=["email_verified_at"])
 
     def test_valid_login(self):
         """Test valid login credentials"""

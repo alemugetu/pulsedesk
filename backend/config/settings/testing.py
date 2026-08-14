@@ -11,3 +11,7 @@ DATABASES = {
         "NAME": ":memory:",
     }
 }
+
+# Email — never send real email during tests; inspect via django.core.mail.outbox
+EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+DEFAULT_FROM_EMAIL = "PulseDesk Test <test@pulsedesk.io>"

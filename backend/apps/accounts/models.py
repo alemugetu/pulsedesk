@@ -41,7 +41,17 @@ class User(AbstractUser, BaseModel):
     email = models.EmailField(unique=True, max_length=255)
     first_name = models.CharField(max_length=150, blank=True)
     last_name = models.CharField(max_length=150, blank=True)
-    is_verified = models.BooleanField(default=False)
+    email_verified_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        default=None,
+        help_text="Timestamp when the user verified their email. NULL means unverified.",
+    )
+
+    @property
+    def is_verified(self) -> bool:
+        """Backward-compatible property — True when email has been verified."""
+        return self.email_verified_at is not None
 
     # Remove username field (we use email instead)
     username = None
