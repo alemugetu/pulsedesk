@@ -203,7 +203,7 @@ SIMPLE_JWT = {
 # ---------------------------------------------------------------------------
 # Celery — shared configuration
 # Broker and result backend URLs are set per environment (development,
-# production, testing). Celery Beat is intentionally deferred to a later phase.
+# production, testing). Celery Beat is introduced in Phase 9.
 # ---------------------------------------------------------------------------
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_ENABLE_UTC = USE_TZ
@@ -228,6 +228,58 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 # Default retry policy for tasks that opt into autoretry_for.
 CELERY_TASK_DEFAULT_RETRY_DELAY = 60
+
+# ---------------------------------------------------------------------------
+# SLA monitoring — Phase 9
+#
+# SLA_MONITOR_INTERVAL_SECONDS controls how often Celery Beat dispatches the
+# SLA monitoring task.  The default of 60 seconds balances:
+#   - SLA accuracy  (breaches detected within ~1 minute of occurrence)
+#   - Database load (one lightweight query per minute across all orgs)
+#   - Worker load   (iterator-based processing; low memory footprint)
+#
+# To change it:
+#   Set the SLA_MONITOR_INTERVAL_SECONDS environment variable, or override
+#   this setting in the environment-specific settings module
+#   (e.g. config/settings/production.py).
+#
+# SLA_WARNING_THRESHOLD controls what fraction of the SLA window must have
+# elapsed before a "warning" is logged.  Default: 0.80 (80 % elapsed).
+# ---------------------------------------------------------------------------
+SLA_MONITOR_INTERVAL_SECONDS: int = env.int(
+    "SLA_MONITOR_INTERVAL_SECONDS", default=60
+)
+SLA_WARNING_THRESHOLD: float = env.float(
+    "SLA_WARNING_THRESHOLD", default=0.80
+)
+
+# ---------------------------------------------------------------------------
+# Celery Beat periodic schedule
+#
+# There is ONE authoritative SLA monitoring schedule defined here.
+# All environments inherit it; production overrides only the interval via
+# SLA_MONITOR_INTERVAL_SECONDS in the environment.
+#
+# To disable the schedule entirely in a specific environment, set
+# CELERY_BEAT_SCHEDULE = {} in that environment's settings module.
+# ---------------------------------------------------------------------------
+CELERY_BEAT_SCHEDULE = {
+    "sla-monitor": {
+        "task": "sla.monitor_sla",
+        "schedule": SLA_MONITOR_INTERVAL_SECONDS,
+        # options: route to a specific queue if desired in production
+        # "options": {"queue": "monitoring"},
+    },
+}
+
+# Use the database scheduler backend for Beat.  This allows the schedule to be
+# adjusted at runtime without restarting workers.
+# django-celery-beat must be installed: pip install django-celery-beat
+# Add "django_celery_beat" to INSTALLED_APPS in the environment settings if
+# you want the Django Admin integration.  For static schedules the default
+# PersistentScheduler (file-based) is sufficient and requires no extra deps.
+# We intentionally leave this unset so that the default PersistentScheduler
+# is used — django-celery-beat is not required for Phase 9.
 
 # Logging Configuration
 LOGGING = {

@@ -6,7 +6,8 @@ All selectors enforce tenant isolation by requiring an organization parameter.
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import QuerySet
-from incidents.models import Incident
+from django.utils import timezone
+from incidents.models import Incident, IncidentStatus
 from organizations.models import Organization
 from sla.models import IncidentSLA, SLAPolicy, SLATarget
 
@@ -82,3 +83,46 @@ def get_incident_sla(incident: Incident) -> IncidentSLA | None:
         return IncidentSLA.objects.select_related("policy").get(incident=incident)
     except IncidentSLA.DoesNotExist:
         return None
+
+
+# ---------------------------------------------------------------------------
+# SLA monitoring selector
+# ---------------------------------------------------------------------------
+
+#: Incident statuses that are considered active (eligible for SLA monitoring).
+#: RESOLVED and CLOSED are terminal — their SLAs are no longer monitored.
+_ACTIVE_INCIDENT_STATUSES = (
+    IncidentStatus.OPEN,
+    IncidentStatus.ACKNOWLEDGED,
+    IncidentStatus.IN_PROGRESS,
+)
+
+
+def get_active_incidents_for_sla_monitoring() -> "QuerySet[Incident]":
+    """
+    Return all active incidents that have an associated SLA record.
+
+    Used exclusively by the SLA monitoring background task. This selector:
+      - Filters to active statuses only (OPEN, ACKNOWLEDGED, IN_PROGRESS).
+      - Requires that an IncidentSLA record exists (inner join via __isnull=False).
+      - Eagerly joins the related SLA and its policy, and the incident's
+        organization, to prevent N+1 queries in the monitoring loop.
+      - Does NOT filter by org — this is a system-level cross-org query.
+        Tenant isolation is enforced at the service level when we call the
+        existing org-scoped SLA/escalation services.
+
+    Returns an unevaluated queryset — callers should use .iterator() for
+    large datasets to avoid loading all incidents into memory at once.
+    """
+    return (
+        Incident.objects.filter(
+            status__in=_ACTIVE_INCIDENT_STATUSES,
+            sla__isnull=False,
+        )
+        .select_related(
+            "organization",
+            "sla",
+            "sla__policy",
+        )
+        .order_by("created_at")  # Stable, reproducible iteration order
+    )

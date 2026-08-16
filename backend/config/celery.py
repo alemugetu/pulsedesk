@@ -11,7 +11,7 @@ import logging
 import os
 
 from celery import Celery
-from celery.signals import task_failure, task_postrun, task_prerun # type: ignore
+from celery.signals import task_failure, task_postrun, task_prerun  # type: ignore
 
 logger = logging.getLogger("celery.task")
 
@@ -19,6 +19,10 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
 app = Celery("config")
 app.config_from_object("django.conf:settings", namespace="CELERY")
+
+# Auto-discover tasks in all INSTALLED_APPS.
+# Celery will look for a tasks.py module inside each app package.
+app.autodiscover_tasks()
 
 
 def _safe_task_context(

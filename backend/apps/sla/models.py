@@ -193,6 +193,15 @@ class IncidentSLA(BaseModel):
             models.Index(fields=["policy"]),
             models.Index(fields=["response_deadline"]),
             models.Index(fields=["resolution_deadline"]),
+            # Phase 9 — SLA monitoring query optimisation
+            models.Index(
+                fields=["response_breached", "response_deadline"],
+                name="isla_resp_breach_dl_idx",
+            ),
+            models.Index(
+                fields=["resolution_breached", "resolution_deadline"],
+                name="isla_resol_breach_dl_idx",
+            ),
         ]
 
     def __str__(self) -> str:

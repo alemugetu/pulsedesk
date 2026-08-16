@@ -11,22 +11,30 @@ Key services:
   - evaluate_sla_status(...)      — deterministic breach evaluation (no background job)
   - complete_response_sla(...)    — called on OPEN → ACKNOWLEDGED
   - complete_resolution_sla(...)  — called on IN_PROGRESS → RESOLVED
+  - SLAMonitoringService.run()    — Phase 9: cross-org SLA monitoring loop
 """
 
+from __future__ import annotations
+
+import logging
+from dataclasses import dataclass, field
 from datetime import timedelta
 
 from django.db import transaction
 from django.utils import timezone
-from incidents.models import Incident, IncidentPriority
+from incidents.models import Incident, IncidentPriority, IncidentStatus
 from organizations.models import Membership, Organization
 from organizations.selectors import user_has_permission
 from rest_framework.exceptions import ValidationError
 from sla.models import IncidentSLA, SLAPolicy, SLAStatus, SLATarget
 from sla.selectors import (
+    get_active_incidents_for_sla_monitoring,
     get_default_sla_policy,
     get_incident_sla,
     get_sla_target,
 )
+
+logger = logging.getLogger("celery.task")
 
 
 class SLAValidationError(ValidationError):
@@ -491,3 +499,386 @@ class SLACalculationService:
             ]
         )
         return sla
+
+
+# ---------------------------------------------------------------------------
+# SLA monitoring — Phase 9
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class MonitoringResult:
+    """
+    Structured summary returned by SLAMonitoringService.run().
+
+    Designed to be JSON-serialisable so the Celery task can return it directly.
+    Sensitive fields (incident IDs etc.) are counts only — no PII exposed.
+    """
+
+    examined: int = 0
+    skipped: int = 0  # terminal status or no SLA when re-checked inside the loop
+    warnings: int = 0
+    breaches: int = 0
+    escalations: int = 0
+    errors: int = 0
+
+    def to_dict(self) -> dict[str, int]:
+        return {
+            "examined": self.examined,
+            "skipped": self.skipped,
+            "warnings": self.warnings,
+            "breaches": self.breaches,
+            "escalations": self.escalations,
+            "errors": self.errors,
+        }
+
+
+# ---------------------------------------------------------------------------
+# SLA warning threshold
+# ---------------------------------------------------------------------------
+
+#: Default fraction of SLA time elapsed that triggers a warning.
+#: 80 % elapsed → warning state.  Configurable per-call; the monitoring
+#: service reads it from Django settings at call time.
+_DEFAULT_WARNING_THRESHOLD = 0.80
+
+
+class SLAMonitoringService:
+    """
+    System-level SLA monitoring service.
+
+    This service is the *only* caller of the authoritative SLA evaluation
+    (SLACalculationService) and escalation evaluation
+    (EscalationEvaluationService) from within the background task context.
+
+    Design rules:
+      - No request context — operates directly on database records.
+      - No user authentication — system-level worker.
+      - Tenant isolation is enforced by passing each incident's own
+        ``incident.organization`` to the org-scoped sub-services.
+      - One incident failure never aborts the full monitoring run.
+      - All SLA calculation is delegated to SLACalculationService.
+      - All escalation logic is delegated to EscalationEvaluationService.
+      - Does NOT duplicate breach calculation or escalation rules.
+    """
+
+    @staticmethod
+    def run(now=None) -> MonitoringResult:
+        """
+        Execute a full SLA monitoring pass across all eligible incidents.
+
+        Steps per incident:
+          1. Re-check status — skip if terminal (may have changed since query).
+          2. Retrieve SLA — skip if somehow missing.
+          3. Evaluate breach state via authoritative SLA service.
+          4. Determine warning state (approaching deadline, not yet breached).
+          5. If breached → invoke escalation evaluation for each trigger type.
+          6. Accumulate counts; isolate per-incident failures.
+
+        Parameters
+        ----------
+        now : datetime | None
+            Inject a specific datetime for deterministic testing.
+            Defaults to ``timezone.now()`` when None.
+
+        Returns
+        -------
+        MonitoringResult
+            Aggregate counts of the monitoring pass.
+        """
+        if now is None:
+            now = timezone.now()
+
+        # Lazy import avoids circular import at module level.
+        # SLACalculationService is defined in this same module above.
+        from escalation.models import EscalationTriggerType
+        from escalation.services import EscalationEvaluationService
+
+        from django.conf import settings
+
+        warning_threshold: float = float(
+            getattr(settings, "SLA_WARNING_THRESHOLD", _DEFAULT_WARNING_THRESHOLD)
+        )
+
+        result = MonitoringResult()
+        start_time = timezone.now()
+
+        logger.info(
+            "SLA monitor starting",
+            extra={
+                "task": "sla.monitor_sla",
+                "now": now.isoformat(),
+                "warning_threshold": warning_threshold,
+            },
+        )
+
+        # Retrieve the eligible queryset.  iterator() streams rows from the DB
+        # one at a time — avoids loading the entire result set into memory,
+        # which keeps memory stable even at high incident volumes.
+        qs = get_active_incidents_for_sla_monitoring()
+
+        for incident in qs.iterator(chunk_size=200):
+            try:
+                processed = SLAMonitoringService._process_incident(
+                    incident=incident,
+                    now=now,
+                    warning_threshold=warning_threshold,
+                    escalation_service=EscalationEvaluationService,
+                    trigger_types=[
+                        EscalationTriggerType.RESPONSE_BREACH,
+                        EscalationTriggerType.RESOLUTION_BREACH,
+                    ],
+                    result=result,
+                )
+                if not processed:
+                    result.skipped += 1
+            except Exception:  # noqa: BLE001
+                result.errors += 1
+                logger.exception(
+                    "SLA monitor: unhandled error on incident %s (org %s)",
+                    incident.pk,
+                    incident.organization_id,
+                    extra={
+                        "task": "sla.monitor_sla",
+                        "incident_id": str(incident.pk),
+                        "organization_id": str(incident.organization_id),
+                    },
+                )
+                # Continue to next incident — one failure must not abort the run.
+                continue
+
+        duration_ms = int((timezone.now() - start_time).total_seconds() * 1000)
+
+        logger.info(
+            "SLA monitor completed",
+            extra={
+                "task": "sla.monitor_sla",
+                "examined": result.examined,
+                "skipped": result.skipped,
+                "warnings": result.warnings,
+                "breaches": result.breaches,
+                "escalations": result.escalations,
+                "errors": result.errors,
+                "duration_ms": duration_ms,
+            },
+        )
+
+        return result
+
+    # ------------------------------------------------------------------
+    # Per-incident processing
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _process_incident(
+        incident: Incident,
+        now,
+        warning_threshold: float,
+        escalation_service,
+        trigger_types: list[str],
+        result: MonitoringResult,
+    ) -> bool:
+        """
+        Process a single incident.
+
+        Returns True if the incident was fully evaluated, False if skipped.
+        Raises on unexpected errors (caller catches and counts them).
+        """
+        result.examined += 1
+
+        # 1. Re-verify status inside the processing loop.
+        #    The queryset was built before this iteration started; the incident
+        #    may have transitioned to RESOLVED/CLOSED in the meantime.
+        if incident.status in {IncidentStatus.RESOLVED, IncidentStatus.CLOSED}:
+            logger.debug(
+                "SLA monitor: skipping terminal incident %s (status=%s)",
+                incident.pk,
+                incident.status,
+            )
+            return False  # Caller will increment skipped
+
+        # 2. Re-fetch SLA inside the loop — it was selected_related so this
+        #    accesses the cached attribute without an extra query, but we still
+        #    verify it is present.
+        sla: IncidentSLA | None = getattr(incident, "sla", None)
+        if sla is None:
+            logger.debug(
+                "SLA monitor: incident %s has no SLA record, skipping.",
+                incident.pk,
+            )
+            return False
+
+        # 3. Evaluate breach state via the authoritative SLA service.
+        #    This is the ONLY place we call evaluate_sla_status from the
+        #    monitoring path.  It updates response_breached / resolution_breached
+        #    on the IncidentSLA record and returns the updated instance.
+        sla = SLACalculationService.evaluate_sla_status(sla, now=now)
+
+        # 4. Warning detection — approaching deadline without being breached.
+        #    "Warning" means: NOT yet breached, but the deadline is close.
+        warning_fired = SLAMonitoringService._check_warning(
+            sla=sla, now=now, threshold=warning_threshold
+        )
+        if warning_fired:
+            result.warnings += 1
+            logger.info(
+                "SLA monitor: SLA warning for incident %s (org %s)",
+                incident.pk,
+                incident.organization_id,
+                extra={
+                    "task": "sla.monitor_sla",
+                    "incident_id": str(incident.pk),
+                    "organization_id": str(incident.organization_id),
+                    "event": "sla_warning",
+                },
+            )
+
+        # 5. Breach → escalation evaluation.
+        if sla.response_breached or sla.resolution_breached:
+            result.breaches += 1
+            logger.info(
+                "SLA monitor: SLA breach for incident %s (org %s, "
+                "response_breached=%s, resolution_breached=%s)",
+                incident.pk,
+                incident.organization_id,
+                sla.response_breached,
+                sla.resolution_breached,
+                extra={
+                    "task": "sla.monitor_sla",
+                    "incident_id": str(incident.pk),
+                    "organization_id": str(incident.organization_id),
+                    "event": "sla_breach",
+                    "response_breached": sla.response_breached,
+                    "resolution_breached": sla.resolution_breached,
+                },
+            )
+
+            # Invoke escalation for each applicable trigger type.
+            for trigger_type in trigger_types:
+                escalations = SLAMonitoringService._evaluate_escalation(
+                    incident=incident,
+                    trigger_type=trigger_type,
+                    now=now,
+                    escalation_service=escalation_service,
+                )
+                result.escalations += escalations
+
+        return True
+
+    @staticmethod
+    def _check_warning(sla: IncidentSLA, now, threshold: float) -> bool:
+        """
+        Return True if any SLA target is in a warning state.
+
+        Warning criteria (per target):
+          - The target has NOT been completed (completed_at is None).
+          - The target has NOT yet been breached (breached flag is False).
+          - The fraction of elapsed time relative to the total SLA window
+            is at or above the configured threshold.
+
+        This does not mark anything in the database — it is a read-only
+        assessment used only for logging and result counting.
+        """
+        warning = False
+
+        # Response warning
+        if (
+            sla.response_completed_at is None
+            and not sla.response_breached
+        ):
+            if SLAMonitoringService._is_approaching(
+                created_at=sla.created_at,
+                deadline=sla.response_deadline,
+                now=now,
+                threshold=threshold,
+            ):
+                warning = True
+
+        # Resolution warning
+        if (
+            sla.resolution_completed_at is None
+            and not sla.resolution_breached
+        ):
+            if SLAMonitoringService._is_approaching(
+                created_at=sla.created_at,
+                deadline=sla.resolution_deadline,
+                now=now,
+                threshold=threshold,
+            ):
+                warning = True
+
+        return warning
+
+    @staticmethod
+    def _is_approaching(created_at, deadline, now, threshold: float) -> bool:
+        """
+        Return True if the fraction of elapsed time ≥ threshold.
+
+        elapsed / total_window >= threshold
+        where total_window = deadline - created_at.
+
+        Guards against zero or negative windows (degenerate configuration).
+        """
+        total_window = (deadline - created_at).total_seconds()
+        if total_window <= 0:
+            return False  # Degenerate SLA config — treat as not-approaching
+        elapsed = (now - created_at).total_seconds()
+        if elapsed <= 0:
+            return False
+        return (elapsed / total_window) >= threshold
+
+    @staticmethod
+    def _evaluate_escalation(
+        incident: Incident,
+        trigger_type: str,
+        now,
+        escalation_service,
+    ) -> int:
+        """
+        Delegate to the existing escalation evaluation service for one trigger type.
+
+        Returns the number of escalation levels that were newly executed
+        (0 if skipped or no new levels due).
+
+        Wraps the call in a per-trigger try/except so that a failure on
+        RESPONSE_BREACH does not prevent RESOLUTION_BREACH from being evaluated.
+        """
+        try:
+            eval_result = escalation_service.evaluate_incident_escalation(
+                incident=incident,
+                trigger_type=trigger_type,
+                now=now,
+            )
+            if not eval_result.was_skipped and eval_result.levels_executed > 0:
+                logger.info(
+                    "SLA monitor: escalation executed for incident %s "
+                    "(org %s, trigger=%s, levels=%d)",
+                    incident.pk,
+                    incident.organization_id,
+                    trigger_type,
+                    eval_result.levels_executed,
+                    extra={
+                        "task": "sla.monitor_sla",
+                        "incident_id": str(incident.pk),
+                        "organization_id": str(incident.organization_id),
+                        "trigger_type": trigger_type,
+                        "levels_executed": eval_result.levels_executed,
+                        "event": "escalation_executed",
+                    },
+                )
+                return eval_result.levels_executed
+            return 0
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                "SLA monitor: escalation error for incident %s trigger %s",
+                incident.pk,
+                trigger_type,
+                extra={
+                    "task": "sla.monitor_sla",
+                    "incident_id": str(incident.pk),
+                    "organization_id": str(incident.organization_id),
+                    "trigger_type": trigger_type,
+                    "event": "escalation_error",
+                },
+            )
+            return 0
