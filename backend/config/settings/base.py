@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "incidents",
     "sla",
     "escalation",
+    "notifications.apps.NotificationsConfig",
 ]
 
 MIDDLEWARE = [

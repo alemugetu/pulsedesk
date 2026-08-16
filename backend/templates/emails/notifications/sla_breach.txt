@@ -1,0 +1,26 @@
+SLA BREACHED - PulseDesk
+
+Hello {{ recipient.first_name|default:recipient.email }},
+
+CRITICAL: An incident has breached its SLA deadline.
+
+Incident: {{ notification.title }}
+Incident ID: {{ notification.incident_id }}
+Severity: {{ notification.severity }}
+Organization: {{ organization.name }}
+
+Message:
+{{ notification.message }}
+
+{% if incident_url %}
+View Incident: {{ incident_url }}
+{% endif %}
+
+This incident has exceeded its SLA deadline. Please investigate and resolve as soon as possible.
+
+Best regards,
+The PulseDesk Team
+
+---
+© {% now "Y" %} PulseDesk. All rights reserved.
+This is an automated notification. Please do not reply.

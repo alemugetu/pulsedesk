@@ -23,7 +23,7 @@ from datetime import timedelta
 from django.db import transaction
 from django.utils import timezone
 from incidents.models import Incident, IncidentPriority, IncidentStatus
-from organizations.models import Membership, Organization
+from organizations.models import Membership, MembershipStatus, Organization
 from organizations.selectors import user_has_permission
 from rest_framework.exceptions import ValidationError
 from sla.models import IncidentSLA, SLAPolicy, SLAStatus, SLATarget
@@ -733,6 +733,13 @@ class SLAMonitoringService:
                 },
             )
 
+            # Create SLA warning notification
+            SLAMonitoringService._create_sla_warning_notification(
+                incident=incident,
+                sla=sla,
+                now=now,
+            )
+
         # 5. Breach → escalation evaluation.
         if sla.response_breached or sla.resolution_breached:
             result.breaches += 1
@@ -751,6 +758,13 @@ class SLAMonitoringService:
                     "response_breached": sla.response_breached,
                     "resolution_breached": sla.resolution_breached,
                 },
+            )
+
+            # Create SLA breach notification
+            SLAMonitoringService._create_sla_breach_notification(
+                incident=incident,
+                sla=sla,
+                now=now,
             )
 
             # Invoke escalation for each applicable trigger type.
@@ -882,3 +896,107 @@ class SLAMonitoringService:
                 },
             )
             return 0
+
+    @staticmethod
+    def _create_sla_warning_notification(
+        incident: Incident,
+        sla: IncidentSLA,
+        now,
+    ) -> None:
+        """
+        Create SLA warning notification for incident assignee.
+
+        Args:
+            incident: The incident with SLA warning
+            sla: The incident SLA record
+            now: Current timestamp for deadline formatting
+        """
+        from notifications.services import NotificationService
+
+        # Only notify if there's an assignee
+        if not incident.assignee:
+            return
+
+        organization = incident.organization
+        recipient = incident.assignee.user
+        notification_service = NotificationService()
+
+        # Use the appropriate deadline based on which one is approaching
+        if sla.response_completed_at is None and not sla.response_breached:
+            deadline_str = sla.response_deadline.strftime("%Y-%m-%d %H:%M:%S UTC")
+        elif sla.resolution_completed_at is None and not sla.resolution_breached:
+            deadline_str = sla.resolution_deadline.strftime("%Y-%m-%d %H:%M:%S UTC")
+        else:
+            return  # No active deadline to warn about
+
+        try:
+            notification_service.create_sla_warning_notification(
+                organization=organization,
+                recipient=recipient,
+                incident_id=str(incident.id),
+                incident_title=incident.title,
+                deadline_str=deadline_str,
+            )
+        except Exception:
+            # Log error but don't fail the monitoring run
+            logger.exception(
+                "SLA monitor: failed to create warning notification for incident %s",
+                incident.pk,
+                extra={
+                    "task": "sla.monitor_sla",
+                    "incident_id": str(incident.pk),
+                    "organization_id": str(incident.organization_id),
+                    "event": "notification_error",
+                },
+            )
+
+    @staticmethod
+    def _create_sla_breach_notification(
+        incident: Incident,
+        sla: IncidentSLA,
+        now,
+    ) -> None:
+        """
+        Create SLA breach notification for incident assignee.
+
+        Args:
+            incident: The incident with SLA breach
+            sla: The incident SLA record
+            now: Current timestamp for deadline formatting
+        """
+        from notifications.services import NotificationService
+
+        # Only notify if there's an assignee
+        if not incident.assignee:
+            return
+
+        organization = incident.organization
+        recipient = incident.assignee.user
+        notification_service = NotificationService()
+
+        # Determine which deadline was breached
+        if sla.response_breached:
+            deadline_str = sla.response_deadline.strftime("%Y-%m-%d %H:%M:%S UTC")
+        else:
+            deadline_str = sla.resolution_deadline.strftime("%Y-%m-%d %H:%M:%S UTC")
+
+        try:
+            notification_service.create_sla_breach_notification(
+                organization=organization,
+                recipient=recipient,
+                incident_id=str(incident.id),
+                incident_title=incident.title,
+                deadline_str=deadline_str,
+            )
+        except Exception:
+            # Log error but don't fail the monitoring run
+            logger.exception(
+                "SLA monitor: failed to create breach notification for incident %s",
+                incident.pk,
+                extra={
+                    "task": "sla.monitor_sla",
+                    "incident_id": str(incident.pk),
+                    "organization_id": str(incident.organization_id),
+                    "event": "notification_error",
+                },
+            )

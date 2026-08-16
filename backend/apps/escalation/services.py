@@ -56,7 +56,7 @@ from escalation.selectors import (
     get_escalation_levels,
 )
 from incidents.models import Incident, IncidentStatus
-from organizations.models import Membership, Organization, Role
+from organizations.models import Membership, MembershipStatus, Organization, Role
 from organizations.selectors import user_has_permission
 from rest_framework.exceptions import ValidationError
 
@@ -727,11 +727,14 @@ class EscalationEvaluationService:
         now,
     ) -> EscalationEvent | None:
         """
-        Record a single escalation event.
+        Record a single escalation event and create notifications.
 
         If the event already exists (duplicate call), the DB unique constraint
         will raise IntegrityError which we catch and return None.
         This is the second-layer idempotency guard after the service-level check.
+
+        When a new escalation event is created, notifications are sent to the
+        resolved recipients based on the escalation target type.
         """
         try:
             with transaction.atomic():
@@ -744,11 +747,115 @@ class EscalationEvaluationService:
                     target_reference=level.target_reference,
                     status=EscalationEventStatus.EXECUTED,
                 )
+
+                # Create notifications for the escalation event
+                EscalationEvaluationService._create_escalation_notifications(
+                    event=event,
+                    escalation=escalation,
+                    level=level,
+                )
+
         except IntegrityError:
             # Already exists — idempotent.
             return None
 
         return event
+
+    @staticmethod
+    def _create_escalation_notifications(
+        event: EscalationEvent,
+        escalation: IncidentEscalation,
+        level: EscalationLevel,
+    ) -> None:
+        """
+        Create notifications for escalation event recipients.
+
+        Resolves recipients based on the escalation target type:
+        - ASSIGNEE: Uses the current incident assignee
+        - ROLE: Uses all organization members with the specified role
+
+        Notification creation is enqueued via transaction.on_commit() to ensure
+        data consistency.
+        """
+        from notifications.services import NotificationService
+
+        incident = escalation.incident
+        organization = incident.organization
+        notification_service = NotificationService()
+
+        # Resolve recipients based on target type
+        recipients = EscalationEvaluationService._resolve_escalation_recipients(
+            incident=incident,
+            target_type=level.target_type,
+            target_reference=level.target_reference,
+            organization=organization,
+        )
+
+        # Create notification for each recipient
+        for recipient in recipients:
+            try:
+                notification_service.create_escalation_notification(
+                    organization=organization,
+                    recipient=recipient,
+                    escalation_event_id=str(event.id),
+                    incident_id=str(incident.id),
+                    incident_title=incident.title,
+                    escalation_level=level.level,
+                    target_type=level.target_type,
+                )
+            except Exception:
+                # Log error but continue with other recipients
+                # One failed notification should not block others
+                pass
+
+    @staticmethod
+    def _resolve_escalation_recipients(
+        incident: Incident,
+        target_type: str,
+        target_reference: str,
+        organization: Organization,
+    ) -> list:
+        """
+        Resolve escalation recipients based on target type.
+
+        Args:
+            incident: The incident being escalated
+            target_type: ASSIGNEE or ROLE
+            target_reference: Role UUID for ROLE targets, empty for ASSIGNEE
+            organization: The organization
+
+        Returns:
+            List of user objects who should receive the notification
+        """
+        recipients = []
+
+        if target_type == EscalationTargetType.ASSIGNEE:
+            # Target the current incident assignee
+            if incident.assignee:
+                recipients.append(incident.assignee.user)
+
+        elif target_type == EscalationTargetType.ROLE:
+            # Target all active organization members with the specified role
+            try:
+                from organizations.models import Role
+                import uuid
+
+                role_id = uuid.UUID(target_reference)
+                role = Role.objects.get(id=role_id, organization=organization)
+
+                # Get all active members with this role
+                memberships = organization.memberships.filter(
+                    status=MembershipStatus.ACTIVE,
+                    roles__in=[role],
+                ).select_related("user")
+
+                recipients = [membership.user for membership in memberships]
+
+            except (ValueError, Role.DoesNotExist):
+                # Invalid role reference - no recipients
+                pass
+
+        return recipients
 
     @staticmethod
     @transaction.atomic

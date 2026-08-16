@@ -1,0 +1,31 @@
+{{ notification.notification_type }} - PulseDesk
+
+Hello {{ recipient.first_name|default:recipient.email }},
+
+{{ notification.severity }}: {{ notification.title }}
+
+Type: {{ notification.notification_type }}
+Severity: {{ notification.severity }}
+Organization: {{ organization.name }}
+{% if notification.incident_id %}
+Incident ID: {{ notification.incident_id }}
+{% endif %}
+{% if notification.escalation_event_id %}
+Escalation Event ID: {{ notification.escalation_event_id }}
+{% endif %}
+
+Message:
+{{ notification.message }}
+
+{% if incident_url %}
+View Incident: {{ incident_url }}
+{% endif %}
+
+Please review this notification and take appropriate action.
+
+Best regards,
+The PulseDesk Team
+
+---
+© {% now "Y" %} PulseDesk. All rights reserved.
+This is an automated notification. Please do not reply.

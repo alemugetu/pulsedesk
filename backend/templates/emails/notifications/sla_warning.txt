@@ -1,0 +1,26 @@
+SLA WARNING - PulseDesk
+
+Hello {{ recipient.first_name|default:recipient.email }},
+
+WARNING: An incident is approaching its SLA deadline.
+
+Incident: {{ notification.title }}
+Incident ID: {{ notification.incident_id }}
+Severity: {{ notification.severity }}
+Organization: {{ organization.name }}
+
+Message:
+{{ notification.message }}
+
+{% if incident_url %}
+View Incident: {{ incident_url }}
+{% endif %}
+
+Please acknowledge or resolve this incident before the deadline to avoid an SLA breach.
+
+Best regards,
+The PulseDesk Team
+
+---
+© {% now "Y" %} PulseDesk. All rights reserved.
+This is an automated notification. Please do not reply.
