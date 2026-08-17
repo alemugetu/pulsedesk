@@ -247,12 +247,8 @@ CELERY_TASK_DEFAULT_RETRY_DELAY = 60
 # SLA_WARNING_THRESHOLD controls what fraction of the SLA window must have
 # elapsed before a "warning" is logged.  Default: 0.80 (80 % elapsed).
 # ---------------------------------------------------------------------------
-SLA_MONITOR_INTERVAL_SECONDS: int = env.int(
-    "SLA_MONITOR_INTERVAL_SECONDS", default=60
-)
-SLA_WARNING_THRESHOLD: float = env.float(
-    "SLA_WARNING_THRESHOLD", default=0.80
-)
+SLA_MONITOR_INTERVAL_SECONDS: int = env.int("SLA_MONITOR_INTERVAL_SECONDS", default=60)
+SLA_WARNING_THRESHOLD: float = env.float("SLA_WARNING_THRESHOLD", default=0.80)
 
 # ---------------------------------------------------------------------------
 # Celery Beat periodic schedule

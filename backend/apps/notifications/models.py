@@ -1,5 +1,5 @@
 """
-Notification & Delivery Engine — Phase 10
+Notification & Delivery Engine 
 
 Domain architecture:
   Organization
@@ -23,9 +23,7 @@ from typing import ClassVar
 from common.models import BaseModel
 from django.conf import settings
 from django.db import models
-from django.db.models import Q
 from organizations.models import Organization
-
 
 # ---------------------------------------------------------------------------
 # Choices and Enums
@@ -307,7 +305,7 @@ class NotificationPreference(BaseModel):
     @classmethod
     def get_or_create(cls, organization, user):
         """Get or create notification preferences for a user in an organization."""
-        preference, created = cls.objects.get_or_create(
+        preference, _ = cls.objects.get_or_create(
             organization=organization,
             user=user,
             defaults={

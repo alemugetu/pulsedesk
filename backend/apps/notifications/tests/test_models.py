@@ -10,10 +10,8 @@ Tests:
 - Multi-tenant isolation
 """
 
-from django.test import TestCase
-from django.utils import timezone
-
 from accounts.models import User
+from django.test import TestCase
 from notifications.models import (
     DeliveryChannel,
     DeliveryStatus,
@@ -118,7 +116,7 @@ class NotificationModelTest(TestCase):
         )
 
         # Create notification for org1
-        notification = Notification.objects.create(
+        Notification.objects.create(
             organization=self.organization,
             recipient=self.user,
             notification_type=NotificationType.SLA_WARNING,
@@ -127,15 +125,11 @@ class NotificationModelTest(TestCase):
         )
 
         # User from org2 should not see org1 notifications
-        org2_notifications = Notification.objects.filter(
-            organization=org2
-        )
+        org2_notifications = Notification.objects.filter(organization=org2)
         self.assertEqual(org2_notifications.count(), 0)
 
         # User from org1 should see org1 notifications
-        org1_notifications = Notification.objects.filter(
-            organization=self.organization
-        )
+        org1_notifications = Notification.objects.filter(organization=self.organization)
         self.assertEqual(org1_notifications.count(), 1)
 
 
@@ -188,7 +182,7 @@ class NotificationDeliveryModelTest(TestCase):
         )
 
         # Attempt to create duplicate - should fail
-        with self.assertRaises(Exception):  # IntegrityError
+        with self.assertRaises(Exception):  # noqa: B017  # IntegrityError
             NotificationDelivery.objects.create(
                 notification=self.notification,
                 channel=DeliveryChannel.EMAIL,
@@ -242,12 +236,12 @@ class NotificationDeliveryModelTest(TestCase):
 
     def test_multiple_channels_per_notification(self):
         """Test that a notification can have multiple delivery channels."""
-        email_delivery = NotificationDelivery.objects.create(
+        NotificationDelivery.objects.create(
             notification=self.notification,
             channel=DeliveryChannel.EMAIL,
             status=DeliveryStatus.SENT,
         )
-        in_app_delivery = NotificationDelivery.objects.create(
+        NotificationDelivery.objects.create(
             notification=self.notification,
             channel=DeliveryChannel.IN_APP,
             status=DeliveryStatus.SENT,
@@ -302,7 +296,7 @@ class NotificationPreferenceModelTest(TestCase):
         )
 
         # Attempt to create duplicate - should fail
-        with self.assertRaises(Exception):  # IntegrityError
+        with self.assertRaises(Exception):  # noqa: B017  # IntegrityError
             NotificationPreference.objects.create(
                 organization=self.organization,
                 user=self.user,

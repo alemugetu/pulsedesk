@@ -1,5 +1,5 @@
 """
-Notification Service — Phase 10
+Notification Service — 
 
 Service layer for notification creation and management.
 
@@ -18,8 +18,6 @@ Design decisions:
 - User preferences are respected but can be overridden for critical events.
 """
 
-from typing import Optional
-
 from django.db import transaction
 from organizations.models import Membership, MembershipStatus, Organization
 
@@ -27,7 +25,6 @@ from .delivery import DeliveryDispatcher
 from .models import (
     DeliveryChannel,
     Notification,
-    NotificationDelivery,
     NotificationPreference,
     NotificationSeverity,
     NotificationType,
@@ -51,9 +48,9 @@ class NotificationService:
         notification_type: str,
         title: str,
         message: str,
-        severity: str = NotificationSeverity.INFO,
-        incident_id: Optional[str] = None,
-        escalation_event_id: Optional[str] = None,
+        severity: str = "INFO",
+        incident_id: str | None = None,
+        escalation_event_id: str | None = None,
         force_delivery: bool = False,
     ) -> Notification:
         """
@@ -106,9 +103,7 @@ class NotificationService:
         )
 
         # Enqueue delivery after transaction commit
-        transaction.on_commit(
-            lambda: self._enqueue_delivery(notification.id, channels)
-        )
+        transaction.on_commit(lambda: self._enqueue_delivery(notification.id, channels))
 
         return notification
 
@@ -156,21 +151,21 @@ class NotificationService:
 
         if force_delivery:
             # Force delivery: use all channels
-            channels = [DeliveryChannel.EMAIL, DeliveryChannel.IN_APP]
+            channels = ["EMAIL", "IN_APP"]
         else:
             # Respect user preferences
             if preferences.email_enabled:
-                channels.append(DeliveryChannel.EMAIL)
+                channels.append("EMAIL")
             if preferences.in_app_enabled:
-                channels.append(DeliveryChannel.IN_APP)
+                channels.append("IN_APP")
 
         # Critical notifications always include in-app delivery
-        if severity == NotificationSeverity.CRITICAL and DeliveryChannel.IN_APP not in channels:
-            channels.append(DeliveryChannel.IN_APP)
+        if severity == "CRITICAL" and "IN_APP" not in channels:
+            channels.append("IN_APP")
 
         # Escalation events always include in-app delivery
-        if notification_type == NotificationType.ESCALATION_TRIGGERED and DeliveryChannel.IN_APP not in channels:
-            channels.append(DeliveryChannel.IN_APP)
+        if notification_type == "ESCALATION_TRIGGERED" and "IN_APP" not in channels:
+            channels.append("IN_APP")
 
         return channels
 
@@ -216,10 +211,10 @@ class NotificationService:
         return self.create_notification(
             organization=organization,
             recipient=recipient,
-            notification_type=NotificationType.SLA_WARNING,
+            notification_type="SLA_WARNING",
             title=title,
             message=message,
-            severity=NotificationSeverity.WARNING,
+            severity="WARNING",
             incident_id=incident_id,
         )
 
@@ -253,10 +248,10 @@ class NotificationService:
         return self.create_notification(
             organization=organization,
             recipient=recipient,
-            notification_type=NotificationType.SLA_BREACH,
+            notification_type="SLA_BREACH",
             title=title,
             message=message,
-            severity=NotificationSeverity.CRITICAL,
+            severity="CRITICAL",
             incident_id=incident_id,
             force_delivery=True,  # Force delivery for critical SLA breaches
         )
@@ -295,10 +290,10 @@ class NotificationService:
         return self.create_notification(
             organization=organization,
             recipient=recipient,
-            notification_type=NotificationType.ESCALATION_TRIGGERED,
+            notification_type="ESCALATION_TRIGGERED",
             title=title,
             message=message,
-            severity=NotificationSeverity.CRITICAL,
+            severity="CRITICAL",
             incident_id=incident_id,
             escalation_event_id=escalation_event_id,
             force_delivery=True,  # Force delivery for escalations

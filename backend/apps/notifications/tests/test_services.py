@@ -11,13 +11,10 @@ Tests:
 - Escalation notification creation
 """
 
-from django.test import TestCase
-from django.utils import timezone
-
 from accounts.models import User
+from django.test import TestCase
 from notifications.models import (
     DeliveryChannel,
-    Notification,
     NotificationPreference,
     NotificationSeverity,
     NotificationType,
@@ -152,7 +149,9 @@ class NotificationServiceTest(TestCase):
             target_type="ROLE",
         )
 
-        self.assertEqual(notification.notification_type, NotificationType.ESCALATION_TRIGGERED)
+        self.assertEqual(
+            notification.notification_type, NotificationType.ESCALATION_TRIGGERED
+        )
         self.assertEqual(notification.severity, NotificationSeverity.CRITICAL)
         self.assertEqual(notification.escalation_event_id, "test-escalation-id")
         self.assertEqual(notification.incident_id, "test-incident-id")
@@ -253,7 +252,7 @@ class NotificationServiceTest(TestCase):
     def test_validate_recipient_membership_inactive(self):
         """Test that inactive membership is rejected."""
         # Create inactive membership
-        inactive_membership = Membership.objects.create(
+        Membership.objects.create(
             organization=self.organization,
             user=self.user,
             status="SUSPENDED",

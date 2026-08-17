@@ -1,5 +1,5 @@
 """
-Celery tasks for the SLA application 
+Celery tasks for the SLA application
 
 Architecture:
   Celery Beat → monitor_sla task → SLAMonitoringService.run()

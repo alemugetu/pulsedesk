@@ -59,7 +59,9 @@ class EmailService:
         When a frontend is available, swap BACKEND_URL for FRONTEND_URL
         and update the path to the frontend route.
         """
-        backend_url = getattr(settings, "BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
+        backend_url = getattr(settings, "BACKEND_URL", "http://127.0.0.1:8000").rstrip(
+               "/"
+        )
         verification_url = (
             f"{backend_url}/api/v1/auth/verify-email/?token={verification_token}"
         )
@@ -91,7 +93,9 @@ class EmailService:
         When a frontend is available, swap BACKEND_URL for FRONTEND_URL
         and update the path to the frontend route.
         """
-        backend_url = getattr(settings, "BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
+        backend_url = getattr(settings, "BACKEND_URL", "http://127.0.0.1:8000").rstrip(
+            "/"
+        )
         reset_url = (
             f"{backend_url}/api/v1/auth/password-reset/confirm/"
             f"?token={reset_token}&user_id={user.id}"

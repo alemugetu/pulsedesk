@@ -17,13 +17,13 @@ Key services:
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import timedelta
 
 from django.db import transaction
 from django.utils import timezone
 from incidents.models import Incident, IncidentPriority, IncidentStatus
-from organizations.models import Membership, MembershipStatus, Organization
+from organizations.models import Membership, Organization
 from organizations.selectors import user_has_permission
 from rest_framework.exceptions import ValidationError
 from sla.models import IncidentSLA, SLAPolicy, SLAStatus, SLATarget
@@ -591,10 +591,9 @@ class SLAMonitoringService:
 
         # Lazy import avoids circular import at module level.
         # SLACalculationService is defined in this same module above.
+        from django.conf import settings
         from escalation.models import EscalationTriggerType
         from escalation.services import EscalationEvaluationService
-
-        from django.conf import settings
 
         warning_threshold: float = float(
             getattr(settings, "SLA_WARNING_THRESHOLD", _DEFAULT_WARNING_THRESHOLD)
@@ -632,7 +631,7 @@ class SLAMonitoringService:
                 )
                 if not processed:
                     result.skipped += 1
-            except Exception:  # noqa: BLE001
+            except Exception:
                 result.errors += 1
                 logger.exception(
                     "SLA monitor: unhandled error on incident %s (org %s)",
@@ -799,27 +798,27 @@ class SLAMonitoringService:
         if (
             sla.response_completed_at is None
             and not sla.response_breached
-        ):
-            if SLAMonitoringService._is_approaching(
+            and SLAMonitoringService._is_approaching(
                 created_at=sla.created_at,
                 deadline=sla.response_deadline,
                 now=now,
                 threshold=threshold,
-            ):
-                warning = True
+            )
+        ):
+            warning = True
 
         # Resolution warning
         if (
             sla.resolution_completed_at is None
             and not sla.resolution_breached
-        ):
-            if SLAMonitoringService._is_approaching(
+            and SLAMonitoringService._is_approaching(
                 created_at=sla.created_at,
                 deadline=sla.resolution_deadline,
                 now=now,
                 threshold=threshold,
-            ):
-                warning = True
+            )
+        ):
+            warning = True
 
         return warning
 
@@ -882,7 +881,7 @@ class SLAMonitoringService:
                 )
                 return eval_result.levels_executed
             return 0
-        except Exception:  # noqa: BLE001
+        except Exception:
             logger.exception(
                 "SLA monitor: escalation error for incident %s trigger %s",
                 incident.pk,

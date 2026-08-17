@@ -9,11 +9,8 @@ Tests:
 - Multi-tenant delivery isolation
 """
 
-from django.test import TestCase
-from rest_framework.test import APIClient
-from rest_framework_simplejwt.tokens import RefreshToken
-
 from accounts.models import User
+from django.test import TestCase
 from notifications.models import (
     Notification,
     NotificationPreference,
@@ -21,6 +18,8 @@ from notifications.models import (
     NotificationType,
 )
 from organizations.models import Membership, Organization
+from rest_framework.test import APIClient
+from rest_framework_simplejwt.tokens import RefreshToken
 
 
 class MultiTenantSecurityTest(TestCase):
@@ -165,7 +164,9 @@ class MultiTenantSecurityTest(TestCase):
         client.credentials(HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}")
 
         # User A should not be able to access Org B preference detail
-        response = client.get(f"/api/v1/notifications/preferences/{self.preference_b.id}/")
+        response = client.get(
+            f"/api/v1/notifications/preferences/{self.preference_b.id}/"
+        )
         self.assertEqual(response.status_code, 403)
 
     def test_cross_tenant_preference_update_prevention(self):
@@ -230,14 +231,14 @@ class MultiTenantSecurityTest(TestCase):
     def test_multi_organization_user_preferences(self):
         """Test that users can have different preferences in different organizations."""
         # Add user_a to org_b
-        membership_a_b = Membership.objects.create(
+        Membership.objects.create(
             organization=self.org_b,
             user=self.user_a,
             status="ACTIVE",
         )
 
         # Create preference for user_a in org_b
-        preference_a_b = NotificationPreference.objects.create(
+        NotificationPreference.objects.create(
             organization=self.org_b,
             user=self.user_a,
             email_enabled=False,
@@ -267,7 +268,9 @@ class MultiTenantSecurityTest(TestCase):
         client.credentials(HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}")
 
         # User A should not be able to mark User B's notification as read
-        response = client.patch(f"/api/v1/notifications/{self.notification_b.id}/mark_read/")
+        response = client.patch(
+            f"/api/v1/notifications/{self.notification_b.id}/mark_read/"
+        )
         self.assertEqual(response.status_code, 403)
 
     def test_database_query_isolation(self):

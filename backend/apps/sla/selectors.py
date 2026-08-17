@@ -6,7 +6,6 @@ All selectors enforce tenant isolation by requiring an organization parameter.
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import QuerySet
-from django.utils import timezone
 from incidents.models import Incident, IncidentStatus
 from organizations.models import Organization
 from sla.models import IncidentSLA, SLAPolicy, SLATarget

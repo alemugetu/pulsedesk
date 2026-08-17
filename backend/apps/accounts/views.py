@@ -350,7 +350,9 @@ class VerifyEmailView(APIView):
                 examples=[
                     OpenApiExample(
                         "Verification success",
-                        value={"message": "Email verified successfully. You can now log in."},
+                        value={
+                            "message": "Email verified successfully. You can now log in."
+                        },
                     )
                 ],
             ),
@@ -535,7 +537,9 @@ class PasswordResetConfirmView(APIView):
             ),
         ],
         responses={
-            200: OpenApiResponse(description="Token is valid. Use the POST endpoint to set a new password."),
+            200: OpenApiResponse(
+                description="Token is valid. Use the POST endpoint to set a new password."
+            ),
             400: OpenApiResponse(description="Invalid or expired token."),
         },
     )

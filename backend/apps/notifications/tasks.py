@@ -10,8 +10,6 @@ Design decisions:
 - Tasks are idempotent - duplicate executions will not cause duplicate deliveries.
 """
 
-import logging
-
 from celery import shared_task
 from celery.utils.log import get_task_logger
 
@@ -173,7 +171,7 @@ def retry_failed_deliveries() -> int:
 
             retried_count += 1
 
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             logger.error(f"Failed to retry delivery {delivery.id}: {exc}")
 
     logger.info(f"Retried {retried_count} failed deliveries")

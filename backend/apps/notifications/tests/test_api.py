@@ -12,11 +12,8 @@ Tests:
 - Filtering and pagination
 """
 
-from django.test import TestCase
-from rest_framework.test import APIClient
-from rest_framework_simplejwt.tokens import RefreshToken
-
 from accounts.models import User
+from django.test import TestCase
 from notifications.models import (
     Notification,
     NotificationPreference,
@@ -24,6 +21,8 @@ from notifications.models import (
     NotificationType,
 )
 from organizations.models import Membership, Organization
+from rest_framework.test import APIClient
+from rest_framework_simplejwt.tokens import RefreshToken
 
 
 class NotificationAPITest(TestCase):
@@ -91,7 +90,10 @@ class NotificationAPITest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data["results"]), 1)
-        self.assertEqual(response.data["results"][0]["notification_type"], NotificationType.SLA_WARNING)
+        self.assertEqual(
+            response.data["results"][0]["notification_type"],
+            NotificationType.SLA_WARNING,
+        )
 
     def test_list_notifications_filter_by_severity(self):
         """Test filtering notifications by severity."""
@@ -100,7 +102,9 @@ class NotificationAPITest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data["results"]), 1)
-        self.assertEqual(response.data["results"][0]["severity"], NotificationSeverity.CRITICAL)
+        self.assertEqual(
+            response.data["results"][0]["severity"], NotificationSeverity.CRITICAL
+        )
 
     def test_retrieve_notification(self):
         """Test retrieving a specific notification."""
@@ -138,7 +142,9 @@ class NotificationAPITest(TestCase):
         """Test marking a notification as read."""
         self.assertFalse(self.notification1.is_read)
 
-        response = self.client.patch(f"/api/v1/notifications/{self.notification1.id}/mark_read/")
+        response = self.client.patch(
+            f"/api/v1/notifications/{self.notification1.id}/mark_read/"
+        )
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data["notification"]["is_read"])
 
@@ -151,7 +157,9 @@ class NotificationAPITest(TestCase):
         self.notification1.mark_as_read()
         self.assertTrue(self.notification1.is_read)
 
-        response = self.client.patch(f"/api/v1/notifications/{self.notification1.id}/mark_unread/")
+        response = self.client.patch(
+            f"/api/v1/notifications/{self.notification1.id}/mark_unread/"
+        )
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.data["notification"]["is_read"])
 
@@ -283,7 +291,9 @@ class NotificationPreferenceAPITest(TestCase):
 
     def test_retrieve_preference(self):
         """Test retrieving a specific preference."""
-        response = self.client.get(f"/api/v1/notifications/preferences/{self.preference.id}/")
+        response = self.client.get(
+            f"/api/v1/notifications/preferences/{self.preference.id}/"
+        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["id"], str(self.preference.id))
 

@@ -4,10 +4,7 @@ from rest_framework import serializers
 
 from .models import (
     Notification,
-    NotificationDelivery,
     NotificationPreference,
-    NotificationSeverity,
-    NotificationType,
 )
 
 
@@ -84,4 +81,4 @@ class MarkNotificationReadSerializer(serializers.Serializer):
 class MarkAllNotificationsReadSerializer(serializers.Serializer):
     """Serializer for marking all notifications as read."""
 
-    pass  # No fields needed, just the action
+    # No fields needed, just the action

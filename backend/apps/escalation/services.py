@@ -35,11 +35,14 @@ The service is synchronous and callable programmatically.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from datetime import timedelta
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
+
+logger = logging.getLogger(__name__)
 from escalation.models import (
     EscalationEvent,
     EscalationEventStatus,
@@ -803,10 +806,12 @@ class EscalationEvaluationService:
                     escalation_level=level.level,
                     target_type=level.target_type,
                 )
-            except Exception:
+            except Exception as exc:  # noqa: BLE001
                 # Log error but continue with other recipients
                 # One failed notification should not block others
-                pass
+                logger.warning(
+                    f"Failed to create escalation notification for recipient {recipient.email}: {exc}"
+                )
 
     @staticmethod
     def _resolve_escalation_recipients(
@@ -837,8 +842,9 @@ class EscalationEvaluationService:
         elif target_type == EscalationTargetType.ROLE:
             # Target all active organization members with the specified role
             try:
-                from organizations.models import Role
                 import uuid
+
+                from organizations.models import Role
 
                 role_id = uuid.UUID(target_reference)
                 role = Role.objects.get(id=role_id, organization=organization)

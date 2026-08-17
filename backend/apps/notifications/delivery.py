@@ -1,5 +1,5 @@
 """
-Delivery Abstraction Layer — Phase 10
+Delivery Abstraction Layer 
 
 Provides a clean separation between notification business logic and delivery mechanisms.
 Each delivery channel is implemented as an adapter that can be extended without modifying
@@ -16,12 +16,10 @@ Architecture:
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
-from django.utils import timezone
 
 from .models import (
     DeliveryChannel,
@@ -40,7 +38,9 @@ class DeliveryAdapter(ABC):
     """
 
     @abstractmethod
-    def deliver(self, notification: Notification, delivery: NotificationDelivery) -> bool:
+    def deliver(
+        self, notification: Notification, delivery: NotificationDelivery
+    ) -> bool:
         """
         Deliver a notification through this channel.
 
@@ -51,12 +51,10 @@ class DeliveryAdapter(ABC):
         Returns:
             True if delivery succeeded, False otherwise
         """
-        pass
 
     @abstractmethod
     def get_channel(self) -> str:
         """Return the delivery channel identifier."""
-        pass
 
 
 class EmailDeliveryAdapter(DeliveryAdapter):
@@ -67,9 +65,11 @@ class EmailDeliveryAdapter(DeliveryAdapter):
     """
 
     def get_channel(self) -> str:
-        return DeliveryChannel.EMAIL
+        return "EMAIL"
 
-    def deliver(self, notification: Notification, delivery: NotificationDelivery) -> bool:
+    def deliver(
+        self, notification: Notification, delivery: NotificationDelivery
+    ) -> bool:
         """
         Deliver notification via email.
 
@@ -110,7 +110,7 @@ class EmailDeliveryAdapter(DeliveryAdapter):
 
             return True
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             # Log error and return failure
             delivery.mark_as_failed(str(e))
             return False
@@ -126,7 +126,9 @@ class EmailDeliveryAdapter(DeliveryAdapter):
 
     def _build_email_context(self, notification: Notification) -> dict:
         """Build context dictionary for email templates."""
-        backend_url = getattr(settings, "BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
+        backend_url = getattr(settings, "BACKEND_URL", "http://127.0.0.1:8000").rstrip(
+            "/"
+        )
 
         context = {
             "notification": notification,
@@ -142,7 +144,9 @@ class EmailDeliveryAdapter(DeliveryAdapter):
 
         # Add incident URL if incident is referenced
         if notification.incident_id:
-            context["incident_url"] = f"{backend_url}/incidents/{notification.incident_id}/"
+            context["incident_url"] = (
+                f"{backend_url}/incidents/{notification.incident_id}/"
+            )
 
         return context
 
@@ -156,9 +160,11 @@ class InAppDeliveryAdapter(DeliveryAdapter):
     """
 
     def get_channel(self) -> str:
-        return DeliveryChannel.IN_APP
+        return "IN_APP"
 
-    def deliver(self, notification: Notification, delivery: NotificationDelivery) -> bool:
+    def deliver(
+        self, notification: Notification, delivery: NotificationDelivery
+    ) -> bool:
         """
         Deliver notification via in-app storage.
 
@@ -182,7 +188,7 @@ class InAppDeliveryAdapter(DeliveryAdapter):
             # In-app delivery is complete when notification exists
             return True
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             # Log error and return failure
             delivery.mark_as_failed(str(e))
             return False
@@ -206,7 +212,9 @@ class DeliveryDispatcher:
         """Register a new delivery adapter for a channel."""
         self._adapters[channel] = adapter
 
-    def deliver(self, notification: Notification, channels: list[str]) -> dict[str, bool]:
+    def deliver(
+        self, notification: Notification, channels: list[str]
+    ) -> dict[str, bool]:
         """
         Deliver a notification through multiple channels.
 
@@ -251,7 +259,7 @@ class DeliveryDispatcher:
 
                 results[channel] = success
 
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 # Unexpected error
                 delivery.mark_as_failed(str(e))
                 results[channel] = False

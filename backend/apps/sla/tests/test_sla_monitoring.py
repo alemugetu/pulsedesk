@@ -56,24 +56,26 @@ from __future__ import annotations
 
 from datetime import timedelta
 from datetime import timezone as dt_timezone
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import patch
 
 from celery.exceptions import Retry
 from common.services.health_check import TransientInfrastructureError
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.utils import timezone
-from escalation.models import EscalationStatus, EscalationTriggerType
+from escalation.models import EscalationTriggerType
 from escalation.selectors import get_incident_escalations
 from escalation.services import EscalationEvaluationService, EscalationPolicyService
 from incidents.models import IncidentPriority, IncidentStatus
 from incidents.services import IncidentService
 from organizations.services import OrganizationService
-from sla.models import IncidentSLA, SLAStatus
 from sla.selectors import get_active_incidents_for_sla_monitoring, get_incident_sla
-from sla.services import MonitoringResult, SLACalculationService, SLAMonitoringService
+from sla.services import (
+    SLACalculationService,
+    SLAMonitoringService,
+    SLAPolicyService,
+)
 from sla.tasks import monitor_sla
-from sla.services import SLAPolicyService
 
 User = get_user_model()
 
@@ -216,7 +218,9 @@ class SLAMonitoringSelectorTest(TestCase):
             IncidentStatus.IN_PROGRESS,
             IncidentStatus.RESOLVED,
         ]:
-            IncidentService.transition_incident_status(self.incident, self.membership, s)
+            IncidentService.transition_incident_status(
+                self.incident, self.membership, s
+            )
 
         qs = get_active_incidents_for_sla_monitoring()
         self.assertNotIn(self.incident, list(qs))
@@ -228,7 +232,9 @@ class SLAMonitoringSelectorTest(TestCase):
             IncidentStatus.RESOLVED,
             IncidentStatus.CLOSED,
         ]:
-            IncidentService.transition_incident_status(self.incident, self.membership, s)
+            IncidentService.transition_incident_status(
+                self.incident, self.membership, s
+            )
 
         qs = get_active_incidents_for_sla_monitoring()
         self.assertNotIn(self.incident, list(qs))
@@ -289,7 +295,7 @@ class SLAWarningDetectionTest(TestCase):
 
     def setUp(self):
         with patch("django.utils.timezone.now", return_value=FROZEN_NOW):
-            user, org, membership, _ = _make_org_sla_only("warn")
+            user, org, _, _ = _make_org_sla_only("warn")
             self.incident = IncidentService.create_incident(
                 org, user, "Warning Test", priority=IncidentPriority.P1
             )
@@ -437,7 +443,9 @@ class SLAMonitoringRunTest(TestCase):
             IncidentStatus.IN_PROGRESS,
             IncidentStatus.RESOLVED,
         ]:
-            IncidentService.transition_incident_status(self.incident, self.membership, s)
+            IncidentService.transition_incident_status(
+                self.incident, self.membership, s
+            )
 
         result = SLAMonitoringService.run(now=FROZEN_NOW + timedelta(minutes=20))
         # The incident should NOT appear in the monitoring queryset at all
@@ -453,7 +461,9 @@ class SLAMonitoringRunTest(TestCase):
             IncidentStatus.RESOLVED,
             IncidentStatus.CLOSED,
         ]:
-            IncidentService.transition_incident_status(self.incident, self.membership, s)
+            IncidentService.transition_incident_status(
+                self.incident, self.membership, s
+            )
 
         result = SLAMonitoringService.run(now=FROZEN_NOW + timedelta(minutes=70))
         self.assertEqual(result.examined, 0)
@@ -581,7 +591,7 @@ class SLAMonitoringIdempotencyTest(TestCase):
         breach_now = FROZEN_NOW + timedelta(minutes=20)
 
         # First pass
-        result1 = SLAMonitoringService.run(now=breach_now)
+        SLAMonitoringService.run(now=breach_now)
         escalations_after_first = get_incident_escalations(self.incident)
         first_event_count = sum(e.events.count() for e in escalations_after_first)
 
@@ -649,12 +659,8 @@ class SLAMonitoringTenantIsolationTest(TestCase):
 
     def setUp(self):
         with patch("django.utils.timezone.now", return_value=FROZEN_NOW):
-            self.user_a, self.org_a, _, _, self.esc_a = _make_org_with_full_stack(
-                "ta"
-            )
-            self.user_b, self.org_b, _, _, self.esc_b = _make_org_with_full_stack(
-                "tb"
-            )
+            self.user_a, self.org_a, _, _, self.esc_a = _make_org_with_full_stack("ta")
+            self.user_b, self.org_b, _, _, self.esc_b = _make_org_with_full_stack("tb")
             self.incident_a = IncidentService.create_incident(
                 self.org_a, self.user_a, "Org A Incident", priority=IncidentPriority.P1
             )
@@ -731,8 +737,7 @@ class SLAMonitoringEscalationIntegrationTest(TestCase):
         # Should have been called with RESPONSE_BREACH (and RESOLUTION_BREACH
         # since both rules exist, but response triggers at +20m)
         trigger_types_called = [
-            c.kwargs.get("trigger_type") or c.args[1]
-            for c in mock_eval.call_args_list
+            c.kwargs.get("trigger_type") or c.args[1] for c in mock_eval.call_args_list
         ]
         self.assertIn(EscalationTriggerType.RESPONSE_BREACH, trigger_types_called)
 
@@ -748,8 +753,7 @@ class SLAMonitoringEscalationIntegrationTest(TestCase):
             SLAMonitoringService.run(now=breach_now)
 
         trigger_types_called = [
-            c.kwargs.get("trigger_type") or c.args[1]
-            for c in mock_eval.call_args_list
+            c.kwargs.get("trigger_type") or c.args[1] for c in mock_eval.call_args_list
         ]
         self.assertIn(EscalationTriggerType.RESOLUTION_BREACH, trigger_types_called)
 
@@ -770,7 +774,7 @@ class SLAMonitoringEscalationIntegrationTest(TestCase):
         """
         user2, org2, _, _ = _make_org_sla_only("no-esc-int")
         with patch("django.utils.timezone.now", return_value=FROZEN_NOW):
-            incident2 = IncidentService.create_incident(
+            IncidentService.create_incident(
                 org2, user2, "No Esc Policy", priority=IncidentPriority.P1
             )
 
@@ -809,7 +813,14 @@ class MonitorSLATaskTest(TestCase):
         result = monitor_sla.apply()
         data = result.get()
         self.assertIsInstance(data, dict)
-        for key in ("examined", "skipped", "warnings", "breaches", "escalations", "errors"):
+        for key in (
+            "examined",
+            "skipped",
+            "warnings",
+            "breaches",
+            "escalations",
+            "errors",
+        ):
             self.assertIn(key, data)
             self.assertIsInstance(data[key], int)
 
@@ -847,7 +858,9 @@ class MonitorSLATaskTest(TestCase):
                 org, user, "Task Real", priority=IncidentPriority.P1
             )
 
-        with patch("sla.services.timezone.now", return_value=FROZEN_NOW + timedelta(minutes=5)):
+        with patch(
+            "sla.services.timezone.now", return_value=FROZEN_NOW + timedelta(minutes=5)
+        ):
             result = monitor_sla.apply()
         data = result.get()
         self.assertGreaterEqual(data["examined"], 1)
@@ -873,12 +886,15 @@ class CeleryBeatScheduleTest(TestCase):
         entry = settings.CELERY_BEAT_SCHEDULE["sla-monitor"]
         self.assertEqual(entry["task"], "sla.monitor_sla")
 
-    @override_settings(SLA_MONITOR_INTERVAL_SECONDS=120, CELERY_BEAT_SCHEDULE={
-        "sla-monitor": {
-            "task": "sla.monitor_sla",
-            "schedule": 120,
-        }
-    })
+    @override_settings(
+        SLA_MONITOR_INTERVAL_SECONDS=120,
+        CELERY_BEAT_SCHEDULE={
+            "sla-monitor": {
+                "task": "sla.monitor_sla",
+                "schedule": 120,
+            }
+        },
+    )
     def test_interval_is_configurable_via_setting(self):
         from django.conf import settings
 
@@ -973,7 +989,9 @@ class Phase9RegressionTest(TestCase):
             IncidentStatus.IN_PROGRESS,
             IncidentStatus.RESOLVED,
         ]:
-            IncidentService.transition_incident_status(self.incident, self.membership, s)
+            IncidentService.transition_incident_status(
+                self.incident, self.membership, s
+            )
 
         # Run past all deadlines
         SLAMonitoringService.run(now=FROZEN_NOW + timedelta(hours=3))
