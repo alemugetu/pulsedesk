@@ -852,7 +852,7 @@ class EscalationEvaluationService:
                 # Get all active members with this role
                 memberships = organization.memberships.filter(
                     status=MembershipStatus.ACTIVE,
-                    roles__in=[role],
+                    role=role,
                 ).select_related("user")
 
                 recipients = [membership.user for membership in memberships]

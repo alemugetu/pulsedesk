@@ -51,4 +51,9 @@ urlpatterns = [
         "<uuid:organization_id>/",
         include("escalation.urls"),
     ),
+    # Operations Dashboard (Phase 11)
+    path(
+        "<uuid:organization_id>/dashboard/",
+        include("dashboard.urls"),
+    ),
 ]

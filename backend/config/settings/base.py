@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "sla",
     "escalation",
     "notifications.apps.NotificationsConfig",
+    "dashboard.apps.DashboardConfig",
 ]
 
 MIDDLEWARE = [

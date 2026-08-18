@@ -26,9 +26,9 @@ _doc_urlpatterns = [
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/v1/", include("apps.api_v1.urls")),
-    path("api/v1/auth/", include("apps.accounts.urls")),
-    path("api/v1/organizations/", include("apps.organizations.urls")),
-    path("api/v1/notifications/", include("apps.notifications.urls")),
+    path("api/v1/", include("api_v1.urls")),
+    path("api/v1/auth/", include("accounts.urls")),
+    path("api/v1/organizations/", include("organizations.urls")),
+    path("api/v1/notifications/", include("notifications.urls")),
     *_doc_urlpatterns,
 ]
