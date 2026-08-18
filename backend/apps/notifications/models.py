@@ -1,5 +1,5 @@
 """
-Notification & Delivery Engine 
+Notification & Delivery Engine
 
 Domain architecture:
   Organization
@@ -304,8 +304,11 @@ class NotificationPreference(BaseModel):
 
     @classmethod
     def get_or_create(cls, organization, user):
-        """Get or create notification preferences for a user in an organization."""
-        preference, _ = cls.objects.get_or_create(
+        """Get or create notification preferences for a user in an organization.
+
+        Returns a tuple (preference, created) matching Django's get_or_create contract.
+        """
+        preference, created = cls.objects.get_or_create(
             organization=organization,
             user=user,
             defaults={
@@ -313,7 +316,7 @@ class NotificationPreference(BaseModel):
                 "in_app_enabled": True,
             },
         )
-        return preference
+        return preference, created
 
     def is_channel_enabled(self, channel: str) -> bool:
         """Check if a specific channel is enabled."""

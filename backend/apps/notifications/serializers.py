@@ -27,7 +27,19 @@ class NotificationSerializer(serializers.ModelSerializer):
             "read_at",
             "created_at",
         )
-        read_only_fields: ClassVar[tuple[str, ...]] = fields
+        read_only_fields: ClassVar[tuple[str, ...]] = (
+            "id",
+            "organization",
+            "recipient",
+            "notification_type",
+            "title",
+            "message",
+            "severity",
+            "incident_id",
+            "escalation_event_id",
+            "read_at",
+            "created_at",
+        )
 
 
 class NotificationListSerializer(serializers.ModelSerializer):

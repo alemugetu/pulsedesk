@@ -49,3 +49,17 @@ DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL")
 _default_redis_url = env("REDIS_URL", default="redis://127.0.0.1:6379/0")
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=_default_redis_url)
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=_default_redis_url)
+
+# ---------------------------------------------------------------------------
+# Channels — local Redis channel layer
+# Reuses the same Redis instance as Celery for development.
+# CHANNEL_LAYERS takes precedence over REDIS_URL.
+# ---------------------------------------------------------------------------
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [env("CHANNEL_REDIS_URL", default=_default_redis_url)],
+        },
+    },
+}

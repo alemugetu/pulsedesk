@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
+    "channels",
     # Local apps
     "common.apps.CommonConfig",
     "api_v1",
@@ -46,6 +47,7 @@ INSTALLED_APPS = [
     "escalation",
     "notifications.apps.NotificationsConfig",
     "dashboard.apps.DashboardConfig",
+    "realtime.apps.RealtimeConfig",
 ]
 
 MIDDLEWARE = [
@@ -201,6 +203,13 @@ SIMPLE_JWT = {
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
     "TOKEN_TYPE_CLAIM": "token_type",
 }
+
+# ---------------------------------------------------------------------------
+# Channels — shared configuration
+# Channel layer backend is set per environment (development, production, testing).
+# Reuses the existing Redis infrastructure from Celery.
+# ---------------------------------------------------------------------------
+ASGI_APPLICATION = "config.asgi.application"
 
 # ---------------------------------------------------------------------------
 # Celery — shared configuration

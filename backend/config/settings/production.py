@@ -46,3 +46,16 @@ CELERY_RESULT_BACKEND = env(
     "CELERY_RESULT_BACKEND",
     default=env("CELERY_BROKER_URL"),
 )
+
+# ---------------------------------------------------------------------------
+# Channels — production Redis channel layer
+# Reuses the same Redis instance as Celery for production.
+# ---------------------------------------------------------------------------
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [env("CELERY_BROKER_URL")],
+        },
+    },
+}

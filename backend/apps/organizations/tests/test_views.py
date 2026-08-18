@@ -2,6 +2,7 @@ import uuid
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 from organizations.models import (
     Membership,
     MembershipStatus,
@@ -21,10 +22,14 @@ class OrganizationAPITest(TestCase):
             email="usera@example.com",
             password="testpass123",
         )
+        self.user_a.email_verified_at = timezone.now()
+        self.user_a.save()
         self.user_b = User.objects.create_user(
             email="userb@example.com",
             password="testpass123",
         )
+        self.user_b.email_verified_at = timezone.now()
+        self.user_b.save()
         self.org_a = OrganizationService.create_organization(
             user=self.user_a,
             name="Organization A",
@@ -172,6 +177,8 @@ class OrganizationAPITest(TestCase):
             email="outsider@example.com",
             password="testpass123",
         )
+        outsider.email_verified_at = timezone.now()
+        outsider.save()
         self._auth_as(outsider)
         response = self.client.get(f"/api/v1/organizations/{self.org_a.id}/")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

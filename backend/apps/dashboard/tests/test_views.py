@@ -2,19 +2,21 @@ from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from rest_framework import status
-from rest_framework.test import APITestCase
-
-from escalation.models import EscalationStatus, EscalationTriggerType, IncidentEscalation
+from escalation.models import (
+    EscalationStatus,
+    EscalationTriggerType,
+    IncidentEscalation,
+)
 from escalation.services import (
-    EscalationEvaluationService,
     EscalationPolicyService,
 )
 from incidents.models import IncidentStatus
 from incidents.services import IncidentService
 from organizations.models import Membership, MembershipStatus, Role
 from organizations.services import OrganizationService
-from sla.services import SLACalculationService, SLAPolicyService
+from rest_framework import status
+from rest_framework.test import APITestCase
+from sla.services import SLAPolicyService
 
 User = get_user_model()
 
@@ -28,20 +30,32 @@ def _add_member(user, org, role_slug):
 
 class DashboardViewsTest(APITestCase):
     def setUp(self):
-        self.owner = User.objects.create_user(email="owner@example.com", password="Password123!")
-        self.agent = User.objects.create_user(email="agent@example.com", password="Password123!")
-        self.viewer = User.objects.create_user(email="viewer@example.com", password="Password123!")
+        self.owner = User.objects.create_user(
+            email="owner@example.com", password="Password123!"
+        )
+        self.agent = User.objects.create_user(
+            email="agent@example.com", password="Password123!"
+        )
+        self.viewer = User.objects.create_user(
+            email="viewer@example.com", password="Password123!"
+        )
 
-        self.org = OrganizationService.create_organization(user=self.owner, name="Dashboard Org")
+        self.org = OrganizationService.create_organization(
+            user=self.owner, name="Dashboard Org"
+        )
         self.owner_membership = self.owner.memberships.get(organization=self.org)
 
         self.agent_membership = _add_member(self.agent, self.org, "agent")
         self.viewer_membership = _add_member(self.viewer, self.org, "viewer")
 
         self.summary_url = f"/api/v1/organizations/{self.org.id}/dashboard/summary/"
-        self.priority_url = f"/api/v1/organizations/{self.org.id}/dashboard/priority-distribution/"
+        self.priority_url = (
+            f"/api/v1/organizations/{self.org.id}/dashboard/priority-distribution/"
+        )
         self.sla_url = f"/api/v1/organizations/{self.org.id}/dashboard/sla-metrics/"
-        self.escalation_url = f"/api/v1/organizations/{self.org.id}/dashboard/escalation-metrics/"
+        self.escalation_url = (
+            f"/api/v1/organizations/{self.org.id}/dashboard/escalation-metrics/"
+        )
         self.incidents_url = f"/api/v1/organizations/{self.org.id}/dashboard/incidents/"
 
         self.sla_policy = SLAPolicyService.create_sla_policy(
@@ -51,25 +65,38 @@ class DashboardViewsTest(APITestCase):
             is_default=True,
         )
         SLAPolicyService.create_sla_target(
-            policy=self.sla_policy, actor_membership=self.owner_membership,
-            priority="P1", response_time_minutes=10, resolution_time_minutes=30,
+            policy=self.sla_policy,
+            actor_membership=self.owner_membership,
+            priority="P1",
+            response_time_minutes=10,
+            resolution_time_minutes=30,
         )
         SLAPolicyService.create_sla_target(
-            policy=self.sla_policy, actor_membership=self.owner_membership,
-            priority="P3", response_time_minutes=60, resolution_time_minutes=240,
+            policy=self.sla_policy,
+            actor_membership=self.owner_membership,
+            priority="P3",
+            response_time_minutes=60,
+            resolution_time_minutes=240,
         )
 
         self.esc_policy = EscalationPolicyService.create_escalation_policy(
-            organization=self.org, actor_membership=self.owner_membership,
-            name="Default Escalation", is_default=True,
+            organization=self.org,
+            actor_membership=self.owner_membership,
+            name="Default Escalation",
+            is_default=True,
         )
         EscalationPolicyService.create_escalation_level(
-            policy=self.esc_policy, actor_membership=self.owner_membership,
-            level=1, name="L1", delay_minutes=0,
-            target_type="ROLE", target_reference=str(self.owner_membership.role.id),
+            policy=self.esc_policy,
+            actor_membership=self.owner_membership,
+            level=1,
+            name="L1",
+            delay_minutes=0,
+            target_type="ROLE",
+            target_reference=str(self.owner_membership.role.id),
         )
         EscalationPolicyService.create_escalation_rule(
-            policy=self.esc_policy, actor_membership=self.owner_membership,
+            policy=self.esc_policy,
+            actor_membership=self.owner_membership,
             trigger_type=EscalationTriggerType.RESPONSE_BREACH,
         )
 
@@ -92,7 +119,9 @@ class DashboardViewsTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_cross_tenant_access_denied(self):
-        other_user = User.objects.create_user(email="other@example.com", password="Password123!")
+        other_user = User.objects.create_user(
+            email="other@example.com", password="Password123!"
+        )
         self.client.force_authenticate(user=other_user)
         response = self.client.get(self.summary_url)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
@@ -101,21 +130,35 @@ class DashboardViewsTest(APITestCase):
     # Summary endpoint
     # ------------------------------------------------------------------
     def test_summary_response_shape(self):
-        IncidentService.create_incident(self.org, self.owner, "Test Incident", priority="P3")
+        IncidentService.create_incident(
+            self.org, self.owner, "Test Incident", priority="P3"
+        )
         self.client.force_authenticate(user=self.owner)
         res = self.client.get(self.summary_url)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        for key in ["open_incidents", "unassigned_incidents", "sla_at_risk", "sla_breached", "active_escalations"]:
+        for key in [
+            "open_incidents",
+            "unassigned_incidents",
+            "sla_at_risk",
+            "sla_breached",
+            "active_escalations",
+        ]:
             self.assertIn(key, res.data, msg=f"Missing key '{key}' in summary response")
             self.assertIsInstance(res.data[key], int)
 
     def test_summary_counts_accurate(self):
         # 1) healthy, unassigned, open
-        IncidentService.create_incident(self.org, self.owner, "Healthy Open", priority="P3")
+        IncidentService.create_incident(
+            self.org, self.owner, "Healthy Open", priority="P3"
+        )
 
         # 2) assigned, breached, active escalation
-        breached = IncidentService.create_incident(self.org, self.owner, "Breached", priority="P1")
-        IncidentService.assign_incident(breached, self.owner_membership, self.owner_membership)
+        breached = IncidentService.create_incident(
+            self.org, self.owner, "Breached", priority="P1"
+        )
+        IncidentService.assign_incident(
+            breached, self.owner_membership, self.owner_membership
+        )
         sla_b = breached.sla
         sla_b.response_deadline = timezone.now() - timedelta(minutes=1)
         sla_b.response_breached = True
@@ -129,7 +172,9 @@ class DashboardViewsTest(APITestCase):
         )
 
         # 3) at risk (90% elapsed of 10min P1 response)
-        risky = IncidentService.create_incident(self.org, self.owner, "Risky", priority="P1")
+        risky = IncidentService.create_incident(
+            self.org, self.owner, "Risky", priority="P1"
+        )
         sla_r = risky.sla
         sla_r.created_at = timezone.now() - timedelta(minutes=9)
         sla_r.response_deadline = sla_r.created_at + timedelta(minutes=10)
@@ -175,7 +220,14 @@ class DashboardViewsTest(APITestCase):
         self.client.force_authenticate(user=self.owner)
         res = self.client.get(self.sla_url)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        for key in ["healthy", "approaching", "breached", "resolved_within_sla", "response_breaches", "resolution_breaches"]:
+        for key in [
+            "healthy",
+            "approaching",
+            "breached",
+            "resolved_within_sla",
+            "response_breaches",
+            "resolution_breaches",
+        ]:
             self.assertIn(key, res.data)
 
     # ------------------------------------------------------------------
@@ -193,16 +245,34 @@ class DashboardViewsTest(APITestCase):
     # Incident list: filters
     # ------------------------------------------------------------------
     def _create_for_filters(self):
-        inc_p1 = IncidentService.create_incident(self.org, self.owner, "P1-OPEN", priority="P1")
-        inc_p3 = IncidentService.create_incident(self.org, self.owner, "P3-OPEN", priority="P3")
-        inc_assigned = IncidentService.create_incident(self.org, self.owner, "ASSIGNED", priority="P3")
-        IncidentService.assign_incident(inc_assigned, self.owner_membership, self.agent_membership)
-        inc_resolved = IncidentService.create_incident(self.org, self.owner, "RESOLVED", priority="P3")
-        IncidentService.transition_incident_status(inc_resolved, self.owner_membership, "ACKNOWLEDGED")
-        IncidentService.transition_incident_status(inc_resolved, self.owner_membership, "IN_PROGRESS")
-        IncidentService.transition_incident_status(inc_resolved, self.owner_membership, "RESOLVED")
+        inc_p1 = IncidentService.create_incident(
+            self.org, self.owner, "P1-OPEN", priority="P1"
+        )
+        inc_p3 = IncidentService.create_incident(
+            self.org, self.owner, "P3-OPEN", priority="P3"
+        )
+        inc_assigned = IncidentService.create_incident(
+            self.org, self.owner, "ASSIGNED", priority="P3"
+        )
+        IncidentService.assign_incident(
+            inc_assigned, self.owner_membership, self.agent_membership
+        )
+        inc_resolved = IncidentService.create_incident(
+            self.org, self.owner, "RESOLVED", priority="P3"
+        )
+        IncidentService.transition_incident_status(
+            inc_resolved, self.owner_membership, "ACKNOWLEDGED"
+        )
+        IncidentService.transition_incident_status(
+            inc_resolved, self.owner_membership, "IN_PROGRESS"
+        )
+        IncidentService.transition_incident_status(
+            inc_resolved, self.owner_membership, "RESOLVED"
+        )
 
-        inc_breached = IncidentService.create_incident(self.org, self.owner, "BREACHED", priority="P1")
+        inc_breached = IncidentService.create_incident(
+            self.org, self.owner, "BREACHED", priority="P1"
+        )
         sla_b = inc_breached.sla
         sla_b.response_deadline = timezone.now() - timedelta(minutes=1)
         sla_b.response_breached = True
@@ -215,8 +285,11 @@ class DashboardViewsTest(APITestCase):
             status=EscalationStatus.ACTIVE,
         )
         return {
-            "p1": inc_p1, "p3": inc_p3, "assigned": inc_assigned,
-            "resolved": inc_resolved, "breached": inc_breached,
+            "p1": inc_p1,
+            "p3": inc_p3,
+            "assigned": inc_assigned,
+            "resolved": inc_resolved,
+            "breached": inc_breached,
         }
 
     def test_filter_priority(self):
@@ -239,7 +312,9 @@ class DashboardViewsTest(APITestCase):
     def test_filter_assignee_id(self):
         data = self._create_for_filters()
         self.client.force_authenticate(user=self.owner)
-        res = self.client.get(f"{self.incidents_url}?assignee_id={self.agent_membership.id}")
+        res = self.client.get(
+            f"{self.incidents_url}?assignee_id={self.agent_membership.id}"
+        )
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(len(res.data["results"]), 1)
         self.assertEqual(res.data["results"][0]["id"], str(data["assigned"].id))
@@ -276,7 +351,9 @@ class DashboardViewsTest(APITestCase):
     def test_incident_list_pagination_default_page_size(self):
         self.client.force_authenticate(user=self.owner)
         for i in range(3):
-            IncidentService.create_incident(self.org, self.owner, f"I{i}", priority="P3")
+            IncidentService.create_incident(
+                self.org, self.owner, f"I{i}", priority="P3"
+            )
         res = self.client.get(self.incidents_url)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertIn("count", res.data)
@@ -289,7 +366,9 @@ class DashboardViewsTest(APITestCase):
     def test_incident_list_page_size_param(self):
         self.client.force_authenticate(user=self.owner)
         for i in range(10):
-            IncidentService.create_incident(self.org, self.owner, f"Inc-{i}", priority="P3")
+            IncidentService.create_incident(
+                self.org, self.owner, f"Inc-{i}", priority="P3"
+            )
         res = self.client.get(f"{self.incidents_url}?page_size=3")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data["count"], 10)
@@ -299,7 +378,9 @@ class DashboardViewsTest(APITestCase):
         self.client.force_authenticate(user=self.owner)
         ids = []
         for i in range(6):
-            inc = IncidentService.create_incident(self.org, self.owner, f"Pg-{i}", priority="P3")
+            inc = IncidentService.create_incident(
+                self.org, self.owner, f"Pg-{i}", priority="P3"
+            )
             ids.append(str(inc.id))
         res_p1 = self.client.get(f"{self.incidents_url}?page_size=2&page=1")
         res_p2 = self.client.get(f"{self.incidents_url}?page_size=2&page=2")
@@ -314,7 +395,9 @@ class DashboardViewsTest(APITestCase):
     def test_incident_list_ordering_ascending(self):
         self.client.force_authenticate(user=self.owner)
         for p in ["P4", "P1", "P3", "P2"]:
-            IncidentService.create_incident(self.org, self.owner, f"Ord-{p}", priority=p)
+            IncidentService.create_incident(
+                self.org, self.owner, f"Ord-{p}", priority=p
+            )
         res = self.client.get(f"{self.incidents_url}?ordering=priority")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         priorities = [r["priority"] for r in res.data["results"]]
@@ -323,7 +406,9 @@ class DashboardViewsTest(APITestCase):
     def test_incident_list_ordering_descending(self):
         self.client.force_authenticate(user=self.owner)
         for p in ["P4", "P1", "P3", "P2"]:
-            IncidentService.create_incident(self.org, self.owner, f"Ord-{p}", priority=p)
+            IncidentService.create_incident(
+                self.org, self.owner, f"Ord-{p}", priority=p
+            )
         res = self.client.get(f"{self.incidents_url}?ordering=-priority")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         priorities = [r["priority"] for r in res.data["results"]]

@@ -2,6 +2,7 @@
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 from organizations.models import Membership, MembershipStatus, Role
 from organizations.services import OrganizationService
 from rest_framework import status
@@ -16,6 +17,8 @@ class RBACViewBaseTest(TestCase):
         self.owner_user = User.objects.create_user(
             email="owner@example.com", password="pass123"
         )
+        self.owner_user.email_verified_at = timezone.now()
+        self.owner_user.save()
         self.org = OrganizationService.create_organization(
             user=self.owner_user, name="Acme"
         )
@@ -27,6 +30,8 @@ class RBACViewBaseTest(TestCase):
         self.viewer_user = User.objects.create_user(
             email="viewer@example.com", password="pass123"
         )
+        self.viewer_user.email_verified_at = timezone.now()
+        self.viewer_user.save()
         viewer_role = Role.objects.get(organization=self.org, slug="viewer")
         self.viewer_membership = Membership.objects.create(
             user=self.viewer_user,
@@ -86,6 +91,8 @@ class RoleListCreateViewTest(RBACViewBaseTest):
 
     def test_cross_tenant_member_gets_404(self):
         outsider = User.objects.create_user(email="out@example.com", password="pass123")
+        outsider.email_verified_at = timezone.now()
+        outsider.save()
         OrganizationService.create_organization(user=outsider, name="Other")
         self._auth_as(outsider)
         response = self.client.get(self._url())
@@ -167,6 +174,8 @@ class MembershipRoleAssignViewTest(RBACViewBaseTest):
         self.target_user = User.objects.create_user(
             email="target@example.com", password="pass123"
         )
+        self.target_user.email_verified_at = timezone.now()
+        self.target_user.save()
         agent_role = Role.objects.get(organization=self.org, slug="agent")
         self.target_membership = Membership.objects.create(
             user=self.target_user,
@@ -217,6 +226,8 @@ class MembershipRoleAssignViewTest(RBACViewBaseTest):
         other_user = User.objects.create_user(
             email="other@example.com", password="pass123"
         )
+        other_user.email_verified_at = timezone.now()
+        other_user.save()
         other_org = OrganizationService.create_organization(
             user=other_user, name="Beta"
         )
@@ -264,6 +275,8 @@ class MemberListWithRBACTest(RBACViewBaseTest):
         no_role_user = User.objects.create_user(
             email="norole@example.com", password="pass123"
         )
+        no_role_user.email_verified_at = timezone.now()
+        no_role_user.save()
         Membership.objects.create(
             user=no_role_user,
             organization=self.org,

@@ -1,28 +1,29 @@
 from typing import ClassVar
+
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
+from organizations.permissions import IsOrganizationMember
 from rest_framework import status
 from rest_framework.filters import OrderingFilter
+from rest_framework.generics import ListAPIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.generics import ListAPIView
 
-from organizations.permissions import IsOrganizationMember
 from .permissions import CanViewDashboard
 from .selectors import (
+    get_dashboard_incidents,
     get_dashboard_summary,
+    get_escalation_metrics,
     get_priority_distribution,
     get_sla_metrics,
-    get_escalation_metrics,
-    get_dashboard_incidents,
 )
 from .serializers import (
+    DashboardIncidentSerializer,
     DashboardSummarySerializer,
+    EscalationMetricsSerializer,
     PriorityDistributionSerializer,
     SLAMetricsSerializer,
-    EscalationMetricsSerializer,
-    DashboardIncidentSerializer,
 )
 
 
@@ -38,13 +39,19 @@ _ORG_ID_PARAM = OpenApiParameter(
     description="UUID of the organization.",
 )
 
+
 @extend_schema(tags=["Dashboard"])
 class DashboardSummaryView(APIView):
     """
     Get high-level operational summary for the organization.
     GET /api/v1/organizations/<organization_id>/dashboard/summary/
     """
-    permission_classes: ClassVar = [IsAuthenticated, IsOrganizationMember, CanViewDashboard]
+
+    permission_classes: ClassVar = [
+        IsAuthenticated,
+        IsOrganizationMember,
+        CanViewDashboard,
+    ]
 
     @extend_schema(
         summary="Dashboard Summary",
@@ -62,13 +69,19 @@ class DashboardSummaryView(APIView):
         serializer = DashboardSummarySerializer(summary)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
 @extend_schema(tags=["Dashboard"])
 class PriorityDistributionView(APIView):
     """
     Get incident distribution by priority.
     GET /api/v1/organizations/<organization_id>/dashboard/priority-distribution/
     """
-    permission_classes: ClassVar = [IsAuthenticated, IsOrganizationMember, CanViewDashboard]
+
+    permission_classes: ClassVar = [
+        IsAuthenticated,
+        IsOrganizationMember,
+        CanViewDashboard,
+    ]
 
     @extend_schema(
         summary="Priority Distribution",
@@ -86,13 +99,19 @@ class PriorityDistributionView(APIView):
         serializer = PriorityDistributionSerializer(distribution)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
 @extend_schema(tags=["Dashboard"])
 class SLAMetricsView(APIView):
     """
     Get detailed SLA metrics for the dashboard.
     GET /api/v1/organizations/<organization_id>/dashboard/sla-metrics/
     """
-    permission_classes: ClassVar = [IsAuthenticated, IsOrganizationMember, CanViewDashboard]
+
+    permission_classes: ClassVar = [
+        IsAuthenticated,
+        IsOrganizationMember,
+        CanViewDashboard,
+    ]
 
     @extend_schema(
         summary="SLA Metrics",
@@ -110,13 +129,19 @@ class SLAMetricsView(APIView):
         serializer = SLAMetricsSerializer(metrics)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
 @extend_schema(tags=["Dashboard"])
 class EscalationMetricsView(APIView):
     """
     Get detailed escalation metrics for the dashboard.
     GET /api/v1/organizations/<organization_id>/dashboard/escalation-metrics/
     """
-    permission_classes: ClassVar = [IsAuthenticated, IsOrganizationMember, CanViewDashboard]
+
+    permission_classes: ClassVar = [
+        IsAuthenticated,
+        IsOrganizationMember,
+        CanViewDashboard,
+    ]
 
     @extend_schema(
         summary="Escalation Metrics",
@@ -134,32 +159,66 @@ class EscalationMetricsView(APIView):
         serializer = EscalationMetricsSerializer(metrics)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
 @extend_schema(tags=["Dashboard"])
 class DashboardIncidentListView(ListAPIView):
     """
     Operations view for incidents with dashboard-specific filtering.
     GET /api/v1/organizations/<organization_id>/dashboard/incidents/
     """
-    permission_classes: ClassVar = [IsAuthenticated, IsOrganizationMember, CanViewDashboard]
+
+    permission_classes: ClassVar = [
+        IsAuthenticated,
+        IsOrganizationMember,
+        CanViewDashboard,
+    ]
     serializer_class = DashboardIncidentSerializer
     pagination_class = DashboardPagination
     filter_backends: ClassVar = [OrderingFilter]
-    ordering_fields = ["created_at", "priority", "status", "id"]
-    ordering = ["-created_at"]
+    ordering_fields: ClassVar[list[str]] = ["created_at", "priority", "status", "id"]
+    ordering: ClassVar[list[str]] = ["-created_at"]
 
     @extend_schema(
         summary="Dashboard Incident Operations View",
         description="Returns a read-optimized list of incidents with advanced filtering for operational oversight.",
         parameters=[
             _ORG_ID_PARAM,
-            OpenApiParameter(name="status", type=str, description="Filter by status (OPEN, ACKNOWLEDGED, IN_PROGRESS, RESOLVED, CLOSED)."),
-            OpenApiParameter(name="priority", type=str, description="Filter by priority (P1, P2, P3, P4)."),
-            OpenApiParameter(name="assignee_id", type=str, description="Filter by assignee membership UUID."),
-            OpenApiParameter(name="sla_state", type=str, enum=["HEALTHY", "AT_RISK", "BREACHED"], description="Filter by SLA state."),
-            OpenApiParameter(name="escalation_state", type=str, enum=["ACTIVE", "COMPLETED", "CANCELLED"], description="Filter by escalation status."),
+            OpenApiParameter(
+                name="status",
+                type=str,
+                description="Filter by status (OPEN, ACKNOWLEDGED, IN_PROGRESS, RESOLVED, CLOSED).",
+            ),
+            OpenApiParameter(
+                name="priority",
+                type=str,
+                description="Filter by priority (P1, P2, P3, P4).",
+            ),
+            OpenApiParameter(
+                name="assignee_id",
+                type=str,
+                description="Filter by assignee membership UUID.",
+            ),
+            OpenApiParameter(
+                name="sla_state",
+                type=str,
+                enum=["HEALTHY", "AT_RISK", "BREACHED"],
+                description="Filter by SLA state.",
+            ),
+            OpenApiParameter(
+                name="escalation_state",
+                type=str,
+                enum=["ACTIVE", "COMPLETED", "CANCELLED"],
+                description="Filter by escalation status.",
+            ),
             OpenApiParameter(name="page", type=int, description="Page number."),
-            OpenApiParameter(name="page_size", type=int, description="Items per page (max 500)."),
-            OpenApiParameter(name="ordering", type=str, description="Order by fields: created_at, priority, status, id. Prefix with - for descending."),
+            OpenApiParameter(
+                name="page_size", type=int, description="Items per page (max 500)."
+            ),
+            OpenApiParameter(
+                name="ordering",
+                type=str,
+                description="Order by fields: created_at, priority, status, id. Prefix with - for descending.",
+            ),
         ],
         responses={
             200: DashboardIncidentSerializer(many=True),

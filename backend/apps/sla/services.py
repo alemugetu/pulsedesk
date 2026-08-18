@@ -739,6 +739,13 @@ class SLAMonitoringService:
                 now=now,
             )
 
+            # Publish realtime SLA warning event
+            SLAMonitoringService._publish_sla_warning_event(
+                incident=incident,
+                sla=sla,
+                now=now,
+            )
+
         # 5. Breach → escalation evaluation.
         if sla.response_breached or sla.resolution_breached:
             result.breaches += 1
@@ -761,6 +768,13 @@ class SLAMonitoringService:
 
             # Create SLA breach notification
             SLAMonitoringService._create_sla_breach_notification(
+                incident=incident,
+                sla=sla,
+                now=now,
+            )
+
+            # Publish realtime SLA breach event
+            SLAMonitoringService._publish_sla_breach_event(
                 incident=incident,
                 sla=sla,
                 now=now,
@@ -997,5 +1011,97 @@ class SLAMonitoringService:
                     "incident_id": str(incident.pk),
                     "organization_id": str(incident.organization_id),
                     "event": "notification_error",
+                },
+            )
+
+    @staticmethod
+    def _publish_sla_warning_event(
+        incident: Incident,
+        sla: IncidentSLA,
+        now,
+    ) -> None:
+        """
+        Publish realtime SLA warning event.
+
+        Args:
+            incident: The incident with SLA warning
+            sla: The incident SLA record
+            now: Current timestamp
+        """
+        from realtime.services import RealtimeEventService
+
+        # Determine which deadline is approaching
+        if sla.response_completed_at is None and not sla.response_breached:
+            deadline_str = sla.response_deadline.isoformat()
+            sla_type = "response"
+        elif sla.resolution_completed_at is None and not sla.resolution_breached:
+            deadline_str = sla.resolution_deadline.isoformat()
+            sla_type = "resolution"
+        else:
+            return  # No active deadline to warn about
+
+        try:
+            RealtimeEventService.publish_sla_warning(
+                incident_id=str(incident.id),
+                incident_number=incident.incident_number,
+                sla_type=sla_type,
+                deadline=deadline_str,
+                organization_id=str(incident.organization_id),
+            )
+        except Exception:
+            # Log error but don't fail the monitoring run
+            logger.exception(
+                "SLA monitor: failed to publish warning event for incident %s",
+                incident.pk,
+                extra={
+                    "task": "sla.monitor_sla",
+                    "incident_id": str(incident.pk),
+                    "organization_id": str(incident.organization_id),
+                    "event": "realtime_error",
+                },
+            )
+
+    @staticmethod
+    def _publish_sla_breach_event(
+        incident: Incident,
+        sla: IncidentSLA,
+        now,
+    ) -> None:
+        """
+        Publish realtime SLA breach event.
+
+        Args:
+            incident: The incident with SLA breach
+            sla: The incident SLA record
+            now: Current timestamp
+        """
+        from realtime.services import RealtimeEventService
+
+        # Determine which deadline was breached
+        if sla.response_breached:
+            deadline_str = sla.response_deadline.isoformat()
+            sla_type = "response"
+        else:
+            deadline_str = sla.resolution_deadline.isoformat()
+            sla_type = "resolution"
+
+        try:
+            RealtimeEventService.publish_sla_breached(
+                incident_id=str(incident.id),
+                incident_number=incident.incident_number,
+                sla_type=sla_type,
+                deadline=deadline_str,
+                organization_id=str(incident.organization_id),
+            )
+        except Exception:
+            # Log error but don't fail the monitoring run
+            logger.exception(
+                "SLA monitor: failed to publish breach event for incident %s",
+                incident.pk,
+                extra={
+                    "task": "sla.monitor_sla",
+                    "incident_id": str(incident.pk),
+                    "organization_id": str(incident.organization_id),
+                    "event": "realtime_error",
                 },
             )

@@ -1,3 +1,5 @@
+import uuid
+
 """
 Tests for Notification Service — Phase 10
 
@@ -41,6 +43,8 @@ class NotificationServiceTest(TestCase):
             user=self.user,
             status="ACTIVE",
         )
+        self.incident_id = str(uuid.uuid4())
+        self.escalation_event_id = str(uuid.uuid4())
         self.service = NotificationService()
 
     def test_create_notification_success(self):
@@ -87,10 +91,10 @@ class NotificationServiceTest(TestCase):
             notification_type=NotificationType.SLA_WARNING,
             title="Test Notification",
             message="Test message",
-            incident_id="test-incident-id",
+            incident_id=self.incident_id,
         )
 
-        self.assertEqual(notification.incident_id, "test-incident-id")
+        self.assertEqual(notification.incident_id, self.incident_id)
 
     def test_create_notification_with_escalation_reference(self):
         """Test notification creation with escalation event reference."""
@@ -100,24 +104,24 @@ class NotificationServiceTest(TestCase):
             notification_type=NotificationType.ESCALATION_TRIGGERED,
             title="Test Notification",
             message="Test message",
-            escalation_event_id="test-escalation-id",
+            escalation_event_id=self.escalation_event_id,
         )
 
-        self.assertEqual(notification.escalation_event_id, "test-escalation-id")
+        self.assertEqual(notification.escalation_event_id, self.escalation_event_id)
 
     def test_create_sla_warning_notification(self):
         """Test SLA warning notification creation."""
         notification = self.service.create_sla_warning_notification(
             organization=self.organization,
             recipient=self.user,
-            incident_id="test-incident-id",
+            incident_id=self.incident_id,
             incident_title="Test Incident",
             deadline_str="2024-01-01 12:00:00 UTC",
         )
 
         self.assertEqual(notification.notification_type, NotificationType.SLA_WARNING)
         self.assertEqual(notification.severity, NotificationSeverity.WARNING)
-        self.assertEqual(notification.incident_id, "test-incident-id")
+        self.assertEqual(notification.incident_id, self.incident_id)
         self.assertIn("SLA Warning", notification.title)
         self.assertIn("Test Incident", notification.title)
 
@@ -126,14 +130,14 @@ class NotificationServiceTest(TestCase):
         notification = self.service.create_sla_breach_notification(
             organization=self.organization,
             recipient=self.user,
-            incident_id="test-incident-id",
+            incident_id=self.incident_id,
             incident_title="Test Incident",
             deadline_str="2024-01-01 12:00:00 UTC",
         )
 
         self.assertEqual(notification.notification_type, NotificationType.SLA_BREACH)
         self.assertEqual(notification.severity, NotificationSeverity.CRITICAL)
-        self.assertEqual(notification.incident_id, "test-incident-id")
+        self.assertEqual(notification.incident_id, self.incident_id)
         self.assertIn("SLA Breached", notification.title)
         self.assertIn("Test Incident", notification.title)
 
@@ -142,8 +146,8 @@ class NotificationServiceTest(TestCase):
         notification = self.service.create_escalation_notification(
             organization=self.organization,
             recipient=self.user,
-            escalation_event_id="test-escalation-id",
-            incident_id="test-incident-id",
+            escalation_event_id=self.escalation_event_id,
+            incident_id=self.incident_id,
             incident_title="Test Incident",
             escalation_level=2,
             target_type="ROLE",
@@ -153,8 +157,8 @@ class NotificationServiceTest(TestCase):
             notification.notification_type, NotificationType.ESCALATION_TRIGGERED
         )
         self.assertEqual(notification.severity, NotificationSeverity.CRITICAL)
-        self.assertEqual(notification.escalation_event_id, "test-escalation-id")
-        self.assertEqual(notification.incident_id, "test-incident-id")
+        self.assertEqual(notification.escalation_event_id, self.escalation_event_id)
+        self.assertEqual(notification.incident_id, self.incident_id)
         self.assertIn("Escalation Level 2", notification.title)
         self.assertIn("Test Incident", notification.title)
 
@@ -251,12 +255,9 @@ class NotificationServiceTest(TestCase):
 
     def test_validate_recipient_membership_inactive(self):
         """Test that inactive membership is rejected."""
-        # Create inactive membership
-        Membership.objects.create(
-            organization=self.organization,
-            user=self.user,
-            status="SUSPENDED",
-        )
+        # Mutate existing membership to inactive
+        self.membership.status = "SUSPENDED"
+        self.membership.save()
 
         is_valid = self.service._validate_recipient_membership(
             self.organization, self.user

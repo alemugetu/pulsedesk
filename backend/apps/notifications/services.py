@@ -1,5 +1,5 @@
 """
-Notification Service — 
+Notification Service —
 
 Service layer for notification creation and management.
 
@@ -23,11 +23,8 @@ from organizations.models import Membership, MembershipStatus, Organization
 
 from .delivery import DeliveryDispatcher
 from .models import (
-    DeliveryChannel,
     Notification,
     NotificationPreference,
-    NotificationSeverity,
-    NotificationType,
 )
 
 
@@ -92,7 +89,7 @@ class NotificationService:
         )
 
         # Get user preferences for this organization
-        preferences = NotificationPreference.get_or_create(organization, recipient)
+        preferences, _ = NotificationPreference.get_or_create(organization, recipient)
 
         # Determine enabled channels
         channels = self._determine_channels(
@@ -104,6 +101,9 @@ class NotificationService:
 
         # Enqueue delivery after transaction commit
         transaction.on_commit(lambda: self._enqueue_delivery(notification.id, channels))
+
+        # Publish realtime notification event for important notifications
+        self._publish_notification_event(notification, incident_id)
 
         return notification
 
@@ -180,6 +180,65 @@ class NotificationService:
         from .tasks import deliver_notification_task
 
         deliver_notification_task.delay(notification_id, channels)
+
+    def _publish_notification_event(
+        self,
+        notification: Notification,
+        incident_id: str | None,
+    ) -> None:
+        """
+        Publish realtime notification event for important notifications.
+
+        Only publishes for critical/important notification types to avoid noise.
+
+        Args:
+            notification: The notification that was created
+            incident_id: Optional incident ID for context
+        """
+        # Only publish for important notification types
+        important_types = {
+            "SLA_BREACH",
+            "ESCALATION_TRIGGERED",
+            "INCIDENT_ASSIGNED",
+        }
+
+        if notification.notification_type not in important_types:
+            return
+
+        from realtime.services import RealtimeEventService
+
+        try:
+            # Get incident number if incident_id is provided
+            incident_number = None
+            if incident_id:
+                from incidents.models import Incident
+
+                try:
+                    incident = Incident.objects.get(id=incident_id)
+                    incident_number = incident.incident_number
+                except Incident.DoesNotExist:
+                    pass
+
+            RealtimeEventService.publish_notification_created(
+                notification_id=str(notification.id),
+                notification_type=notification.notification_type,
+                incident_id=incident_id,
+                incident_number=incident_number,
+                organization_id=str(notification.organization_id),
+            )
+        except Exception:
+            # Log error but don't fail notification creation
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.exception(
+                "Failed to publish notification event for notification %s",
+                notification.id,
+                extra={
+                    "notification_id": str(notification.id),
+                    "event": "realtime_error",
+                },
+            )
 
     def create_sla_warning_notification(
         self,

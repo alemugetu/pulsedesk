@@ -710,6 +710,11 @@ class EscalationEvaluationService:
             escalation.status = EscalationStatus.COMPLETED
             escalation.completed_at = now
 
+            # Publish realtime escalation completed event
+            EscalationEvaluationService._publish_escalation_completed_event(
+                escalation=escalation,
+            )
+
         escalation.save(
             update_fields=[
                 "current_level",
@@ -753,6 +758,13 @@ class EscalationEvaluationService:
 
                 # Create notifications for the escalation event
                 EscalationEvaluationService._create_escalation_notifications(
+                    event=event,
+                    escalation=escalation,
+                    level=level,
+                )
+
+                # Publish realtime escalation triggered event
+                EscalationEvaluationService._publish_escalation_triggered_event(
                     event=event,
                     escalation=escalation,
                     level=level,
@@ -812,6 +824,78 @@ class EscalationEvaluationService:
                 logger.warning(
                     f"Failed to create escalation notification for recipient {recipient.email}: {exc}"
                 )
+
+    @staticmethod
+    def _publish_escalation_triggered_event(
+        event: EscalationEvent,
+        escalation: IncidentEscalation,
+        level: EscalationLevel,
+    ) -> None:
+        """
+        Publish realtime escalation triggered event.
+
+        Args:
+            event: The escalation event that was triggered
+            escalation: The incident escalation record
+            level: The escalation level that was executed
+        """
+        from realtime.services import RealtimeEventService
+
+        incident = escalation.incident
+
+        try:
+            RealtimeEventService.publish_escalation_triggered(
+                escalation_id=str(escalation.id),
+                incident_id=str(incident.id),
+                incident_number=incident.incident_number,
+                escalation_level=level.level,
+                organization_id=str(incident.organization_id),
+            )
+        except Exception:
+            # Log error but don't fail the escalation execution
+            logger.exception(
+                "Failed to publish escalation triggered event for escalation %s",
+                escalation.id,
+                extra={
+                    "escalation_id": str(escalation.id),
+                    "incident_id": str(incident.id),
+                    "event": "realtime_error",
+                },
+            )
+
+    @staticmethod
+    def _publish_escalation_completed_event(
+        escalation: IncidentEscalation,
+    ) -> None:
+        """
+        Publish realtime escalation completed event.
+
+        Args:
+            escalation: The incident escalation record that completed
+        """
+        from realtime.services import RealtimeEventService
+
+        incident = escalation.incident
+
+        try:
+            RealtimeEventService.publish_escalation_completed(
+                escalation_id=str(escalation.id),
+                incident_id=str(incident.id),
+                incident_number=incident.incident_number,
+                escalation_level=escalation.current_level,
+                organization_id=str(incident.organization_id),
+            )
+        except Exception:
+            # Log error but don't fail the escalation completion
+            logger.exception(
+                "Failed to publish escalation completed event for escalation %s",
+                escalation.id,
+                extra={
+                    "escalation_id": str(escalation.id),
+                    "incident_id": str(incident.id),
+                    "event": "realtime_error",
+                },
+            )
 
     @staticmethod
     def _resolve_escalation_recipients(

@@ -111,7 +111,7 @@ class EmailServiceTest(TestCase):
         EmailService.send_password_reset_email(self.user, token)
 
         email = mail.outbox[0]
-        self.assertIn("reset-password", email.body)
+        self.assertIn("password-reset", email.body)
         self.assertIn(token, email.body)
         self.assertIn(str(self.user.id), email.body)
 

@@ -28,7 +28,12 @@ class NotificationAdmin(admin.ModelAdmin):
         "organization",
         "created_at",
     ]
-    search_fields: ClassVar[list[str]] = ["title", "message", "recipient__email", "incident_id"]
+    search_fields: ClassVar[list[str]] = [
+        "title",
+        "message",
+        "recipient__email",
+        "incident_id",
+    ]
     readonly_fields: ClassVar[list[str]] = ["created_at", "updated_at", "read_at"]
     ordering: ClassVar[list[str]] = ["-created_at"]
 
@@ -60,7 +65,11 @@ class NotificationPreferenceAdmin(admin.ModelAdmin):
         "in_app_enabled",
         "created_at",
     ]
-    list_filter: ClassVar[list[str]] = ["email_enabled", "in_app_enabled", "organization"]
+    list_filter: ClassVar[list[str]] = [
+        "email_enabled",
+        "in_app_enabled",
+        "organization",
+    ]
     search_fields: ClassVar[list[str]] = ["user__email", "organization__name"]
     readonly_fields: ClassVar[list[str]] = ["created_at", "updated_at"]
     ordering: ClassVar[list[str]] = ["-created_at"]

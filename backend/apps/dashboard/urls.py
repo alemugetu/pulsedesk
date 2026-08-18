@@ -1,10 +1,11 @@
 from django.urls import path
+
 from .views import (
+    DashboardIncidentListView,
     DashboardSummaryView,
+    EscalationMetricsView,
     PriorityDistributionView,
     SLAMetricsView,
-    EscalationMetricsView,
-    DashboardIncidentListView,
 )
 
 app_name = "dashboard"

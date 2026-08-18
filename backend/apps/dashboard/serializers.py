@@ -1,10 +1,12 @@
-from rest_framework import serializers
-from django.utils import timezone
+from typing import ClassVar
+
 from django.conf import settings
-from incidents.models import Incident, IncidentPriority
-from sla.models import IncidentSLA
+from django.utils import timezone
+from incidents.models import Incident
+from rest_framework import serializers
 
 _DEFAULT_WARNING_THRESHOLD = 0.80
+
 
 class DashboardSummarySerializer(serializers.Serializer):
     open_incidents = serializers.IntegerField()
@@ -13,14 +15,16 @@ class DashboardSummarySerializer(serializers.Serializer):
     sla_breached = serializers.IntegerField()
     active_escalations = serializers.IntegerField()
 
+
 class PriorityDistributionSerializer(serializers.Serializer):
-    # Map the internal P1-P4 keys to more descriptive names if needed, 
+    # Map the internal P1-P4 keys to more descriptive names if needed,
     # but the requirement showed a map of priority keys.
     # Using dynamic fields since priorities are fixed.
     low = serializers.IntegerField(source="P4")
     medium = serializers.IntegerField(source="P3")
     high = serializers.IntegerField(source="P2")
     critical = serializers.IntegerField(source="P1")
+
 
 class SLAMetricsSerializer(serializers.Serializer):
     healthy = serializers.IntegerField()
@@ -30,20 +34,24 @@ class SLAMetricsSerializer(serializers.Serializer):
     response_breaches = serializers.IntegerField()
     resolution_breaches = serializers.IntegerField()
 
+
 class EscalationMetricsSerializer(serializers.Serializer):
     active = serializers.IntegerField()
     completed = serializers.IntegerField()
     cancelled = serializers.IntegerField()
     by_level = serializers.DictField(child=serializers.IntegerField())
 
+
 class DashboardIncidentSerializer(serializers.ModelSerializer):
-    assignee_email = serializers.EmailField(source="assignee.user.email", read_only=True, allow_null=True)
+    assignee_email = serializers.EmailField(
+        source="assignee.user.email", read_only=True, allow_null=True
+    )
     sla_state = serializers.SerializerMethodField()
     escalation_status = serializers.SerializerMethodField()
 
     class Meta:
         model = Incident
-        fields = [
+        fields: ClassVar[list[str]] = [
             "id",
             "incident_number",
             "title",
@@ -61,9 +69,9 @@ class DashboardIncidentSerializer(serializers.ModelSerializer):
         """
         try:
             sla = obj.sla
-        except Exception:
+        except AttributeError:
             return "UNKNOWN"
-            
+
         if not sla:
             return "UNKNOWN"
 
@@ -71,7 +79,9 @@ class DashboardIncidentSerializer(serializers.ModelSerializer):
             return "BREACHED"
 
         now = timezone.now()
-        threshold = float(getattr(settings, "SLA_WARNING_THRESHOLD", _DEFAULT_WARNING_THRESHOLD))
+        threshold = float(
+            getattr(settings, "SLA_WARNING_THRESHOLD", _DEFAULT_WARNING_THRESHOLD)
+        )
 
         # Check if either response or resolution is approaching
         for deadline, completed_at in [
@@ -96,5 +106,5 @@ class DashboardIncidentSerializer(serializers.ModelSerializer):
         for esc in obj.escalations.all():
             if not latest_escalation or esc.created_at > latest_escalation.created_at:
                 latest_escalation = esc
-        
+
         return latest_escalation.status if latest_escalation else None

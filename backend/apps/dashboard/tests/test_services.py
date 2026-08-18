@@ -1,7 +1,6 @@
-from django.test import TestCase
-from django.contrib.auth import get_user_model
-from organizations.services import OrganizationService
 from dashboard import services as dashboard_services_module
+from django.contrib.auth import get_user_model
+from django.test import TestCase
 
 User = get_user_model()
 
@@ -49,8 +48,8 @@ class DashboardServicesModuleTest(TestCase):
     def test_views_call_selectors_directly(self):
         """Sanity-check: dashboard views import from selectors, not services."""
         from dashboard import views as dashboard_views_module
+
         source = dashboard_views_module.__file__
-        import os
         with open(source, "r", encoding="utf-8") as fh:
             src = fh.read()
         self.assertIn("from .selectors import", src)

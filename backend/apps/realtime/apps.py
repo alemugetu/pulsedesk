@@ -1,7 +1,7 @@
 from django.apps import AppConfig
 
 
-class DashboardConfig(AppConfig):
+class RealtimeConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "dashboard"
-    verbose_name = "Dashboard"
+    name = "realtime"
+    verbose_name = "Real-time Events"

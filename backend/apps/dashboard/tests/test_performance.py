@@ -1,16 +1,21 @@
+from django.contrib.auth import get_user_model
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
-from rest_framework.test import APITestCase
-from django.contrib.auth import get_user_model
-from organizations.services import OrganizationService
 from incidents.services import IncidentService
+from organizations.services import OrganizationService
+from rest_framework.test import APITestCase
 
 User = get_user_model()
 
+
 class DashboardPerformanceTest(APITestCase):
     def setUp(self):
-        self.owner = User.objects.create_user(email="owner@perf.test", password="Password123!")
-        self.org = OrganizationService.create_organization(user=self.owner, name="Perf Org")
+        self.owner = User.objects.create_user(
+            email="owner@perf.test", password="Password123!"
+        )
+        self.org = OrganizationService.create_organization(
+            user=self.owner, name="Perf Org"
+        )
         self.client.force_authenticate(user=self.owner)
         self.incidents_url = f"/api/v1/organizations/{self.org.id}/dashboard/incidents/"
         self.summary_url = f"/api/v1/organizations/{self.org.id}/dashboard/summary/"

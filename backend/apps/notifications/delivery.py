@@ -1,5 +1,5 @@
 """
-Delivery Abstraction Layer 
+Delivery Abstraction Layer
 
 Provides a clean separation between notification business logic and delivery mechanisms.
 Each delivery channel is implemented as an adapter that can be extended without modifying

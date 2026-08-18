@@ -266,6 +266,11 @@ class IncidentService:
 
         SLACalculationService.calculate_incident_sla(incident)
 
+        # Publish realtime event after successful transaction
+        from realtime.services import RealtimeEventService
+
+        RealtimeEventService.publish_incident_created(incident)
+
         return incident
 
     @staticmethod
@@ -323,6 +328,12 @@ class IncidentService:
             incident.priority = priority
 
         incident.save()
+
+        # Publish realtime event after successful transaction
+        from realtime.services import RealtimeEventService
+
+        RealtimeEventService.publish_incident_updated(incident)
+
         return incident
 
     @staticmethod
@@ -355,6 +366,14 @@ class IncidentService:
 
         incident.assignee = assignee_membership
         incident.save()
+
+        # Publish realtime event after successful transaction
+        from realtime.services import RealtimeEventService
+
+        RealtimeEventService.publish_incident_assigned(
+            incident, str(assignee_membership.id) if assignee_membership else None
+        )
+
         return incident
 
     @staticmethod
@@ -364,6 +383,8 @@ class IncidentService:
         actor_membership: Membership,
         new_status: str,
     ) -> Incident:
+        old_status = incident.status
+
         if new_status == incident.status:
             return incident
 
@@ -417,5 +438,12 @@ class IncidentService:
         elif new_status == IncidentStatus.RESOLVED:
             # IN_PROGRESS → RESOLVED: mark resolution SLA as completed.
             SLACalculationService.complete_resolution_sla(incident)
+
+        # Publish realtime event after successful transaction
+        from realtime.services import RealtimeEventService
+
+        RealtimeEventService.publish_incident_status_changed(
+            incident, old_status, new_status
+        )
 
         return incident

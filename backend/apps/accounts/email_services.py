@@ -60,7 +60,7 @@ class EmailService:
         and update the path to the frontend route.
         """
         backend_url = getattr(settings, "BACKEND_URL", "http://127.0.0.1:8000").rstrip(
-               "/"
+            "/"
         )
         verification_url = (
             f"{backend_url}/api/v1/auth/verify-email/?token={verification_token}"
