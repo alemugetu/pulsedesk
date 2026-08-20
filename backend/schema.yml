@@ -1,0 +1,4513 @@
+openapi: 3.0.3
+info:
+  title: PulseDesk API
+  version: 1.0.0
+  description: PulseDesk is a multi-tenant incident and escalation operations platform.
+    This API provides authentication, organization management, and membership operations.
+    All protected endpoints require a Bearer JWT in the Authorization header.
+  contact:
+    name: PulseDesk Engineering
+paths:
+  /api/v1/:
+    get:
+      operationId: v1_retrieve
+      description: Returns the API name, version, and links to major endpoint groups.
+      summary: API root
+      tags:
+      - Health
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: API root information.
+  /api/v1/health/:
+    get:
+      operationId: v1_health_retrieve
+      description: Returns the operational status of the PulseDesk API. No authentication
+        is required. Suitable for load-balancer health probes.
+      summary: Health check
+      tags:
+      - Health
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: API is healthy.
+  /api/v1/health/dependencies/:
+    get:
+      operationId: v1_health_dependencies_retrieve
+      description: Reports the health of external infrastructure dependencies such
+        as Redis. This endpoint is separate from the main application health check
+        so that a temporary Redis outage does not incorrectly mark the API as entirely
+        down.
+      summary: Dependency health check
+      tags:
+      - Health
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: All checked dependencies are healthy.
+        '503':
+          description: One or more dependencies are unhealthy.
+  /api/v1/auth/register/:
+    post:
+      operationId: v1_auth_register_create
+      description: Creates a new user account and sends a verification email. User
+        must verify their email before logging in. This endpoint is public — no authentication
+        required.
+      summary: Register a new user
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistration'
+        required: true
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '201':
+          description: User created successfully. Verification email sent.
+        '400':
+          description: Validation error — invalid input or email already registered.
+  /api/v1/auth/login/:
+    post:
+      operationId: v1_auth_login_create
+      description: Authenticates a user by email and password and returns JWT tokens.
+        This endpoint is public — no authentication required.
+      summary: Login
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+        required: true
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          description: Login successful. Returns access and refresh tokens.
+        '401':
+          description: Authentication failed — invalid credentials or inactive account.
+  /api/v1/auth/logout/:
+    post:
+      operationId: v1_auth_logout_create
+      description: Blacklists the provided refresh token, preventing it from being
+        used to generate new access tokens. The access token remains valid until its
+        natural expiry — clients must discard it locally. **Requires authentication.**
+      summary: Logout
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Logout'
+        required: true
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Logout successful.
+        '400':
+          description: Invalid or already-blacklisted refresh token.
+        '401':
+          description: Authentication credentials not provided.
+  /api/v1/auth/token/refresh/:
+    post:
+      operationId: v1_auth_token_refresh_create
+      description: Exchanges a valid refresh token for a new access token (and a new
+        refresh token when ROTATE_REFRESH_TOKENS is enabled). The old refresh token
+        is blacklisted after rotation. This endpoint is public — no authentication
+        required.
+      summary: Refresh access token
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+        required: true
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: New tokens issued.
+        '401':
+          description: Refresh token is invalid or expired.
+  /api/v1/auth/me/:
+    get:
+      operationId: v1_auth_me_retrieve
+      description: Returns the profile of the currently authenticated user. **Requires
+        authentication.**
+      summary: Get authenticated user profile
+      tags:
+      - Authentication
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+        '401':
+          description: Authentication credentials not provided.
+  /api/v1/auth/verify-email/:
+    get:
+      operationId: v1_auth_verify_email_retrieve
+      description: Handles email verification when a user clicks the link in the verification
+        email. The token is passed as a query parameter. Returns a plain JSON confirmation
+        — no redirect, no frontend required.
+      summary: Verify email via link (GET)
+      parameters:
+      - in: query
+        name: token
+        schema:
+          type: string
+        description: Secure verification token from the email link.
+        required: true
+      tags:
+      - Authentication
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          description: Email verified successfully.
+        '400':
+          description: Invalid or expired token.
+    post:
+      operationId: v1_auth_verify_email_create
+      description: Verifies a user's email address using a secure token. Use this
+        when submitting the token programmatically. This endpoint is public — no authentication
+        required.
+      summary: Verify email via POST (API clients / Swagger)
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailVerification'
+        required: true
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          description: Email verified successfully.
+        '400':
+          description: Invalid or expired token.
+  /api/v1/auth/resend-verification/:
+    post:
+      operationId: v1_auth_resend_verification_create
+      description: Resends a verification email to the user. For security, returns
+        a generic response regardless of whether the email exists. This endpoint is
+        public — no authentication required.
+      summary: Resend verification email
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResendVerification'
+        required: true
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          description: If the email exists and is unverified, a verification email
+            will be sent.
+        '400':
+          description: Invalid email format.
+  /api/v1/auth/password-reset/request/:
+    post:
+      operationId: v1_auth_password_reset_request_create
+      description: Sends a password reset email to the user. For security, returns
+        a generic response regardless of whether the email exists. This endpoint is
+        public — no authentication required.
+      summary: Request password reset
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          description: If the email exists, a password reset email will be sent.
+        '400':
+          description: Invalid email format.
+  /api/v1/auth/password-reset/confirm/:
+    get:
+      operationId: v1_auth_password_reset_confirm_retrieve
+      description: Called when a user clicks the reset link in the email. Validates
+        the token and returns the token + user_id to use in the POST body to complete
+        the reset.
+      summary: Password reset confirm — validate link (GET)
+      parameters:
+      - in: query
+        name: token
+        schema:
+          type: string
+        description: Password reset token from the email link.
+        required: true
+      - in: query
+        name: user_id
+        schema:
+          type: string
+        description: User UUID from the email link.
+        required: true
+      tags:
+      - Authentication
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          description: Token is valid. Use the POST endpoint to set a new password.
+        '400':
+          description: Invalid or expired token.
+    post:
+      operationId: v1_auth_password_reset_confirm_create
+      description: Resets the user's password using a secure token sent via email.
+        This endpoint is public — no authentication required.
+      summary: Confirm password reset (POST)
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetConfirm'
+        required: true
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          description: Password reset successfully.
+        '400':
+          description: Invalid token, expired token, or invalid password.
+  /api/v1/organizations/:
+    get:
+      operationId: v1_organizations_list
+      description: |
+        Returns all active organizations where the authenticated user has an active membership.
+
+        **Requires authentication.**
+
+
+        ## How to become Organization Owner
+
+        **The creator of an organization is automatically assigned the
+        Organization Owner role.** No manual step required.
+
+        **Quick-start workflow:**
+
+        1. `POST /api/v1/auth/register/` — create your account.
+        2. Click **Authorize** in Swagger and enter your access token.
+        3. `POST /api/v1/organizations/` with `{"name": "My Company"}`.
+        4. You are now the owner. Your membership already has the Owner role.
+        5. `GET /api/v1/organizations/{id}/members/` — confirm your role is
+           `organization-owner`.
+        6. `GET /api/v1/organizations/{id}/roles/` — view all 5 system roles
+           and their permission sets.
+      summary: List my organizations
+      tags:
+      - Organizations
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Organization'
+              examples:
+                OrganizationList:
+                  value:
+                  - - id: 018f1a2b-0001-7000-0000-000000000001
+                      name: Acme Corp
+                      slug: acme-corp
+                      status: ACTIVE
+                      created_at: '2026-01-01T09:00:00Z'
+                      updated_at: '2026-01-01T09:00:00Z'
+                  summary: Organization list
+          description: ''
+        '401':
+          description: Authentication credentials not provided.
+    post:
+      operationId: v1_organizations_create
+      description: |
+        Creates a new organization. The authenticated user is **automatically assigned the Organization Owner role** — no extra step needed.
+
+        Five system roles are seeded for the organization at creation time:
+        - Organization Owner
+        - Organization Admin
+        - Operations Manager
+        - Agent
+        - Viewer
+
+        **Requires authentication.**
+
+
+        ## Role & Permission Matrix
+
+        Every organization is automatically seeded with 5 system roles when it is
+        created. System roles cannot be deleted or renamed.
+
+        | Role | Permissions |
+        |---|---|
+        | **Organization Owner** | All permissions. Full control. Only one owner per org unless explicitly transferred. |
+        | **Organization Admin** | `organization.view`, `organization.update`, `member.view`, `member.invite`, `member.remove`, `member.suspend`, `role.view`, `role.manage`, `role.assign` |
+        | **Operations Manager** | `organization.view`, `member.view`, `member.invite`, `member.remove`, `member.suspend`, `role.view`, `role.assign` |
+        | **Agent** | `organization.view`, `member.view`, `role.view` |
+        | **Viewer** | `organization.view`, `member.view`, `role.view` |
+
+        Custom roles can be created with any subset of the permissions above.
+      summary: Create organization (caller becomes Owner)
+      tags:
+      - Organizations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationCreate'
+            examples:
+              CreateRequest:
+                value:
+                  name: Acme Corp
+                summary: Create request
+              CreateWithCustomSlug:
+                value:
+                  name: Acme Corp
+                  slug: acme
+                summary: Create with custom slug
+        required: true
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+              examples:
+                CreatedOrganization:
+                  value:
+                    id: 018f1a2b-0001-7000-0000-000000000001
+                    name: Acme Corp
+                    slug: acme-corp
+                    status: ACTIVE
+                    created_at: '2026-01-01T09:00:00Z'
+                    updated_at: '2026-01-01T09:00:00Z'
+                  summary: Created organization
+          description: ''
+        '400':
+          description: Validation error — missing name or invalid slug.
+        '401':
+          description: Authentication credentials not provided.
+  /api/v1/organizations/{organization_id}/:
+    get:
+      operationId: v1_organizations_retrieve
+      description: |-
+        Returns the details of a single organization.
+
+        **Requires authentication and active membership.**
+
+        Returns 404 for organizations the user does not belong to (to prevent organization enumeration).
+      summary: Retrieve organization
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Organizations
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+          description: ''
+        '401':
+          description: Authentication credentials not provided.
+        '403':
+          description: Membership is suspended or removed.
+        '404':
+          description: Organization not found or user is not a member.
+  /api/v1/organizations/{organization_id}/members/:
+    get:
+      operationId: v1_organizations_members_list
+      description: |-
+        Returns all active members of the specified organization, including each member's assigned role and permissions.
+
+        **Required permission: `member.view`**
+
+        All roles except Viewer and Agent have this permission by default.
+
+        The response includes a `role` object on each membership showing the role name and its full permission list.
+      summary: List organization members
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Memberships
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Membership'
+              examples:
+                MemberListWithRoles:
+                  value:
+                  - - id: 018f1a2b-0002-7000-0000-000000000001
+                      user:
+                        id: 018f1a2b-0000-7000-0000-000000000001
+                        email: alice@example.com
+                        first_name: Alice
+                        last_name: Smith
+                      role:
+                        id: 018f1a2b-0003-7000-0000-000000000001
+                        name: Organization Owner
+                        slug: organization-owner
+                        description: Full control over the organization.
+                        is_system_role: true
+                        permissions:
+                        - member.invite
+                        - member.remove
+                        - member.suspend
+                        - member.view
+                        - organization.update
+                        - organization.view
+                        - role.assign
+                        - role.manage
+                        - role.view
+                        created_at: '2026-01-01T09:00:00Z'
+                        updated_at: '2026-01-01T09:00:00Z'
+                      status: ACTIVE
+                      created_at: '2026-01-01T09:00:00Z'
+                      updated_at: '2026-01-01T09:00:00Z'
+                  summary: Member list with roles
+          description: ''
+        '401':
+          description: Authentication credentials not provided.
+        '403':
+          description: Membership suspended/removed, no role assigned, or missing
+            `member.view` permission.
+        '404':
+          description: Organization not found or user is not a member.
+  /api/v1/organizations/{organization_id}/members/{membership_id}/role/:
+    patch:
+      operationId: v1_organizations_members_role_partial_update
+      description: |-
+        Assigns a role to an organization member, or removes their role by sending `null`.
+
+        **Required permission: `role.assign`**
+
+        Security rules enforced:
+        - The role must belong to **this** organization. Cross-tenant roles are rejected (400 `cross_tenant_role`).
+        - Only the current **Organization Owner** can assign the owner role to someone else (403 `owner_escalation` otherwise).
+        - The **sole owner** cannot remove their own owner role without first transferring ownership (403 `sole_owner_protected`).
+
+
+        ## Ownership transfer rules
+
+        - Only the current owner can assign the `organization-owner` role to
+          another member.
+        - An owner cannot remove their own owner role if they are the **sole**
+          owner (returns 403 `sole_owner_protected`).
+        - To transfer: assign `organization-owner` to another member first,
+          then optionally downgrade yourself.
+
+
+        **How to transfer ownership:**
+        1. Find the target member's `membership_id` via `GET /api/v1/organizations/{id}/members/`.
+        2. Find the owner role `id` via `GET /api/v1/organizations/{id}/roles/` (slug: `organization-owner`).
+        3. `PATCH` this endpoint with the target membership and owner role id.
+        4. Optionally downgrade yourself to Admin or another role.
+      summary: Assign (or remove) role on a membership
+      parameters:
+      - in: path
+        name: membership_id
+        schema:
+          type: string
+        description: UUID of the membership.
+        required: true
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Memberships
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMembershipRoleAssign'
+            examples:
+              AssignARole:
+                value:
+                  role_id: 018f0001-0000-7000-0000-000000000005
+                summary: Assign a role
+              RemoveRole(setToNull):
+                value:
+                  role_id: null
+                summary: Remove role (set to null)
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Membership'
+          description: ''
+        '400':
+          description: Validation error or cross-tenant role.
+        '403':
+          description: Missing permission or ownership protection triggered.
+        '404':
+          description: Membership not found in this organization.
+  /api/v1/organizations/{organization_id}/roles/:
+    get:
+      operationId: v1_organizations_roles_list
+      description: |
+        Returns all roles in the organization — both system roles (seeded automatically) and any custom roles created by admins.
+
+        Each role includes its full permission list.
+
+        **Required permission: `role.view`**
+
+
+        ## Role & Permission Matrix
+
+        Every organization is automatically seeded with 5 system roles when it is
+        created. System roles cannot be deleted or renamed.
+
+        | Role | Permissions |
+        |---|---|
+        | **Organization Owner** | All permissions. Full control. Only one owner per org unless explicitly transferred. |
+        | **Organization Admin** | `organization.view`, `organization.update`, `member.view`, `member.invite`, `member.remove`, `member.suspend`, `role.view`, `role.manage`, `role.assign` |
+        | **Operations Manager** | `organization.view`, `member.view`, `member.invite`, `member.remove`, `member.suspend`, `role.view`, `role.assign` |
+        | **Agent** | `organization.view`, `member.view`, `role.view` |
+        | **Viewer** | `organization.view`, `member.view`, `role.view` |
+
+        Custom roles can be created with any subset of the permissions above.
+      summary: List roles
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Roles
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Role'
+              examples:
+                SystemRolesResponse:
+                  value:
+                  - - id: 018f0001-0000-7000-0000-000000000001
+                      name: Organization Owner
+                      slug: organization-owner
+                      description: Full control over the organization.
+                      is_system_role: true
+                      permissions:
+                      - member.invite
+                      - member.remove
+                      - member.suspend
+                      - member.view
+                      - organization.update
+                      - organization.view
+                      - role.assign
+                      - role.manage
+                      - role.view
+                      created_at: '2026-01-01T09:00:00Z'
+                      updated_at: '2026-01-01T09:00:00Z'
+                    - id: 018f0001-0000-7000-0000-000000000005
+                      name: Viewer
+                      slug: viewer
+                      description: Read-only access to organization, members, and
+                        roles.
+                      is_system_role: true
+                      permissions:
+                      - member.view
+                      - organization.view
+                      - role.view
+                      created_at: '2026-01-01T09:00:00Z'
+                      updated_at: '2026-01-01T09:00:00Z'
+                  summary: System roles response
+          description: ''
+        '401':
+          description: Not authenticated.
+        '403':
+          description: Missing `role.view` permission or inactive membership.
+        '404':
+          description: Organization not found.
+    post:
+      operationId: v1_organizations_roles_create
+      description: |-
+        Creates a new custom role in the organization with a chosen set of permissions.
+
+        **Required permission: `role.manage`** (Owner and Admin only)
+
+        Rules:
+        - Role name must be unique within the organization.
+        - Permissions must be valid codenames from the permission list.
+        - Custom roles have `is_system_role: false` and can be deleted.
+        - System roles (`is_system_role: true`) are created automatically and cannot be modified via this endpoint.
+
+        **Available permission codenames:**
+        `organization.view`, `organization.update`, `member.view`, `member.invite`, `member.remove`, `member.suspend`, `role.view`, `role.manage`, `role.assign`
+      summary: Create custom role
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Roles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleCreate'
+            examples:
+              CreateRoleRequest:
+                value:
+                  name: Support Lead
+                  description: Handles member onboarding and role assignment.
+                  permissions:
+                  - member.view
+                  - member.invite
+                  - role.view
+                  - role.assign
+                summary: Create role request
+        required: true
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+              examples:
+                CreatedRoleResponse:
+                  value:
+                    id: 018f0099-0000-7000-0000-000000000001
+                    name: Support Lead
+                    slug: support-lead
+                    description: Handles member onboarding and role assignment.
+                    is_system_role: false
+                    permissions:
+                    - member.invite
+                    - member.view
+                    - role.assign
+                    - role.view
+                    created_at: '2026-01-01T10:00:00Z'
+                    updated_at: '2026-01-01T10:00:00Z'
+                  summary: Created role response
+          description: ''
+        '400':
+          description: Validation error — duplicate name or unknown permissions.
+        '403':
+          description: Missing `role.manage` permission.
+        '404':
+          description: Organization not found.
+  /api/v1/organizations/{organization_id}/roles/{role_id}/:
+    get:
+      operationId: v1_organizations_roles_retrieve
+      description: |-
+        Returns a single role with its full permission list.
+
+        **Required permission: `role.view`**
+      summary: Retrieve role
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: path
+        name: role_id
+        schema:
+          type: string
+        description: UUID of the role.
+        required: true
+      tags:
+      - Roles
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+          description: ''
+        '403':
+          description: Missing `role.view` permission.
+        '404':
+          description: Role not found in this organization.
+    patch:
+      operationId: v1_organizations_roles_partial_update
+      description: |-
+        Partially updates a custom role's name, description, or permission set.
+
+        **Required permission: `role.manage`** (Owner and Admin only)
+
+        Restrictions:
+        - System roles (`is_system_role: true`) **cannot** be modified. Returns 400 `system_role_protected`.
+        - `permissions` field replaces the entire permission set when provided. Omit it to leave permissions unchanged.
+        - Role name must remain unique within the organization.
+      summary: Update custom role
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: path
+        name: role_id
+        schema:
+          type: string
+        description: UUID of the role.
+        required: true
+      tags:
+      - Roles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedRoleUpdate'
+            examples:
+              UpdateNameOnly:
+                value:
+                  name: Support Manager
+                summary: Update name only
+              ReplacePermissions:
+                value:
+                  permissions:
+                  - member.view
+                  - role.view
+                summary: Replace permissions
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+          description: ''
+        '400':
+          description: Validation error or attempt to modify a system role.
+        '403':
+          description: Missing `role.manage` permission.
+        '404':
+          description: Role not found.
+    delete:
+      operationId: v1_organizations_roles_destroy
+      description: |-
+        Permanently deletes a custom role.
+
+        **Required permission: `role.manage`** (Owner and Admin only)
+
+        Restrictions:
+        - System roles (`is_system_role: true`) **cannot** be deleted. Returns 403 `system_role_protected`.
+        - Memberships that held this role will have their role set to `null` (Django `SET_NULL` behavior).
+      summary: Delete custom role
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: path
+        name: role_id
+        schema:
+          type: string
+        description: UUID of the role.
+        required: true
+      tags:
+      - Roles
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: Role deleted successfully.
+        '403':
+          description: Missing permission or attempt to delete a system role.
+        '404':
+          description: Role not found.
+  /api/v1/organizations/{organization_id}/incident-categories/:
+    get:
+      operationId: v1_organizations_incident_categories_list
+      description: Returns all incident categories scoped to the specified organization.
+      summary: List incident categories
+      parameters:
+      - in: query
+        name: is_active
+        schema:
+          type: boolean
+        description: Filter categories by active status (true/false).
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Incident Categories
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IncidentCategory'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Organization not found.
+    post:
+      operationId: v1_organizations_incident_categories_create
+      description: Create a new incident category in the organization.
+      summary: Create incident category
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Incident Categories
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IncidentCategoryCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '210':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IncidentCategory'
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IncidentCategory'
+          description: ''
+        '400':
+          description: Validation error.
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Organization not found.
+  /api/v1/organizations/{organization_id}/incident-categories/{category_id}/:
+    get:
+      operationId: v1_organizations_incident_categories_retrieve
+      description: Retrieve details of a single incident category by ID.
+      summary: Get incident category detail
+      parameters:
+      - in: path
+        name: category_id
+        schema:
+          type: string
+        description: UUID of the incident category.
+        required: true
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Incident Categories
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IncidentCategory'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Category not found.
+    patch:
+      operationId: v1_organizations_incident_categories_partial_update
+      description: Update an incident category's name, description, or active status.
+      summary: Update incident category
+      parameters:
+      - in: path
+        name: category_id
+        schema:
+          type: string
+        description: UUID of the incident category.
+        required: true
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Incident Categories
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedIncidentCategoryUpdate'
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IncidentCategory'
+          description: ''
+        '400':
+          description: Validation error.
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Category not found.
+  /api/v1/organizations/{organization_id}/incidents/:
+    get:
+      operationId: v1_organizations_incidents_list
+      description: Returns a paginated list of incidents scoped to the organization.
+      summary: List organization incidents
+      parameters:
+      - in: query
+        name: assignee
+        schema:
+          type: string
+        description: Filter by assignee membership UUID.
+      - in: query
+        name: category
+        schema:
+          type: string
+        description: Filter by incident category UUID.
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Page number.
+      - in: query
+        name: priority
+        schema:
+          type: string
+        description: Filter by priority (P1, P2, P3, P4).
+      - in: query
+        name: status
+        schema:
+          type: string
+        description: Filter by incident status (OPEN, ACKNOWLEDGED, IN_PROGRESS, RESOLVED,
+          CLOSED).
+      tags:
+      - Incidents
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedIncidentList'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Organization not found.
+    post:
+      operationId: v1_organizations_incidents_create
+      description: Create a new incident in the organization.
+      summary: Create incident
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Incidents
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IncidentCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Incident'
+          description: ''
+        '400':
+          description: Validation error.
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Organization not found.
+  /api/v1/organizations/{organization_id}/incidents/{incident_id}/:
+    get:
+      operationId: v1_organizations_incidents_retrieve
+      description: Retrieve details of a single incident by UUID.
+      summary: Get incident detail
+      parameters:
+      - in: path
+        name: incident_id
+        schema:
+          type: string
+        description: UUID of the incident.
+        required: true
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Incidents
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Incident'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Incident not found.
+    patch:
+      operationId: v1_organizations_incidents_partial_update
+      description: Update incident details, assignment, or transition status lifecycle.
+      summary: Update incident
+      parameters:
+      - in: path
+        name: incident_id
+        schema:
+          type: string
+        description: UUID of the incident.
+        required: true
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Incidents
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedIncidentUpdate'
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Incident'
+          description: ''
+        '400':
+          description: Validation error.
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Incident not found.
+  /api/v1/organizations/{organization_id}/sla-policies/:
+    get:
+      operationId: v1_organizations_sla_policies_list
+      description: Returns all SLA policies scoped to the specified organization.
+        Requires sla.view permission.
+      summary: List SLA policies
+      parameters:
+      - in: query
+        name: is_active
+        schema:
+          type: boolean
+        description: Filter by active status.
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - SLA Policies
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SLAPolicy'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Organization not found.
+    post:
+      operationId: v1_organizations_sla_policies_create
+      description: Create a new SLA policy for the organization. Requires sla.manage
+        permission.
+      summary: Create SLA policy
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - SLA Policies
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SLAPolicyCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SLAPolicy'
+          description: ''
+        '400':
+          description: Validation error.
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Organization not found.
+  /api/v1/organizations/{organization_id}/sla-policies/{policy_id}/:
+    get:
+      operationId: v1_organizations_sla_policies_retrieve
+      description: Retrieve a single SLA policy including its targets.
+      summary: Get SLA policy detail
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: path
+        name: policy_id
+        schema:
+          type: string
+        description: UUID of the SLA policy.
+        required: true
+      tags:
+      - SLA Policies
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SLAPolicy'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: SLA policy not found.
+    patch:
+      operationId: v1_organizations_sla_policies_partial_update
+      description: Update an SLA policy's name, description, active status, or default
+        flag. Requires sla.manage permission.
+      summary: Update SLA policy
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: path
+        name: policy_id
+        schema:
+          type: string
+        description: UUID of the SLA policy.
+        required: true
+      tags:
+      - SLA Policies
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSLAPolicyUpdate'
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SLAPolicy'
+          description: ''
+        '400':
+          description: Validation error.
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: SLA policy not found.
+  /api/v1/organizations/{organization_id}/sla-policies/{policy_id}/targets/:
+    get:
+      operationId: v1_organizations_sla_policies_targets_list
+      description: List all priority-specific SLA targets for a policy.
+      summary: List SLA targets
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: path
+        name: policy_id
+        schema:
+          type: string
+        description: UUID of the SLA policy.
+        required: true
+      tags:
+      - SLA Targets
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SLATarget'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: SLA policy not found.
+    post:
+      operationId: v1_organizations_sla_policies_targets_create
+      description: Create a priority-specific SLA target within a policy. One target
+        per (policy, priority) pair. Requires sla.manage permission.
+      summary: Create SLA target
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: path
+        name: policy_id
+        schema:
+          type: string
+        description: UUID of the SLA policy.
+        required: true
+      tags:
+      - SLA Targets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SLATargetCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SLATarget'
+          description: ''
+        '400':
+          description: Validation error.
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: SLA policy not found.
+  /api/v1/organizations/{organization_id}/sla-policies/{policy_id}/targets/{target_id}/:
+    get:
+      operationId: v1_organizations_sla_policies_targets_retrieve
+      description: Retrieve a single SLA target.
+      summary: Get SLA target detail
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: path
+        name: policy_id
+        schema:
+          type: string
+        description: UUID of the SLA policy.
+        required: true
+      - in: path
+        name: target_id
+        schema:
+          type: string
+        description: UUID of the SLA target.
+        required: true
+      tags:
+      - SLA Targets
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SLATarget'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: SLA target not found.
+    patch:
+      operationId: v1_organizations_sla_policies_targets_partial_update
+      description: Update response and/or resolution time on an SLA target. Requires
+        sla.manage permission.
+      summary: Update SLA target
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: path
+        name: policy_id
+        schema:
+          type: string
+        description: UUID of the SLA policy.
+        required: true
+      - in: path
+        name: target_id
+        schema:
+          type: string
+        description: UUID of the SLA target.
+        required: true
+      tags:
+      - SLA Targets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSLATargetUpdate'
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SLATarget'
+          description: ''
+        '400':
+          description: Validation error.
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: SLA target not found.
+  /api/v1/organizations/{organization_id}/escalation-policies/:
+    get:
+      operationId: v1_organizations_escalation_policies_list
+      description: Returns all escalation policies scoped to the organization. Requires
+        escalation.view permission.
+      summary: List escalation policies
+      parameters:
+      - in: query
+        name: is_active
+        schema:
+          type: boolean
+        description: Filter by active status.
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Escalation Policies
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EscalationPolicy'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Organization not found.
+    post:
+      operationId: v1_organizations_escalation_policies_create
+      description: Create a new escalation policy for the organization. Requires escalation.manage
+        permission.
+      summary: Create escalation policy
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Escalation Policies
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EscalationPolicyCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EscalationPolicy'
+          description: ''
+        '400':
+          description: Validation error.
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Organization not found.
+  /api/v1/organizations/{organization_id}/escalation-policies/{policy_id}/:
+    get:
+      operationId: v1_organizations_escalation_policies_retrieve
+      description: Retrieve a single escalation policy including its levels and rules.
+      summary: Get escalation policy detail
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: path
+        name: policy_id
+        schema:
+          type: string
+        description: UUID of the escalation policy.
+        required: true
+      tags:
+      - Escalation Policies
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EscalationPolicy'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Escalation policy not found.
+    patch:
+      operationId: v1_organizations_escalation_policies_partial_update
+      description: Update an escalation policy's name, description, active status,
+        or default flag. Requires escalation.manage permission.
+      summary: Update escalation policy
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: path
+        name: policy_id
+        schema:
+          type: string
+        description: UUID of the escalation policy.
+        required: true
+      tags:
+      - Escalation Policies
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedEscalationPolicyUpdate'
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EscalationPolicy'
+          description: ''
+        '400':
+          description: Validation error.
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Escalation policy not found.
+  /api/v1/organizations/{organization_id}/escalation-policies/{policy_id}/levels/:
+    get:
+      operationId: v1_organizations_escalation_policies_levels_list
+      description: List all ordered escalation levels for a policy.
+      summary: List escalation levels
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: path
+        name: policy_id
+        schema:
+          type: string
+        description: UUID of the escalation policy.
+        required: true
+      tags:
+      - Escalation Levels
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EscalationLevel'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Escalation policy not found.
+    post:
+      operationId: v1_organizations_escalation_policies_levels_create
+      description: Create an ordered escalation level within a policy. Level numbers
+        must be unique per policy. Requires escalation.manage permission.
+      summary: Create escalation level
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: path
+        name: policy_id
+        schema:
+          type: string
+        description: UUID of the escalation policy.
+        required: true
+      tags:
+      - Escalation Levels
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EscalationLevelCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EscalationLevel'
+          description: ''
+        '400':
+          description: Validation error.
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Escalation policy not found.
+  /api/v1/organizations/{organization_id}/escalation-policies/{policy_id}/levels/{level_id}/:
+    get:
+      operationId: v1_organizations_escalation_policies_levels_retrieve
+      description: Retrieve a single escalation level.
+      summary: Get escalation level detail
+      parameters:
+      - in: path
+        name: level_id
+        schema:
+          type: string
+        description: UUID of the escalation level.
+        required: true
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: path
+        name: policy_id
+        schema:
+          type: string
+        description: UUID of the escalation policy.
+        required: true
+      tags:
+      - Escalation Levels
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EscalationLevel'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Escalation level not found.
+    patch:
+      operationId: v1_organizations_escalation_policies_levels_partial_update
+      description: Update name, delay, or target on an escalation level. Requires
+        escalation.manage permission.
+      summary: Update escalation level
+      parameters:
+      - in: path
+        name: level_id
+        schema:
+          type: string
+        description: UUID of the escalation level.
+        required: true
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: path
+        name: policy_id
+        schema:
+          type: string
+        description: UUID of the escalation policy.
+        required: true
+      tags:
+      - Escalation Levels
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedEscalationLevelUpdate'
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EscalationLevel'
+          description: ''
+        '400':
+          description: Validation error.
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Escalation level not found.
+  /api/v1/organizations/{organization_id}/escalation-policies/{policy_id}/rules/:
+    get:
+      operationId: v1_organizations_escalation_policies_rules_list
+      description: List all trigger rules for an escalation policy.
+      summary: List escalation rules
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: path
+        name: policy_id
+        schema:
+          type: string
+        description: UUID of the escalation policy.
+        required: true
+      tags:
+      - Escalation Rules
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EscalationRule'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Escalation policy not found.
+    post:
+      operationId: v1_organizations_escalation_policies_rules_create
+      description: Create a trigger rule for an escalation policy. One rule per trigger_type
+        per policy. Requires escalation.manage permission.
+      summary: Create escalation rule
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: path
+        name: policy_id
+        schema:
+          type: string
+        description: UUID of the escalation policy.
+        required: true
+      tags:
+      - Escalation Rules
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EscalationRuleCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EscalationRule'
+          description: ''
+        '400':
+          description: Validation error.
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Escalation policy not found.
+  /api/v1/organizations/{organization_id}/incidents/{incident_id}/escalations/:
+    get:
+      operationId: v1_organizations_incidents_escalations_list
+      description: Returns all escalation tracking records and event history for an
+        incident. Results are filtered by organization — tenant-isolated. Requires
+        escalation.view permission.
+      summary: List incident escalation history
+      parameters:
+      - in: path
+        name: incident_id
+        schema:
+          type: string
+        description: UUID of the incident.
+        required: true
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: query
+        name: status
+        schema:
+          type: string
+        description: Filter by escalation status (ACTIVE, COMPLETED, CANCELLED).
+      - in: query
+        name: trigger_type
+        schema:
+          type: string
+        description: Filter by trigger type (RESPONSE_BREACH, RESOLUTION_BREACH).
+      tags:
+      - Incident Escalations
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IncidentEscalation'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Incident not found.
+  /api/v1/organizations/{organization_id}/incidents/{incident_id}/escalations/evaluate/:
+    post:
+      operationId: v1_organizations_incidents_escalations_evaluate_create
+      description: Manually evaluate escalation for an incident and trigger type.
+        The operation is idempotent — repeated calls will not create duplicate events.
+        Requires escalation.evaluate permission.
+      summary: Evaluate incident escalation
+      parameters:
+      - in: path
+        name: incident_id
+        schema:
+          type: string
+        description: UUID of the incident.
+        required: true
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Incident Escalations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EscalationEvaluate'
+        required: true
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IncidentEscalation'
+          description: ''
+        '400':
+          description: Validation error.
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Incident not found.
+  /api/v1/organizations/{organization_id}/dashboard/summary/:
+    get:
+      operationId: v1_organizations_dashboard_summary_retrieve
+      description: Returns aggregate counts for open incidents, unassigned, SLA at
+        risk, breached, and active escalations.
+      summary: Dashboard Summary
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Dashboard
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardSummary'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Organization not found.
+  /api/v1/organizations/{organization_id}/dashboard/priority-distribution/:
+    get:
+      operationId: v1_organizations_dashboard_priority_distribution_retrieve
+      description: Returns incident counts grouped by priority (low, medium, high,
+        critical).
+      summary: Priority Distribution
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Dashboard
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriorityDistribution'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Organization not found.
+  /api/v1/organizations/{organization_id}/dashboard/sla-metrics/:
+    get:
+      operationId: v1_organizations_dashboard_sla_metrics_retrieve
+      description: Returns detailed SLA performance metrics (healthy, approaching,
+        breached, etc.).
+      summary: SLA Metrics
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Dashboard
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SLAMetrics'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Organization not found.
+  /api/v1/organizations/{organization_id}/dashboard/escalation-metrics/:
+    get:
+      operationId: v1_organizations_dashboard_escalation_metrics_retrieve
+      description: Returns aggregate counts for escalations by status and level.
+      summary: Escalation Metrics
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Dashboard
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EscalationMetrics'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Organization not found.
+  /api/v1/organizations/{organization_id}/dashboard/incidents/:
+    get:
+      operationId: v1_organizations_dashboard_incidents_list
+      description: |-
+        Operations view for incidents with dashboard-specific filtering.
+        GET /api/v1/organizations/<organization_id>/dashboard/incidents/
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - Dashboard
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedDashboardIncidentList'
+          description: ''
+  /api/v1/organizations/{organization_id}/incidents/{incident_id}/comments/:
+    get:
+      operationId: v1_organizations_incidents_comments_list
+      description: Returns a paginated list of comments for the specified incident.
+      summary: List incident comments
+      parameters:
+      - in: path
+        name: incident_id
+        schema:
+          type: string
+        description: UUID of the incident.
+        required: true
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Page number.
+      tags:
+      - Incident Comments
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCommentList'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Incident not found.
+    post:
+      operationId: v1_organizations_incidents_comments_create
+      description: Create a new comment on the incident. Supports @username mentions.
+      summary: Create comment
+      parameters:
+      - in: path
+        name: incident_id
+        schema:
+          type: string
+        description: UUID of the incident.
+        required: true
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Incident Comments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+          description: ''
+        '400':
+          description: Validation error.
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Incident not found.
+  /api/v1/organizations/{organization_id}/incidents/{incident_id}/comments/{comment_id}/:
+    get:
+      operationId: v1_organizations_incidents_comments_retrieve
+      description: Retrieve details of a single comment by UUID.
+      summary: Get comment detail
+      parameters:
+      - in: path
+        name: comment_id
+        schema:
+          type: string
+        description: UUID of the comment.
+        required: true
+      - in: path
+        name: incident_id
+        schema:
+          type: string
+        description: UUID of the incident.
+        required: true
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Incident Comments
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Comment not found.
+    patch:
+      operationId: v1_organizations_incidents_comments_partial_update
+      description: Update a comment. Only the comment author may update their own
+        comments.
+      summary: Update comment
+      parameters:
+      - in: path
+        name: comment_id
+        schema:
+          type: string
+        description: UUID of the comment.
+        required: true
+      - in: path
+        name: incident_id
+        schema:
+          type: string
+        description: UUID of the incident.
+        required: true
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Incident Comments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCommentUpdate'
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+          description: ''
+        '400':
+          description: Validation error.
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Comment not found.
+    delete:
+      operationId: v1_organizations_incidents_comments_destroy
+      description: Delete a comment. Only the comment author may delete their own
+        comments.
+      summary: Delete comment
+      parameters:
+      - in: path
+        name: comment_id
+        schema:
+          type: string
+        description: UUID of the comment.
+        required: true
+      - in: path
+        name: incident_id
+        schema:
+          type: string
+        description: UUID of the incident.
+        required: true
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Incident Comments
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: Comment deleted successfully.
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Comment not found.
+  /api/v1/notifications/:
+    post:
+      operationId: v1_notifications_create
+      description: |-
+        API endpoint for user notifications.
+
+        Users can only access their own notifications. Multi-tenant isolation is enforced.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Notification'
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+    get:
+      operationId: v1_notifications_list
+      description: List notifications for the authenticated user. Supports filtering
+        by unread status, notification type, and severity.
+      summary: List notifications
+      parameters:
+      - in: query
+        name: notification_type
+        schema:
+          type: string
+          enum:
+          - ESCALATION_TRIGGERED
+          - SLA_BREACH
+          - SLA_WARNING
+        description: Filter by notification type
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: severity
+        schema:
+          type: string
+          enum:
+          - CRITICAL
+          - INFO
+          - WARNING
+        description: Filter by severity
+      - in: query
+        name: unread_only
+        schema:
+          type: boolean
+        description: Filter to show only unread notifications
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNotificationListList'
+          description: ''
+  /api/v1/notifications/mark_all_read/:
+    post:
+      operationId: v1_notifications_mark_all_read_create
+      description: Mark all unread notifications for the authenticated user as read.
+      summary: Mark all notifications as read
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: All notifications marked as read successfully.
+  /api/v1/notifications/unread_count/:
+    get:
+      operationId: v1_notifications_unread_count_retrieve
+      description: Get the count of unread notifications for the authenticated user.
+      summary: Get unread notification count
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Unread count retrieved successfully.
+  /api/v1/notifications/{id}/:
+    put:
+      operationId: v1_notifications_update
+      description: |-
+        Update a notification.
+
+        Users can only update their own notifications and only specific fields.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Notification'
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+    patch:
+      operationId: v1_notifications_partial_update
+      description: |-
+        Partially update a notification.
+
+        Users can only update their own notifications and only specific fields.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedNotification'
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+    get:
+      operationId: v1_notifications_retrieve
+      description: Retrieve details of a specific notification.
+      summary: Get notification details
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+    delete:
+      operationId: v1_notifications_destroy
+      description: |-
+        Delete a notification.
+
+        Users can only delete their own notifications.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/notifications/{id}/mark_read/:
+    patch:
+      operationId: v1_notifications_mark_read_partial_update
+      description: Mark a specific notification as read.
+      summary: Mark notification as read
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMarkNotificationRead'
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Notification marked as read successfully.
+  /api/v1/notifications/{id}/mark_unread/:
+    patch:
+      operationId: v1_notifications_mark_unread_partial_update
+      description: Mark a specific notification as unread.
+      summary: Mark notification as unread
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedNotification'
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Notification marked as unread successfully.
+  /api/v1/notifications/preferences/:
+    post:
+      operationId: v1_notifications_preferences_create
+      description: |-
+        API endpoint for user notification preferences.
+
+        Users can manage their notification preferences per organization.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationPreference'
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreference'
+          description: ''
+    get:
+      operationId: v1_notifications_preferences_list
+      description: List notification preferences for the authenticated user across
+        organizations.
+      summary: List notification preferences
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNotificationPreferenceList'
+          description: ''
+  /api/v1/notifications/preferences/{id}/:
+    put:
+      operationId: v1_notifications_preferences_update
+      description: |-
+        Update notification preferences.
+
+        Users can only update their own preferences.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationPreferenceUpdate'
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferenceUpdate'
+          description: ''
+    patch:
+      operationId: v1_notifications_preferences_partial_update
+      description: |-
+        Partially update notification preferences.
+
+        Users can only update their own preferences.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedNotificationPreferenceUpdate'
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferenceUpdate'
+          description: ''
+    get:
+      operationId: v1_notifications_preferences_retrieve
+      description: Retrieve notification preferences for a specific organization.
+      summary: Get notification preferences
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreference'
+          description: ''
+    delete:
+      operationId: v1_notifications_preferences_destroy
+      description: |-
+        Delete notification preferences.
+
+        Users can only delete their own preferences.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
+components:
+  schemas:
+    Comment:
+      type: object
+      description: |-
+        Serializer for Comment model.
+
+        Includes author information and mentioned users.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        incident:
+          type: string
+          format: uuid
+          readOnly: true
+        author:
+          type: object
+          additionalProperties: {}
+          description: Return author information.
+          readOnly: true
+        body:
+          type: string
+        is_internal:
+          type: boolean
+          description: Internal notes are only visible to organization members.
+        mentioned_users:
+          type: array
+          items:
+            $ref: '#/components/schemas/MentionedUser'
+          readOnly: true
+        is_owner:
+          type: boolean
+          description: Return whether the current user is the comment author.
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - author
+      - body
+      - created_at
+      - id
+      - incident
+      - is_owner
+      - mentioned_users
+      - updated_at
+    CommentCreate:
+      type: object
+      description: |-
+        Serializer for creating a comment.
+
+        Does not include author or incident - these are derived from
+        the authenticated request and URL parameters.
+      properties:
+        body:
+          type: string
+          description: Comment text content. Supports @username mentions.
+        is_internal:
+          type: boolean
+          default: false
+          description: Whether this is an internal note (only visible to organization
+            members).
+      required:
+      - body
+    DashboardIncident:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        incident_number:
+          type: string
+          maxLength: 32
+        title:
+          type: string
+          maxLength: 255
+        status:
+          $ref: '#/components/schemas/StatusD64Enum'
+        priority:
+          $ref: '#/components/schemas/PriorityEnum'
+        assignee_email:
+          type: string
+          format: email
+          readOnly: true
+          nullable: true
+        sla_state:
+          type: string
+          description: Derives the SLA state (HEALTHY, AT_RISK, BREACHED) for the
+            incident.
+          readOnly: true
+        escalation_status:
+          type: string
+          nullable: true
+          description: Returns the status of the most recent escalation if any.
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - assignee_email
+      - created_at
+      - escalation_status
+      - id
+      - incident_number
+      - sla_state
+      - title
+    DashboardSummary:
+      type: object
+      properties:
+        open_incidents:
+          type: integer
+        unassigned_incidents:
+          type: integer
+        sla_at_risk:
+          type: integer
+        sla_breached:
+          type: integer
+        active_escalations:
+          type: integer
+      required:
+      - active_escalations
+      - open_incidents
+      - sla_at_risk
+      - sla_breached
+      - unassigned_incidents
+    EmailVerification:
+      type: object
+      description: Serializer for email verification.
+      properties:
+        token:
+          type: string
+      required:
+      - token
+    EscalationEvaluate:
+      type: object
+      description: Input serializer for the manual evaluate endpoint.
+      properties:
+        trigger_type:
+          $ref: '#/components/schemas/TriggerTypeEnum'
+      required:
+      - trigger_type
+    EscalationEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        level:
+          type: integer
+          readOnly: true
+          description: The escalation level number that was executed.
+        trigger_type:
+          allOf:
+          - $ref: '#/components/schemas/TriggerTypeEnum'
+          readOnly: true
+        triggered_at:
+          type: string
+          format: date-time
+          readOnly: true
+        target_type:
+          allOf:
+          - $ref: '#/components/schemas/TargetTypeEnum'
+          readOnly: true
+        target_reference:
+          type: string
+          readOnly: true
+          description: Snapshot of the target at execution time (role UUID or 'assignee').
+        status:
+          allOf:
+          - $ref: '#/components/schemas/EscalationEventStatusEnum'
+          readOnly: true
+      required:
+      - id
+      - level
+      - status
+      - target_reference
+      - target_type
+      - trigger_type
+      - triggered_at
+    EscalationEventStatusEnum:
+      enum:
+      - EXECUTED
+      type: string
+      description: '* `EXECUTED` - Executed'
+    EscalationLevel:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        level:
+          type: integer
+          readOnly: true
+          description: Execution order within the policy. Must be unique per policy.
+        name:
+          type: string
+          readOnly: true
+        delay_minutes:
+          type: integer
+          readOnly: true
+          description: Minutes after the breach trigger before this level becomes
+            due.
+        target_type:
+          allOf:
+          - $ref: '#/components/schemas/TargetTypeEnum'
+          readOnly: true
+        target_reference:
+          type: string
+          readOnly: true
+          description: 'For ROLE targets: the Role UUID. For ASSIGNEE targets: empty
+            (resolved at evaluation time).'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - delay_minutes
+      - id
+      - level
+      - name
+      - target_reference
+      - target_type
+      - updated_at
+    EscalationLevelCreate:
+      type: object
+      properties:
+        level:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+          maxLength: 255
+        delay_minutes:
+          type: integer
+          minimum: 0
+          default: 0
+        target_type:
+          $ref: '#/components/schemas/TargetTypeEnum'
+        target_reference:
+          type: string
+          default: ''
+          description: Role UUID for ROLE target type; leave empty for ASSIGNEE.
+          maxLength: 255
+      required:
+      - level
+      - name
+      - target_type
+    EscalationMetrics:
+      type: object
+      properties:
+        active:
+          type: integer
+        completed:
+          type: integer
+        cancelled:
+          type: integer
+        by_level:
+          type: object
+          additionalProperties:
+            type: integer
+      required:
+      - active
+      - by_level
+      - cancelled
+      - completed
+    EscalationPolicy:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+        is_active:
+          type: boolean
+          readOnly: true
+        is_default:
+          type: boolean
+          readOnly: true
+          description: Only one active policy per organization may be the default.
+            Enforced by a partial unique index.
+        levels:
+          type: array
+          items:
+            $ref: '#/components/schemas/EscalationLevel'
+          readOnly: true
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/EscalationRule'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - description
+      - id
+      - is_active
+      - is_default
+      - levels
+      - name
+      - rules
+      - updated_at
+    EscalationPolicyCreate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          default: ''
+          maxLength: 2000
+        is_active:
+          type: boolean
+          default: true
+        is_default:
+          type: boolean
+          default: false
+      required:
+      - name
+    EscalationRule:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        trigger_type:
+          allOf:
+          - $ref: '#/components/schemas/TriggerTypeEnum'
+          readOnly: true
+        is_active:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - is_active
+      - trigger_type
+      - updated_at
+    EscalationRuleCreate:
+      type: object
+      properties:
+        trigger_type:
+          $ref: '#/components/schemas/TriggerTypeEnum'
+        is_active:
+          type: boolean
+          default: true
+      required:
+      - trigger_type
+    Incident:
+      type: object
+      description: |-
+        Full incident representation including embedded SLA summary.
+
+        The `sla` field is None when no SLA policy was configured at incident
+        creation time (graceful degradation).
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        incident_number:
+          type: string
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusD64Enum'
+          readOnly: true
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/PriorityEnum'
+          readOnly: true
+        category:
+          allOf:
+          - $ref: '#/components/schemas/IncidentCategoryMinimal'
+          readOnly: true
+        reporter:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          readOnly: true
+        assignee:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          readOnly: true
+        sla:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          description: |-
+            Return embedded SLA summary or None if no SLA record exists.
+            Uses hasattr / try-except to safely handle missing reverse relation.
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        resolved_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - assignee
+      - category
+      - created_at
+      - description
+      - id
+      - incident_number
+      - priority
+      - reporter
+      - resolved_at
+      - sla
+      - status
+      - title
+      - updated_at
+    IncidentCategory:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        slug:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+        description:
+          type: string
+          readOnly: true
+        is_active:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - description
+      - id
+      - is_active
+      - name
+      - slug
+      - updated_at
+    IncidentCategoryCreate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        slug:
+          oneOf:
+          - type: string
+            maxLength: 255
+            pattern: ^[-a-zA-Z0-9_]+$
+          - type: string
+            maxLength: 0
+        description:
+          type: string
+          default: ''
+          maxLength: 1000
+      required:
+      - name
+    IncidentCategoryMinimal:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+      required:
+      - id
+      - name
+    IncidentCreate:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          default: ''
+          maxLength: 5000
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/PriorityEnum'
+          default: P3
+        category_id:
+          type: string
+          format: uuid
+          nullable: true
+        assignee_id:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - title
+    IncidentEscalation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        policy:
+          type: string
+          readOnly: true
+        trigger_type:
+          allOf:
+          - $ref: '#/components/schemas/TriggerTypeEnum'
+          readOnly: true
+        current_level:
+          type: integer
+          readOnly: true
+          description: The level number of the last executed escalation level (0 =
+            none yet).
+        status:
+          allOf:
+          - $ref: '#/components/schemas/IncidentEscalationStatusEnum'
+          readOnly: true
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+        last_evaluated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/EscalationEvent'
+          readOnly: true
+      required:
+      - completed_at
+      - current_level
+      - events
+      - id
+      - last_evaluated_at
+      - policy
+      - started_at
+      - status
+      - trigger_type
+    IncidentEscalationStatusEnum:
+      enum:
+      - ACTIVE
+      - COMPLETED
+      - CANCELLED
+      type: string
+      description: |-
+        * `ACTIVE` - Active
+        * `COMPLETED` - Completed
+        * `CANCELLED` - Cancelled
+    Logout:
+      type: object
+      description: Serializer for logout.
+      properties:
+        refresh:
+          type: string
+      required:
+      - refresh
+    Membership:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        user:
+          allOf:
+          - $ref: '#/components/schemas/MembershipUser'
+          readOnly: true
+        role:
+          allOf:
+          - $ref: '#/components/schemas/Role'
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/MembershipStatusEnum'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - role
+      - status
+      - updated_at
+      - user
+    MembershipStatusEnum:
+      enum:
+      - ACTIVE
+      - SUSPENDED
+      - REMOVED
+      type: string
+      description: |-
+        * `ACTIVE` - Active
+        * `SUSPENDED` - Suspended
+        * `REMOVED` - Removed
+    MembershipUser:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        first_name:
+          type: string
+          readOnly: true
+        last_name:
+          type: string
+          readOnly: true
+      required:
+      - email
+      - first_name
+      - id
+      - last_name
+    MentionedUser:
+      type: object
+      description: Serializer for mentioned user information.
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        first_name:
+          type: string
+        last_name:
+          type: string
+      required:
+      - email
+      - id
+    Notification:
+      type: object
+      description: Serializer for notification list and detail views.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        organization:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Organization that owns this notification.
+        recipient:
+          type: string
+          format: uuid
+          readOnly: true
+          description: User who should receive this notification.
+        notification_type:
+          allOf:
+          - $ref: '#/components/schemas/NotificationTypeEnum'
+          readOnly: true
+          description: |-
+            Type of notification event.
+
+            * `SLA_WARNING` - SLA Warning
+            * `SLA_BREACH` - SLA Breach
+            * `ESCALATION_TRIGGERED` - Escalation Triggered
+        title:
+          type: string
+          readOnly: true
+          description: Notification title.
+        message:
+          type: string
+          readOnly: true
+          description: Detailed notification message.
+        severity:
+          allOf:
+          - $ref: '#/components/schemas/SeverityEnum'
+          readOnly: true
+          description: |-
+            Severity level of the notification.
+
+            * `INFO` - Info
+            * `WARNING` - Warning
+            * `CRITICAL` - Critical
+        incident_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+          description: Related incident ID if applicable.
+        escalation_event_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+          description: Related escalation event ID if applicable.
+        is_read:
+          type: boolean
+          description: Whether the notification has been read.
+        read_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          description: Timestamp when the notification was marked as read.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - escalation_event_id
+      - id
+      - incident_id
+      - message
+      - notification_type
+      - organization
+      - read_at
+      - recipient
+      - severity
+      - title
+    NotificationList:
+      type: object
+      description: Lightweight serializer for notification list views.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        notification_type:
+          allOf:
+          - $ref: '#/components/schemas/NotificationTypeEnum'
+          readOnly: true
+          description: |-
+            Type of notification event.
+
+            * `SLA_WARNING` - SLA Warning
+            * `SLA_BREACH` - SLA Breach
+            * `ESCALATION_TRIGGERED` - Escalation Triggered
+        title:
+          type: string
+          readOnly: true
+          description: Notification title.
+        severity:
+          allOf:
+          - $ref: '#/components/schemas/SeverityEnum'
+          readOnly: true
+          description: |-
+            Severity level of the notification.
+
+            * `INFO` - Info
+            * `WARNING` - Warning
+            * `CRITICAL` - Critical
+        is_read:
+          type: boolean
+          readOnly: true
+          description: Whether the notification has been read.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - is_read
+      - notification_type
+      - severity
+      - title
+    NotificationPreference:
+      type: object
+      description: Serializer for user notification preferences.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        organization:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Organization for these preferences.
+        user:
+          type: string
+          format: uuid
+          readOnly: true
+          description: User who owns these preferences.
+        email_enabled:
+          type: boolean
+          description: Whether email notifications are enabled.
+        in_app_enabled:
+          type: boolean
+          description: Whether in-app notifications are enabled.
+      required:
+      - id
+      - organization
+      - user
+    NotificationPreferenceUpdate:
+      type: object
+      description: Serializer for updating notification preferences.
+      properties:
+        email_enabled:
+          type: boolean
+          description: Whether email notifications are enabled.
+        in_app_enabled:
+          type: boolean
+          description: Whether in-app notifications are enabled.
+    NotificationTypeEnum:
+      enum:
+      - SLA_WARNING
+      - SLA_BREACH
+      - ESCALATION_TRIGGERED
+      type: string
+      description: |-
+        * `SLA_WARNING` - SLA Warning
+        * `SLA_BREACH` - SLA Breach
+        * `ESCALATION_TRIGGERED` - Escalation Triggered
+    Organization:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        slug:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+        status:
+          allOf:
+          - $ref: '#/components/schemas/OrganizationStatusEnum'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - slug
+      - status
+      - updated_at
+    OrganizationCreate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        slug:
+          oneOf:
+          - type: string
+            maxLength: 255
+            pattern: ^[-a-zA-Z0-9_]+$
+          - type: string
+            maxLength: 0
+      required:
+      - name
+    OrganizationStatusEnum:
+      enum:
+      - ACTIVE
+      - SUSPENDED
+      - ARCHIVED
+      type: string
+      description: |-
+        * `ACTIVE` - Active
+        * `SUSPENDED` - Suspended
+        * `ARCHIVED` - Archived
+    PaginatedCommentList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
+    PaginatedDashboardIncidentList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardIncident'
+    PaginatedIncidentList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Incident'
+    PaginatedNotificationListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationList'
+    PaginatedNotificationPreferenceList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationPreference'
+    PasswordResetConfirm:
+      type: object
+      description: Serializer for password reset confirmation.
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        token:
+          type: string
+        new_password:
+          type: string
+        new_password_confirm:
+          type: string
+      required:
+      - new_password
+      - new_password_confirm
+      - token
+      - user_id
+    PasswordResetRequest:
+      type: object
+      description: Serializer for password reset request.
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+      - email
+    PatchedCommentUpdate:
+      type: object
+      description: |-
+        Serializer for updating a comment.
+
+        Only the comment author may update their own comments.
+      properties:
+        body:
+          type: string
+          description: Updated comment text content.
+        is_internal:
+          type: boolean
+          description: Updated internal note status.
+    PatchedEscalationLevelUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        delay_minutes:
+          type: integer
+          minimum: 0
+        target_type:
+          $ref: '#/components/schemas/TargetTypeEnum'
+        target_reference:
+          type: string
+          description: Role UUID for ROLE target type; leave empty for ASSIGNEE.
+          maxLength: 255
+    PatchedEscalationPolicyUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 2000
+        is_active:
+          type: boolean
+        is_default:
+          type: boolean
+    PatchedIncidentCategoryUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 1000
+        is_active:
+          type: boolean
+    PatchedIncidentUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 5000
+        priority:
+          $ref: '#/components/schemas/PriorityEnum'
+        category_id:
+          type: string
+          format: uuid
+          nullable: true
+        assignee_id:
+          type: string
+          format: uuid
+          nullable: true
+        status:
+          $ref: '#/components/schemas/StatusD64Enum'
+    PatchedMarkNotificationRead:
+      type: object
+      description: Serializer for marking a notification as read.
+      properties:
+        is_read:
+          type: boolean
+    PatchedMembershipRoleAssign:
+      type: object
+      description: Write serializer for assigning a role to a membership.
+      properties:
+        role_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: UUID of the role to assign. Send null to remove the role.
+    PatchedNotification:
+      type: object
+      description: Serializer for notification list and detail views.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        organization:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Organization that owns this notification.
+        recipient:
+          type: string
+          format: uuid
+          readOnly: true
+          description: User who should receive this notification.
+        notification_type:
+          allOf:
+          - $ref: '#/components/schemas/NotificationTypeEnum'
+          readOnly: true
+          description: |-
+            Type of notification event.
+
+            * `SLA_WARNING` - SLA Warning
+            * `SLA_BREACH` - SLA Breach
+            * `ESCALATION_TRIGGERED` - Escalation Triggered
+        title:
+          type: string
+          readOnly: true
+          description: Notification title.
+        message:
+          type: string
+          readOnly: true
+          description: Detailed notification message.
+        severity:
+          allOf:
+          - $ref: '#/components/schemas/SeverityEnum'
+          readOnly: true
+          description: |-
+            Severity level of the notification.
+
+            * `INFO` - Info
+            * `WARNING` - Warning
+            * `CRITICAL` - Critical
+        incident_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+          description: Related incident ID if applicable.
+        escalation_event_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+          description: Related escalation event ID if applicable.
+        is_read:
+          type: boolean
+          description: Whether the notification has been read.
+        read_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          description: Timestamp when the notification was marked as read.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedNotificationPreferenceUpdate:
+      type: object
+      description: Serializer for updating notification preferences.
+      properties:
+        email_enabled:
+          type: boolean
+          description: Whether email notifications are enabled.
+        in_app_enabled:
+          type: boolean
+          description: Whether in-app notifications are enabled.
+    PatchedRoleUpdate:
+      type: object
+      description: Write serializer for updating a custom role.
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 1000
+        permissions:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: Full replacement list of permission codenames. Omit to leave
+            unchanged.
+    PatchedSLAPolicyUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 2000
+        is_active:
+          type: boolean
+        is_default:
+          type: boolean
+    PatchedSLATargetUpdate:
+      type: object
+      properties:
+        response_time_minutes:
+          type: integer
+          minimum: 1
+        resolution_time_minutes:
+          type: integer
+          minimum: 1
+    PriorityDistribution:
+      type: object
+      properties:
+        low:
+          type: integer
+        medium:
+          type: integer
+        high:
+          type: integer
+        critical:
+          type: integer
+      required:
+      - critical
+      - high
+      - low
+      - medium
+    PriorityEnum:
+      enum:
+      - P1
+      - P2
+      - P3
+      - P4
+      type: string
+      description: |-
+        * `P1` - P1 — Critical
+        * `P2` - P2 — High
+        * `P3` - P3 — Medium
+        * `P4` - P4 — Low
+    ResendVerification:
+      type: object
+      description: Serializer for resending verification email.
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+      - email
+    Role:
+      type: object
+      description: Read serializer for roles — exposes permission codenames.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        slug:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+        description:
+          type: string
+          readOnly: true
+        is_system_role:
+          type: boolean
+          readOnly: true
+          description: System roles are seeded automatically and cannot be deleted.
+        permissions:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - description
+      - id
+      - is_system_role
+      - name
+      - permissions
+      - slug
+      - updated_at
+    RoleCreate:
+      type: object
+      description: Write serializer for creating a custom role.
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          default: ''
+          maxLength: 1000
+        permissions:
+          type: array
+          items:
+            type: string
+          description: List of permission codenames to attach to this role.
+      required:
+      - name
+    SLAMetrics:
+      type: object
+      properties:
+        healthy:
+          type: integer
+        approaching:
+          type: integer
+        breached:
+          type: integer
+        resolved_within_sla:
+          type: integer
+        response_breaches:
+          type: integer
+        resolution_breaches:
+          type: integer
+      required:
+      - approaching
+      - breached
+      - healthy
+      - resolution_breaches
+      - resolved_within_sla
+      - response_breaches
+    SLAPolicy:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+        is_active:
+          type: boolean
+          readOnly: true
+        is_default:
+          type: boolean
+          readOnly: true
+          description: Only one active policy per organization may be the default.
+            Enforced by a partial unique index.
+        targets:
+          type: array
+          items:
+            $ref: '#/components/schemas/SLATarget'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - description
+      - id
+      - is_active
+      - is_default
+      - name
+      - targets
+      - updated_at
+    SLAPolicyCreate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          default: ''
+          maxLength: 2000
+        is_active:
+          type: boolean
+          default: true
+        is_default:
+          type: boolean
+          default: false
+      required:
+      - name
+    SLATarget:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/PriorityEnum'
+          readOnly: true
+        response_time_minutes:
+          type: integer
+          readOnly: true
+          description: Minutes until the incident must be acknowledged.
+        resolution_time_minutes:
+          type: integer
+          readOnly: true
+          description: Minutes until the incident must be resolved.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - priority
+      - resolution_time_minutes
+      - response_time_minutes
+      - updated_at
+    SLATargetCreate:
+      type: object
+      properties:
+        priority:
+          $ref: '#/components/schemas/PriorityEnum'
+        response_time_minutes:
+          type: integer
+          minimum: 1
+        resolution_time_minutes:
+          type: integer
+          minimum: 1
+      required:
+      - priority
+      - resolution_time_minutes
+      - response_time_minutes
+    SeverityEnum:
+      enum:
+      - INFO
+      - WARNING
+      - CRITICAL
+      type: string
+      description: |-
+        * `INFO` - Info
+        * `WARNING` - Warning
+        * `CRITICAL` - Critical
+    StatusD64Enum:
+      enum:
+      - OPEN
+      - ACKNOWLEDGED
+      - IN_PROGRESS
+      - RESOLVED
+      - CLOSED
+      type: string
+      description: |-
+        * `OPEN` - Open
+        * `ACKNOWLEDGED` - Acknowledged
+        * `IN_PROGRESS` - In Progress
+        * `RESOLVED` - Resolved
+        * `CLOSED` - Closed
+    TargetTypeEnum:
+      enum:
+      - ASSIGNEE
+      - ROLE
+      type: string
+      description: |-
+        * `ASSIGNEE` - Assigned Agent
+        * `ROLE` - Organization Role
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+      required:
+      - access
+      - refresh
+    TriggerTypeEnum:
+      enum:
+      - RESPONSE_BREACH
+      - RESOLUTION_BREACH
+      type: string
+      description: |-
+        * `RESPONSE_BREACH` - Response SLA Breach
+        * `RESOLUTION_BREACH` - Resolution SLA Breach
+    UserLogin:
+      type: object
+      description: Serializer for user login.
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+      - email
+      - password
+    UserProfile:
+      type: object
+      description: Serializer for the authenticated user profile.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        first_name:
+          type: string
+          readOnly: true
+        last_name:
+          type: string
+          readOnly: true
+        is_active:
+          type: boolean
+          readOnly: true
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+        is_verified:
+          type: boolean
+          readOnly: true
+      required:
+      - email
+      - first_name
+      - id
+      - is_active
+      - is_verified
+      - last_name
+    UserRegistration:
+      type: object
+      description: Serializer for user registration.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          writeOnly: true
+        password_confirm:
+          type: string
+          writeOnly: true
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+      required:
+      - email
+      - id
+      - password
+      - password_confirm
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+servers:
+- url: /
+  description: Current server

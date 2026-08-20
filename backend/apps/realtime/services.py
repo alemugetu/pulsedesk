@@ -15,6 +15,7 @@ from channels.layers import get_channel_layer
 from django.db import transaction
 from realtime.events import CHANNEL_GROUP_PREFIX, EVENT_VERSION, RealtimeEventType
 from realtime.serializers import (
+    CommentEventSerializer,
     EscalationEventSerializer,
     IncidentEventSerializer,
     NotificationEventSerializer,
@@ -380,6 +381,81 @@ class RealtimeEventService:
             RealtimeEventType.NOTIFICATION_CREATED.value,
             str(organization_id),
             notification_data,
+        )
+        group_name = RealtimeEventService._get_channel_group_name(str(organization_id))
+
+        transaction.on_commit(
+            lambda: RealtimeEventService._publish_event_sync(group_name, event_envelope)
+        )
+
+    @staticmethod
+    def publish_comment_created(comment) -> None:
+        """
+        Publish comment.created event.
+
+        Called after successful comment creation transaction.
+        """
+        if not RealtimeEventType.is_valid(RealtimeEventType.COMMENT_CREATED.value):
+            return
+
+        comment_data = CommentEventSerializer.serialize_comment(comment)
+        event_envelope = RealtimeEventService._construct_event_envelope(
+            RealtimeEventType.COMMENT_CREATED.value,
+            str(comment.incident.organization_id),
+            comment_data,
+        )
+        group_name = RealtimeEventService._get_channel_group_name(
+            str(comment.incident.organization_id)
+        )
+
+        transaction.on_commit(
+            lambda: RealtimeEventService._publish_event_sync(group_name, event_envelope)
+        )
+
+    @staticmethod
+    def publish_comment_updated(comment) -> None:
+        """
+        Publish comment.updated event.
+
+        Called after successful comment update transaction.
+        """
+        if not RealtimeEventType.is_valid(RealtimeEventType.COMMENT_UPDATED.value):
+            return
+
+        comment_data = CommentEventSerializer.serialize_comment(comment)
+        event_envelope = RealtimeEventService._construct_event_envelope(
+            RealtimeEventType.COMMENT_UPDATED.value,
+            str(comment.incident.organization_id),
+            comment_data,
+        )
+        group_name = RealtimeEventService._get_channel_group_name(
+            str(comment.incident.organization_id)
+        )
+
+        transaction.on_commit(
+            lambda: RealtimeEventService._publish_event_sync(group_name, event_envelope)
+        )
+
+    @staticmethod
+    def publish_comment_deleted(
+        comment_id: str, incident_id: str, organization_id: str
+    ) -> None:
+        """
+        Publish comment.deleted event.
+
+        Called after successful comment deletion transaction.
+        """
+        if not RealtimeEventType.is_valid(RealtimeEventType.COMMENT_DELETED.value):
+            return
+
+        comment_data = {
+            "comment_id": comment_id,
+            "incident_id": incident_id,
+        }
+        event_envelope = RealtimeEventService._construct_event_envelope(
+            RealtimeEventType.COMMENT_DELETED.value,
+            str(organization_id),
+            comment_data,
         )
         group_name = RealtimeEventService._get_channel_group_name(str(organization_id))
 

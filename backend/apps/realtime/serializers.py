@@ -127,3 +127,32 @@ class NotificationEventSerializer(BaseEventSerializer):
             "incident_number": incident_number,
             "organization_id": organization_id,
         }
+
+
+class CommentEventSerializer(BaseEventSerializer):
+    """Serializer for comment-related events."""
+
+    data = serializers.DictField()
+
+    @staticmethod
+    def serialize_comment(comment) -> dict:
+        """
+        Extract safe comment data for realtime events.
+
+        Only includes fields needed by the Operations Dashboard.
+        Excludes sensitive information and internal fields.
+        """
+        return {
+            "id": str(comment.id),
+            "incident_id": str(comment.incident_id),
+            "incident_number": comment.incident.incident_number,
+            "author_id": str(comment.author_id),
+            "author_email": comment.author.email,
+            "body": comment.body,
+            "is_internal": comment.is_internal,
+            "mentioned_user_ids": [
+                str(user.id) for user in comment.mentioned_users.all()
+            ],
+            "created_at": comment.created_at.isoformat(),
+            "updated_at": comment.updated_at.isoformat(),
+        }

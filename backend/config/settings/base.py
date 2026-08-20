@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "notifications.apps.NotificationsConfig",
     "dashboard.apps.DashboardConfig",
     "realtime.apps.RealtimeConfig",
+    "comments",
 ]
 
 MIDDLEWARE = [

@@ -18,6 +18,11 @@ class RealtimeEventType(str, Enum):
     INCIDENT_STATUS_CHANGED = "incident.status_changed"
     INCIDENT_ASSIGNED = "incident.assigned"
 
+    # Comment events
+    COMMENT_CREATED = "comment.created"
+    COMMENT_UPDATED = "comment.updated"
+    COMMENT_DELETED = "comment.deleted"
+
     # SLA events
     SLA_WARNING = "sla.warning"
     SLA_BREACHED = "sla.breached"

@@ -56,4 +56,9 @@ urlpatterns = [
         "<uuid:organization_id>/dashboard/",
         include("dashboard.urls"),
     ),
+    # Incident Comments (Phase 13.1)
+    path(
+        "<uuid:organization_id>/",
+        include("comments.urls"),
+    ),
 ]
