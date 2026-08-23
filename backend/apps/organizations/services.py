@@ -170,6 +170,14 @@ INITIAL_PERMISSIONS = [
         "action": "evaluate",
         "description": "Manually trigger escalation evaluation for incidents.",
     },
+    # Audit Logs (Phase 13.3)
+    {
+        "codename": "audit_log.view",
+        "name": "View Audit Logs",
+        "resource": "audit_log",
+        "action": "view",
+        "description": "View the organization audit log history.",
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -187,24 +195,17 @@ _INCIDENT_FULL = _INCIDENT_AGENT | {
 }
 
 # SLA permission sets (Phase 6)
-# Permission matrix:
-#   Owner            → sla.view + sla.manage  (via _ALL_PERMISSIONS)
-#   Admin            → sla.view + sla.manage
-#   Operations Mgr   → sla.view               (read-only; cannot create/change policies)
-#   Agent            → sla.view
-#   Viewer           → sla.view
 _SLA_VIEW = {"sla.view"}
 _SLA_MANAGE = _SLA_VIEW | {"sla.manage"}
 
 # Escalation permission sets (Phase 7)
-# Permission matrix:
-#   Owner              → escalation.view + escalation.manage + escalation.evaluate
-#   Admin              → escalation.view + escalation.manage + escalation.evaluate
-#   Operations Manager → escalation.view + escalation.manage + escalation.evaluate
-#   Agent              → escalation.view  (read-only; cannot manage or evaluate)
-#   Viewer             → escalation.view
 _ESCALATION_VIEW = {"escalation.view"}
 _ESCALATION_MANAGE = _ESCALATION_VIEW | {"escalation.manage", "escalation.evaluate"}
+
+# Audit log permission sets (Phase 13.3)
+# Owner, Admin, Operations Manager see audit logs.
+# Agent and Viewer do not — audit logs contain sensitive org-wide operational data.
+_AUDIT_LOG_VIEW = {"audit_log.view"}
 
 _VIEWER = _BASE_READ_ONLY | _INCIDENT_VIEW | _SLA_VIEW | _ESCALATION_VIEW
 _AGENT = _BASE_READ_ONLY | _INCIDENT_AGENT | _SLA_VIEW | _ESCALATION_VIEW
@@ -219,6 +220,7 @@ _OPS_MANAGER = (
     | _INCIDENT_FULL
     | _SLA_VIEW
     | _ESCALATION_MANAGE
+    | _AUDIT_LOG_VIEW
 )
 _ADMIN = (
     _OPS_MANAGER
@@ -226,6 +228,7 @@ _ADMIN = (
     | _INCIDENT_FULL
     | _SLA_MANAGE
     | _ESCALATION_MANAGE
+    | _AUDIT_LOG_VIEW
 )
 _OWNER = _ALL_PERMISSIONS
 
@@ -476,6 +479,20 @@ class RBACService:
                 role, permission_codenames, actor_membership
             )
 
+        # Audit log
+        from audit_logs.models import AuditAction
+        from audit_logs.services import AuditLogService
+
+        actor = actor_membership.user if actor_membership else None
+        AuditLogService.log(
+            organization=organization,
+            actor=actor,
+            action=AuditAction.ROLE_CREATED,
+            resource_type="role",
+            resource_id=str(role.id),
+            changes={"name": role.name, "slug": role.slug},
+        )
+
         return role
 
     @staticmethod
@@ -533,6 +550,19 @@ class RBACService:
                 role, permission_codenames, actor_membership
             )
 
+        # Audit log
+        from audit_logs.models import AuditAction
+        from audit_logs.services import AuditLogService
+
+        AuditLogService.log(
+            organization=role.organization,
+            actor=actor_membership.user,
+            action=AuditAction.ROLE_UPDATED,
+            resource_type="role",
+            resource_id=str(role.id),
+            changes={"name": role.name},
+        )
+
         return role
 
     @staticmethod
@@ -554,7 +584,23 @@ class RBACService:
                 code="system_role_protected",
             )
 
+        role_id = str(role.id)
+        role_name = role.name
+        organization = role.organization
         role.delete()
+
+        # Audit log
+        from audit_logs.models import AuditAction
+        from audit_logs.services import AuditLogService
+
+        AuditLogService.log(
+            organization=organization,
+            actor=actor_membership.user,
+            action=AuditAction.ROLE_DELETED,
+            resource_type="role",
+            resource_id=role_id,
+            changes={"name": role_name},
+        )
 
     @staticmethod
     @transaction.atomic
@@ -622,6 +668,24 @@ class RBACService:
 
         membership.role = role
         membership.save(update_fields=["role", "updated_at"])
+
+        # Audit log
+        from audit_logs.models import AuditAction
+        from audit_logs.services import AuditLogService
+
+        AuditLogService.log(
+            organization=organization,
+            actor=actor_membership.user,
+            action=AuditAction.ROLE_ASSIGNED,
+            resource_type="membership",
+            resource_id=str(membership.id),
+            changes={
+                "membership_user_id": str(membership.user_id),
+                "new_role_id": str(role.id) if role else None,
+                "new_role_name": role.name if role else None,
+            },
+        )
+
         return membership
 
     # ------------------------------------------------------------------

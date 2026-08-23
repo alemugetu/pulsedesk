@@ -305,6 +305,24 @@ class AttachmentService:
 
         RealtimeEventService.publish_attachment_created(attachment)
 
+        # Audit log
+        from audit_logs.models import AuditAction
+        from audit_logs.services import AuditLogService
+
+        AuditLogService.log(
+            organization=incident.organization,
+            actor=uploader,
+            action=AuditAction.ATTACHMENT_UPLOADED,
+            resource_type="attachment",
+            resource_id=str(attachment.id),
+            changes={
+                "incident_id": str(incident.id),
+                "original_filename": attachment.original_filename,
+                "content_type": attachment.content_type,
+                "file_size": attachment.file_size,
+            },
+        )
+
         return attachment
 
     @staticmethod
@@ -355,6 +373,22 @@ class AttachmentService:
 
         # Delete the DB record first (inside the atomic block).
         attachment.delete()
+
+        # Audit log
+        from audit_logs.models import AuditAction
+        from audit_logs.services import AuditLogService
+
+        AuditLogService.log(
+            organization=organization,
+            actor=requesting_user,
+            action=AuditAction.ATTACHMENT_DELETED,
+            resource_type="attachment",
+            resource_id=attachment_id,
+            changes={
+                "incident_id": incident_id,
+                "original_filename": attachment.original_filename,
+            },
+        )
 
         # Delete the storage file AFTER the transaction commits so the file is
         # not removed for a rolled-back transaction.

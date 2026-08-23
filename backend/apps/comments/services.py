@@ -137,6 +137,19 @@ class CommentService:
         if mentioned_users:
             comment.mentioned_users.set(mentioned_users)
 
+        # Audit log
+        from audit_logs.models import AuditAction
+        from audit_logs.services import AuditLogService
+
+        AuditLogService.log(
+            organization=incident.organization,
+            actor=author,
+            action=AuditAction.COMMENT_CREATED,
+            resource_type="comment",
+            resource_id=str(comment.id),
+            changes={"incident_id": str(incident.id), "is_internal": is_internal},
+        )
+
         # Publish realtime event after successful transaction
         from realtime.services import RealtimeEventService
 
@@ -199,6 +212,19 @@ class CommentService:
 
         comment.save()
 
+        # Audit log
+        from audit_logs.models import AuditAction
+        from audit_logs.services import AuditLogService
+
+        AuditLogService.log(
+            organization=comment.incident.organization,
+            actor=author,
+            action=AuditAction.COMMENT_UPDATED,
+            resource_type="comment",
+            resource_id=str(comment.id),
+            changes={"incident_id": str(comment.incident_id)},
+        )
+
         # Publish realtime event after successful transaction
         from realtime.services import RealtimeEventService
 
@@ -230,13 +256,27 @@ class CommentService:
 
         comment_id = str(comment.id)
         incident_id = str(comment.incident_id)
+        organization = comment.incident.organization
 
         # Delete the comment
         comment.delete()
+
+        # Audit log
+        from audit_logs.models import AuditAction
+        from audit_logs.services import AuditLogService
+
+        AuditLogService.log(
+            organization=organization,
+            actor=author,
+            action=AuditAction.COMMENT_DELETED,
+            resource_type="comment",
+            resource_id=comment_id,
+            changes={"incident_id": incident_id},
+        )
 
         # Publish realtime event after successful transaction
         from realtime.services import RealtimeEventService
 
         RealtimeEventService.publish_comment_deleted(
-            comment_id, incident_id, str(comment.incident.organization_id)
+            comment_id, incident_id, str(organization.id)
         )

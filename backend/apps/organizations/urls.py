@@ -66,4 +66,9 @@ urlpatterns = [
         "<uuid:organization_id>/",
         include("attachments.urls"),
     ),
+    # Audit Logs (Phase 13.3)
+    path(
+        "<uuid:organization_id>/",
+        include("audit_logs.urls"),
+    ),
 ]

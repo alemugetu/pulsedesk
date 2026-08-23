@@ -150,7 +150,6 @@ class IncidentService:
         Generate sequential incident number INC-000001 per organization.
         Must be called within an atomic block.
         """
-        # Lock organization row to guarantee safe sequential numbering under concurrency
         Organization.objects.select_for_update().get(id=organization.id)
         count = Incident.objects.filter(organization=organization).count()
         next_num = count + 1
@@ -182,7 +181,6 @@ class IncidentService:
                 code="invalid_title",
             )
 
-        # Validate reporter active membership in organization
         try:
             Membership.objects.get(
                 user=reporter_user,
@@ -199,7 +197,6 @@ class IncidentService:
                 code="invalid_reporter",
             ) from None
 
-        # Validate Category scoping if provided
         category = None
         if category_id:
             category = get_category(organization, category_id)
@@ -213,7 +210,6 @@ class IncidentService:
                     code="invalid_category",
                 )
 
-        # Validate Assignee scoping if provided
         assignee_membership = None
         if assignee_membership_id:
             try:
@@ -237,7 +233,6 @@ class IncidentService:
                     code="invalid_assignee",
                 ) from None
 
-        # Validate Priority choice
         if priority not in IncidentPriority.values:
             raise IncidentValidationError(
                 {"priority": [f"Invalid priority choice '{priority}'."]},
@@ -259,14 +254,28 @@ class IncidentService:
             resolved_at=None,
         )
 
-        # Calculate and attach SLA if an active default policy exists.
-        # Intentionally imported here to avoid circular imports at module level.
-        # If no policy is configured this is a no-op — incident creation never fails.
         from sla.services import SLACalculationService
 
         SLACalculationService.calculate_incident_sla(incident)
 
-        # Publish realtime event after successful transaction
+        # Audit log
+        from audit_logs.models import AuditAction
+        from audit_logs.services import AuditLogService
+
+        AuditLogService.log(
+            organization=organization,
+            actor=reporter_user,
+            action=AuditAction.INCIDENT_CREATED,
+            resource_type="incident",
+            resource_id=str(incident.id),
+            changes={
+                "incident_number": incident.incident_number,
+                "title": incident.title,
+                "priority": incident.priority,
+                "status": incident.status,
+            },
+        )
+
         from realtime.services import RealtimeEventService
 
         RealtimeEventService.publish_incident_created(incident)
@@ -291,6 +300,8 @@ class IncidentService:
                 code="permission_denied",
             )
 
+        changes: dict = {}
+
         if title is not None:
             clean_title = title.strip()
             if not clean_title:
@@ -298,6 +309,9 @@ class IncidentService:
                     {"title": ["Incident title cannot be empty."]},
                     code="invalid_title",
                 )
+            if clean_title != incident.title:
+                changes["old_title"] = incident.title
+                changes["new_title"] = clean_title
             incident.title = clean_title
 
         if description is not None:
@@ -325,11 +339,36 @@ class IncidentService:
                     {"priority": [f"Invalid priority choice '{priority}'."]},
                     code="invalid_priority",
                 )
+            if priority != incident.priority:
+                changes["old_priority"] = incident.priority
+                changes["new_priority"] = priority
             incident.priority = priority
 
         incident.save()
 
-        # Publish realtime event after successful transaction
+        # Audit log — emit priority_changed if priority changed, else generic updated
+        from audit_logs.models import AuditAction
+        from audit_logs.services import AuditLogService
+
+        if "old_priority" in changes:
+            AuditLogService.log(
+                organization=incident.organization,
+                actor=actor_membership.user,
+                action=AuditAction.INCIDENT_PRIORITY_CHANGED,
+                resource_type="incident",
+                resource_id=str(incident.id),
+                changes=changes,
+            )
+        else:
+            AuditLogService.log(
+                organization=incident.organization,
+                actor=actor_membership.user,
+                action=AuditAction.INCIDENT_UPDATED,
+                resource_type="incident",
+                resource_id=str(incident.id),
+                changes=changes,
+            )
+
         from realtime.services import RealtimeEventService
 
         RealtimeEventService.publish_incident_updated(incident)
@@ -364,10 +403,28 @@ class IncidentService:
                 code="invalid_assignee",
             )
 
+        old_assignee_id = str(incident.assignee_id) if incident.assignee_id else None
         incident.assignee = assignee_membership
         incident.save()
 
-        # Publish realtime event after successful transaction
+        # Audit log
+        from audit_logs.models import AuditAction
+        from audit_logs.services import AuditLogService
+
+        AuditLogService.log(
+            organization=incident.organization,
+            actor=actor_membership.user,
+            action=AuditAction.INCIDENT_ASSIGNED,
+            resource_type="incident",
+            resource_id=str(incident.id),
+            changes={
+                "previous_assignee_id": old_assignee_id,
+                "new_assignee_id": (
+                    str(assignee_membership.id) if assignee_membership else None
+                ),
+            },
+        )
+
         from realtime.services import RealtimeEventService
 
         RealtimeEventService.publish_incident_assigned(
@@ -427,19 +484,33 @@ class IncidentService:
 
         incident.save()
 
-        # SLA completion hooks — must run inside the same transaction.
-        # Imported here to avoid circular imports at module level.
         from sla.services import SLACalculationService
 
         if new_status == IncidentStatus.ACKNOWLEDGED:
-            # OPEN → ACKNOWLEDGED: mark response SLA as completed.
             SLACalculationService.complete_response_sla(incident)
-
         elif new_status == IncidentStatus.RESOLVED:
-            # IN_PROGRESS → RESOLVED: mark resolution SLA as completed.
             SLACalculationService.complete_resolution_sla(incident)
 
-        # Publish realtime event after successful transaction
+        # Audit log — use specific action for resolved/closed states
+        from audit_logs.models import AuditAction
+        from audit_logs.services import AuditLogService
+
+        _status_action_map = {
+            IncidentStatus.RESOLVED: AuditAction.INCIDENT_RESOLVED,
+            IncidentStatus.CLOSED: AuditAction.INCIDENT_CLOSED,
+        }
+        audit_action = _status_action_map.get(
+            new_status, AuditAction.INCIDENT_STATUS_CHANGED
+        )
+        AuditLogService.log(
+            organization=incident.organization,
+            actor=actor_membership.user,
+            action=audit_action,
+            resource_type="incident",
+            resource_id=str(incident.id),
+            changes={"old_status": old_status, "new_status": new_status},
+        )
+
         from realtime.services import RealtimeEventService
 
         RealtimeEventService.publish_incident_status_changed(

@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "realtime.apps.RealtimeConfig",
     "comments",
     "attachments.apps.AttachmentsConfig",
+    "audit_logs.apps.AuditLogsConfig",
 ]
 
 MIDDLEWARE = [
