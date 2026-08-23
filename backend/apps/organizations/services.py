@@ -178,6 +178,14 @@ INITIAL_PERMISSIONS = [
         "action": "view",
         "description": "View the organization audit log history.",
     },
+    # Reports (Phase 13.5)
+    {
+        "codename": "report.view",
+        "name": "View Reports",
+        "resource": "report",
+        "action": "view",
+        "description": "View operational reports and analytics for the organization.",
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -207,8 +215,13 @@ _ESCALATION_MANAGE = _ESCALATION_VIEW | {"escalation.manage", "escalation.evalua
 # Agent and Viewer do not — audit logs contain sensitive org-wide operational data.
 _AUDIT_LOG_VIEW = {"audit_log.view"}
 
+# Report permission sets (Phase 13.5)
+# Owner, Admin, Operations Manager, Agent can view reports.
+# Viewer cannot — reports contain sensitive operational analytics.
+_REPORT_VIEW = {"report.view"}
+
 _VIEWER = _BASE_READ_ONLY | _INCIDENT_VIEW | _SLA_VIEW | _ESCALATION_VIEW
-_AGENT = _BASE_READ_ONLY | _INCIDENT_AGENT | _SLA_VIEW | _ESCALATION_VIEW
+_AGENT = _BASE_READ_ONLY | _INCIDENT_AGENT | _SLA_VIEW | _ESCALATION_VIEW | _REPORT_VIEW
 _OPS_MANAGER = (
     _BASE_READ_ONLY
     | {
@@ -221,6 +234,7 @@ _OPS_MANAGER = (
     | _SLA_VIEW
     | _ESCALATION_MANAGE
     | _AUDIT_LOG_VIEW
+    | _REPORT_VIEW
 )
 _ADMIN = (
     _OPS_MANAGER
@@ -229,8 +243,9 @@ _ADMIN = (
     | _SLA_MANAGE
     | _ESCALATION_MANAGE
     | _AUDIT_LOG_VIEW
+    | _REPORT_VIEW
 )
-_OWNER = _ALL_PERMISSIONS
+_OWNER = _ALL_PERMISSIONS  # Already includes report.view via INITIAL_PERMISSIONS
 
 SYSTEM_ROLES = [
     {
@@ -242,25 +257,25 @@ SYSTEM_ROLES = [
     {
         "name": "Organization Admin",
         "slug": "organization-admin",
-        "description": "Manages members, roles, organization settings, and incidents.",
+        "description": "Manages members, roles, organization settings, incidents, and can view reports and audit logs.",
         "permissions": _ADMIN,
     },
     {
         "name": "Operations Manager",
         "slug": "operations-manager",
-        "description": "Manages members, assigns roles, and manages incidents. Cannot change org settings.",
+        "description": "Manages members, assigns roles, manages incidents, and can view reports and audit logs. Cannot change org settings.",
         "permissions": _OPS_MANAGER,
     },
     {
         "name": "Agent",
         "slug": "agent",
-        "description": "Operational user with read/write access to incidents and read access to org.",
+        "description": "Operational user with read/write access to incidents, read access to org, and access to reports.",
         "permissions": _AGENT,
     },
     {
         "name": "Viewer",
         "slug": "viewer",
-        "description": "Read-only access to organization, members, roles, and incidents.",
+        "description": "Read-only access to organization, members, roles, and incidents. No access to reports or audit logs.",
         "permissions": _VIEWER,
     },
 ]
@@ -378,6 +393,10 @@ class RBACService:
     @transaction.atomic
     def seed_permissions() -> None:
         """Create all initial permissions if they don't exist. Idempotent."""
+        # Early exit if permissions are already seeded (check if any permission exists)
+        if Permission.objects.exists():
+            return
+
         for pdata in INITIAL_PERMISSIONS:
             Permission.objects.get_or_create(
                 codename=pdata["codename"],

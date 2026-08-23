@@ -104,9 +104,7 @@ class IncidentSearchTest(_FilterTestBase):
     def test_search_by_description(self):
         resp = self._get("?search=brute+force")
         self.assertEqual(resp.data["count"], 1)
-        self.assertEqual(
-            resp.data["results"][0]["title"], "Suspicious login attempt"
-        )
+        self.assertEqual(resp.data["results"][0]["title"], "Suspicious login attempt")
 
     def test_search_by_incident_number(self):
         resp = self._get("?search=INC-000001")
@@ -247,9 +245,7 @@ class IncidentCategoryFilterTest(_FilterTestBase):
     def test_filter_by_category(self):
         resp = self._get(f"?category={self.cat_security.id}")
         self.assertEqual(resp.data["count"], 1)
-        self.assertEqual(
-            resp.data["results"][0]["title"], "Suspicious login attempt"
-        )
+        self.assertEqual(resp.data["results"][0]["title"], "Suspicious login attempt")
 
     def test_filter_infra_category(self):
         resp = self._get(f"?category={self.cat_infra.id}")
@@ -529,9 +525,7 @@ class IncidentPaginationFilterTest(_FilterTestBase):
         """Results on page 1 + page 2 should equal all results (no dupes)."""
         # Create enough incidents to span pages (PAGE_SIZE=50).
         for i in range(51):
-            IncidentService.create_incident(
-                self.org, self.owner, f"Bulk incident {i}"
-            )
+            IncidentService.create_incident(self.org, self.owner, f"Bulk incident {i}")
         r1 = self._get("?page=1&ordering=created_at")
         r2 = self._get("?page=2&ordering=created_at")
         all_titles = self._result_titles(r1) + self._result_titles(r2)
@@ -550,9 +544,7 @@ class IncidentFilterSecurityTest(_FilterTestBase):
         self.user_b = User.objects.create_user(
             email="userb@example.com", password="Password123!"
         )
-        self.org_b = OrganizationService.create_organization(
-            self.user_b, "Org B"
-        )
+        self.org_b = OrganizationService.create_organization(self.user_b, "Org B")
         self.incident_b = IncidentService.create_incident(
             self.org_b, self.user_b, "Org B secret incident"
         )
@@ -569,9 +561,7 @@ class IncidentFilterSecurityTest(_FilterTestBase):
         self.assertEqual(resp.data["count"], 0)
 
     def test_cross_tenant_assignee_filter(self):
-        membership_b = Membership.objects.get(
-            user=self.user_b, organization=self.org_b
-        )
+        membership_b = Membership.objects.get(user=self.user_b, organization=self.org_b)
         resp = self._get(f"?assignee={membership_b.id}")
         self.assertEqual(resp.data["count"], 0)
 

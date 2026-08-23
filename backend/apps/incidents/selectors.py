@@ -236,17 +236,14 @@ def filter_incidents(
     without leaking existence information.
     """
     # -- Base query with eager joins (prevents N+1) --------------------
-    qs = (
-        Incident.objects.filter(organization=organization)
-        .select_related(
-            "category",
-            "reporter",
-            "assignee",
-            "assignee__user",
-            "assignee__role",
-            "sla",
-            "sla__policy",
-        )
+    qs = Incident.objects.filter(organization=organization).select_related(
+        "category",
+        "reporter",
+        "assignee",
+        "assignee__user",
+        "assignee__role",
+        "sla",
+        "sla__policy",
     )
 
     # -- Text search (title, description, incident_number) -------------
@@ -293,8 +290,7 @@ def filter_incidents(
     if sla_state:
         if sla_state == "BREACHED":
             qs = qs.filter(
-                Q(sla__response_breached=True)
-                | Q(sla__resolution_breached=True)
+                Q(sla__response_breached=True) | Q(sla__resolution_breached=True)
             )
         elif sla_state == "ON_TRACK":
             qs = qs.filter(
