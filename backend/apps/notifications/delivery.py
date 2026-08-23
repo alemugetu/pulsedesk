@@ -203,9 +203,9 @@ class DeliveryDispatcher:
     """
 
     def __init__(self):
-        self._adapters = {
-            DeliveryChannel.EMAIL: EmailDeliveryAdapter(),
-            DeliveryChannel.IN_APP: InAppDeliveryAdapter(),
+        self._adapters: dict[str, DeliveryAdapter] = {
+            str(DeliveryChannel.EMAIL): EmailDeliveryAdapter(),
+            str(DeliveryChannel.IN_APP): InAppDeliveryAdapter(),
         }
 
     def register_adapter(self, channel: str, adapter: DeliveryAdapter) -> None:

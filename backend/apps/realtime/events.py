@@ -23,6 +23,10 @@ class RealtimeEventType(str, Enum):
     COMMENT_UPDATED = "comment.updated"
     COMMENT_DELETED = "comment.deleted"
 
+    # Attachment events
+    ATTACHMENT_CREATED = "attachment.created"
+    ATTACHMENT_DELETED = "attachment.deleted"
+
     # SLA events
     SLA_WARNING = "sla.warning"
     SLA_BREACHED = "sla.breached"

@@ -33,3 +33,9 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels.layers.InMemoryChannelLayer",
     },
 }
+
+# ---------------------------------------------------------------------------
+# Attachments — use in-memory storage so tests never touch the real filesystem
+# ---------------------------------------------------------------------------
+DEFAULT_FILE_STORAGE = "django.core.files.storage.InMemoryStorage"
+ATTACHMENT_MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB cap for tests

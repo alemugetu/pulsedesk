@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "dashboard.apps.DashboardConfig",
     "realtime.apps.RealtimeConfig",
     "comments",
+    "attachments.apps.AttachmentsConfig",
 ]
 
 MIDDLEWARE = [
@@ -336,3 +337,22 @@ LOGGING = {
         },
     },
 }
+
+# ---------------------------------------------------------------------------
+# Attachments — Phase 13.2
+#
+# MEDIA_ROOT  : filesystem directory where uploaded files are stored.
+# MEDIA_URL   : URL prefix served by the development server.  In production
+#               files must be served by a web server / CDN; Django should not
+#               serve media in production.
+#
+# ATTACHMENT_MAX_FILE_SIZE_BYTES : hard limit enforced by the upload service.
+#               Override via the environment variable of the same name.
+#               Default is 10 MB (10 * 1024 * 1024 bytes).
+# ---------------------------------------------------------------------------
+MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_URL = "/media/"
+
+ATTACHMENT_MAX_FILE_SIZE_BYTES: int = env.int(
+    "ATTACHMENT_MAX_FILE_SIZE_BYTES", default=10 * 1024 * 1024  # 10 MB
+)

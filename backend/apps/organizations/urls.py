@@ -61,4 +61,9 @@ urlpatterns = [
         "<uuid:organization_id>/",
         include("comments.urls"),
     ),
+    # Incident Attachments (Phase 13.2)
+    path(
+        "<uuid:organization_id>/",
+        include("attachments.urls"),
+    ),
 ]

@@ -15,6 +15,7 @@ from channels.layers import get_channel_layer
 from django.db import transaction
 from realtime.events import CHANNEL_GROUP_PREFIX, EVENT_VERSION, RealtimeEventType
 from realtime.serializers import (
+    AttachmentEventSerializer,
     CommentEventSerializer,
     EscalationEventSerializer,
     IncidentEventSerializer,
@@ -456,6 +457,57 @@ class RealtimeEventService:
             RealtimeEventType.COMMENT_DELETED.value,
             str(organization_id),
             comment_data,
+        )
+        group_name = RealtimeEventService._get_channel_group_name(str(organization_id))
+
+        transaction.on_commit(
+            lambda: RealtimeEventService._publish_event_sync(group_name, event_envelope)
+        )
+
+    @staticmethod
+    def publish_attachment_created(attachment) -> None:
+        """
+        Publish attachment.created event.
+
+        Called after successful attachment upload and DB persist.
+        Wrapped in transaction.on_commit() to avoid publishing for rolled-back saves.
+        """
+        if not RealtimeEventType.is_valid(RealtimeEventType.ATTACHMENT_CREATED.value):
+            return
+
+        attachment_data = AttachmentEventSerializer.serialize_attachment(attachment)
+        event_envelope = RealtimeEventService._construct_event_envelope(
+            RealtimeEventType.ATTACHMENT_CREATED.value,
+            str(attachment.incident.organization_id),
+            attachment_data,
+        )
+        group_name = RealtimeEventService._get_channel_group_name(
+            str(attachment.incident.organization_id)
+        )
+
+        transaction.on_commit(
+            lambda: RealtimeEventService._publish_event_sync(group_name, event_envelope)
+        )
+
+    @staticmethod
+    def publish_attachment_deleted(
+        attachment_id: str, incident_id: str, organization_id: str
+    ) -> None:
+        """
+        Publish attachment.deleted event.
+
+        Called after successful attachment deletion transaction.
+        """
+        if not RealtimeEventType.is_valid(RealtimeEventType.ATTACHMENT_DELETED.value):
+            return
+
+        data = AttachmentEventSerializer.serialize_attachment_deleted(
+            attachment_id, incident_id
+        )
+        event_envelope = RealtimeEventService._construct_event_envelope(
+            RealtimeEventType.ATTACHMENT_DELETED.value,
+            str(organization_id),
+            data,
         )
         group_name = RealtimeEventService._get_channel_group_name(str(organization_id))
 

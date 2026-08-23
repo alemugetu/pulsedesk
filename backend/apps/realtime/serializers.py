@@ -156,3 +156,36 @@ class CommentEventSerializer(BaseEventSerializer):
             "created_at": comment.created_at.isoformat(),
             "updated_at": comment.updated_at.isoformat(),
         }
+
+
+class AttachmentEventSerializer(BaseEventSerializer):
+    """Serializer for attachment-related events."""
+
+    data = serializers.DictField()
+
+    @staticmethod
+    def serialize_attachment(attachment) -> dict:
+        """
+        Extract safe attachment metadata for realtime events.
+
+        Intentionally omits the stored_path / internal file field.
+        """
+        return {
+            "id": str(attachment.id),
+            "incident_id": str(attachment.incident_id),
+            "incident_number": attachment.incident.incident_number,
+            "uploader_id": str(attachment.uploader_id),
+            "uploader_email": attachment.uploader.email,
+            "original_filename": attachment.original_filename,
+            "content_type": attachment.content_type,
+            "file_size": attachment.file_size,
+            "created_at": attachment.created_at.isoformat(),
+        }
+
+    @staticmethod
+    def serialize_attachment_deleted(attachment_id: str, incident_id: str) -> dict:
+        """Extract minimal data for attachment.deleted event."""
+        return {
+            "attachment_id": attachment_id,
+            "incident_id": incident_id,
+        }
