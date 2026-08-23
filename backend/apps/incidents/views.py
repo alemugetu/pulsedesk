@@ -6,10 +6,10 @@ from drf_spectacular.utils import (
     extend_schema,
 )
 from incidents.selectors import (
+    filter_incidents,  # Phase 13.4
     get_categories,
     get_category,
     get_incident,
-    get_incidents,
 )
 from incidents.serializers import (
     IncidentCategoryCreateSerializer,
@@ -212,33 +212,106 @@ class IncidentListCreateView(APIView):
 
     @extend_schema(
         summary="List organization incidents",
-        description="Returns a paginated list of incidents scoped to the organization.",
+        description=(
+            "Returns a paginated, searchable, filterable, and sortable list "
+            "of incidents scoped to the organization."
+        ),
         parameters=[
             _ORG_ID_PARAM,
+            # -- Text search --
+            OpenApiParameter(
+                name="search",
+                type=str,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Case-insensitive text search across incident title, "
+                    "description, and incident number."
+                ),
+            ),
+            # -- Structured filters --
             OpenApiParameter(
                 name="status",
                 type=str,
                 location=OpenApiParameter.QUERY,
-                description="Filter by incident status (OPEN, ACKNOWLEDGED, IN_PROGRESS, RESOLVED, CLOSED).",
+                description=(
+                    "Filter by incident status. "
+                    "Valid: OPEN, ACKNOWLEDGED, IN_PROGRESS, RESOLVED, CLOSED."
+                ),
             ),
             OpenApiParameter(
                 name="priority",
                 type=str,
                 location=OpenApiParameter.QUERY,
-                description="Filter by priority (P1, P2, P3, P4).",
-            ),
-            OpenApiParameter(
-                name="category",
-                type=str,
-                location=OpenApiParameter.QUERY,
-                description="Filter by incident category UUID.",
+                description="Filter by priority. Valid: P1, P2, P3, P4.",
             ),
             OpenApiParameter(
                 name="assignee",
                 type=str,
                 location=OpenApiParameter.QUERY,
-                description="Filter by assignee membership UUID.",
+                description=(
+                    "Filter by assignee membership UUID. "
+                    "Must belong to the same organization."
+                ),
             ),
+            OpenApiParameter(
+                name="category",
+                type=str,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Filter by incident category UUID. "
+                    "Must belong to the same organization."
+                ),
+            ),
+            OpenApiParameter(
+                name="team",
+                type=str,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Filter by team UUID. Not yet implemented (no Team model). "
+                    "Always returns empty results."
+                ),
+            ),
+            OpenApiParameter(
+                name="created_after",
+                type=str,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Filter incidents created on or after this ISO-8601 "
+                    "datetime (e.g. 2026-01-01T00:00:00Z)."
+                ),
+            ),
+            OpenApiParameter(
+                name="created_before",
+                type=str,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Filter incidents created on or before this ISO-8601 "
+                    "datetime (e.g. 2026-12-31T23:59:59Z)."
+                ),
+            ),
+            OpenApiParameter(
+                name="sla_state",
+                type=str,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Filter by SLA state. "
+                    "Valid: BREACHED, ON_TRACK, COMPLETED."
+                ),
+            ),
+            # -- Ordering --
+            OpenApiParameter(
+                name="ordering",
+                type=str,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Comma-separated list of ordering fields. "
+                    "Prefix with '-' for descending. "
+                    "Allowed: created_at, updated_at, priority, status, "
+                    "sla_deadline, incident_number. "
+                    "Default: -created_at."
+                ),
+            ),
+            # -- Pagination --
             OpenApiParameter(
                 name="page",
                 type=int,
@@ -257,17 +330,20 @@ class IncidentListCreateView(APIView):
         if not user_has_permission(request.user, request.organization, "incident.view"):
             raise PermissionDenied("You do not have permission to view incidents.")
 
-        status_param = request.query_params.get("status")
-        priority_param = request.query_params.get("priority")
-        category_param = request.query_params.get("category")
-        assignee_param = request.query_params.get("assignee")
+        qp = request.query_params
 
-        incidents_qs = get_incidents(
+        incidents_qs = filter_incidents(
             organization=request.organization,
-            status=status_param,
-            priority=priority_param,
-            category_id=category_param,
-            assignee_id=assignee_param,
+            search=qp.get("search"),
+            status=qp.get("status"),
+            priority=qp.get("priority"),
+            assignee_id=qp.get("assignee"),
+            category_id=qp.get("category"),
+            created_after=qp.get("created_after"),
+            created_before=qp.get("created_before"),
+            sla_state=qp.get("sla_state"),
+            team_id=qp.get("team"),
+            ordering=qp.get("ordering"),
         )
 
         paginator = self.pagination_class()
