@@ -1075,19 +1075,39 @@ paths:
   /api/v1/organizations/{organization_id}/incidents/:
     get:
       operationId: v1_organizations_incidents_list
-      description: Returns a paginated list of incidents scoped to the organization.
+      description: Returns a paginated, searchable, filterable, and sortable list
+        of incidents scoped to the organization.
       summary: List organization incidents
       parameters:
       - in: query
         name: assignee
         schema:
           type: string
-        description: Filter by assignee membership UUID.
+        description: Filter by assignee membership UUID. Must belong to the same organization.
       - in: query
         name: category
         schema:
           type: string
-        description: Filter by incident category UUID.
+        description: Filter by incident category UUID. Must belong to the same organization.
+      - in: query
+        name: created_after
+        schema:
+          type: string
+        description: Filter incidents created on or after this ISO-8601 datetime (e.g.
+          2026-01-01T00:00:00Z).
+      - in: query
+        name: created_before
+        schema:
+          type: string
+        description: Filter incidents created on or before this ISO-8601 datetime
+          (e.g. 2026-12-31T23:59:59Z).
+      - in: query
+        name: ordering
+        schema:
+          type: string
+        description: 'Comma-separated list of ordering fields. Prefix with ''-'' for
+          descending. Allowed: created_at, updated_at, priority, status, sla_deadline,
+          incident_number. Default: -created_at.'
       - in: path
         name: organization_id
         schema:
@@ -1103,13 +1123,30 @@ paths:
         name: priority
         schema:
           type: string
-        description: Filter by priority (P1, P2, P3, P4).
+        description: 'Filter by priority. Valid: P1, P2, P3, P4.'
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Case-insensitive text search across incident title, description,
+          and incident number.
+      - in: query
+        name: sla_state
+        schema:
+          type: string
+        description: 'Filter by SLA state. Valid: BREACHED, ON_TRACK, COMPLETED.'
       - in: query
         name: status
         schema:
           type: string
-        description: Filter by incident status (OPEN, ACKNOWLEDGED, IN_PROGRESS, RESOLVED,
-          CLOSED).
+        description: 'Filter by incident status. Valid: OPEN, ACKNOWLEDGED, IN_PROGRESS,
+          RESOLVED, CLOSED.'
+      - in: query
+        name: team
+        schema:
+          type: string
+        description: Filter by team UUID. Not yet implemented (no Team model). Always
+          returns empty results.
       tags:
       - Incidents
       security:
@@ -2456,20 +2493,76 @@ paths:
           description: Permission denied.
         '404':
           description: Comment not found.
-  /api/v1/notifications/:
-    post:
-      operationId: v1_notifications_create
-      description: |-
-        API endpoint for user notifications.
-
-        Users can only access their own notifications. Multi-tenant isolation is enforced.
+  /api/v1/organizations/{organization_id}/incidents/{incident_id}/attachments/:
+    get:
+      operationId: v1_organizations_incidents_attachments_list
+      description: Returns a paginated list of attachment metadata for the specified
+        incident. Download URLs are authorized — file contents are never returned
+        here.
+      summary: List incident attachments
+      parameters:
+      - in: path
+        name: incident_id
+        schema:
+          type: string
+        description: UUID of the incident.
+        required: true
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Page number.
       tags:
-      - v1
+      - Incident Attachments
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAttachmentList'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Incident not found.
+    post:
+      operationId: v1_organizations_incidents_attachments_create
+      description: 'Upload a file attachment to an incident. Use multipart/form-data
+        with a ''file'' field. Allowed types: JPEG, PNG, WebP, PDF, TXT, LOG. Maximum
+        size is configured server-side (default 10 MB).'
+      summary: Upload attachment
+      parameters:
+      - in: path
+        name: incident_id
+        schema:
+          type: string
+        description: UUID of the incident.
+        required: true
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Incident Attachments
       requestBody:
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Notification'
+              $ref: '#/components/schemas/AttachmentUpload'
+        required: true
       security:
       - jwtAuth: []
       - BearerAuth: []
@@ -2478,8 +2571,671 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Notification'
+                $ref: '#/components/schemas/Attachment'
           description: ''
+        '400':
+          description: Validation error (invalid type/size).
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Incident not found.
+  /api/v1/organizations/{organization_id}/incidents/{incident_id}/attachments/{attachment_id}/download/:
+    get:
+      operationId: v1_organizations_incidents_attachments_download_retrieve
+      description: 'Download the file contents of an attachment. Authorization is
+        verified server-side. The response uses Content-Disposition: attachment to
+        force a download.'
+      summary: Download attachment
+      parameters:
+      - in: path
+        name: attachment_id
+        schema:
+          type: string
+        description: UUID of the attachment.
+        required: true
+      - in: path
+        name: incident_id
+        schema:
+          type: string
+        description: UUID of the incident.
+        required: true
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Incident Attachments
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: File binary content.
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Attachment not found.
+  /api/v1/organizations/{organization_id}/incidents/{incident_id}/attachments/{attachment_id}/:
+    delete:
+      operationId: v1_organizations_incidents_attachments_destroy
+      description: Delete an attachment. The uploader or a member with `incident.manage`
+        permission may delete.
+      summary: Delete attachment
+      parameters:
+      - in: path
+        name: attachment_id
+        schema:
+          type: string
+        description: UUID of the attachment.
+        required: true
+      - in: path
+        name: incident_id
+        schema:
+          type: string
+        description: UUID of the incident.
+        required: true
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Incident Attachments
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: Attachment deleted successfully.
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Attachment not found.
+  /api/v1/organizations/{organization_id}/audit-logs/:
+    get:
+      operationId: v1_organizations_audit_logs_list
+      description: Returns a paginated list of audit log entries for the organization.
+        Supports filtering by action, resource type, resource ID, actor, and date
+        range. Requires `audit_log.view` permission.
+      summary: List audit logs
+      parameters:
+      - in: query
+        name: action
+        schema:
+          type: string
+        description: Filter by action identifier, e.g. 'incident.created'.
+      - in: query
+        name: actor_id
+        schema:
+          type: string
+        description: Filter by the UUID of the user who performed the action.
+      - in: query
+        name: date_from
+        schema:
+          type: string
+        description: ISO 8601 datetime lower bound (inclusive).
+      - in: query
+        name: date_to
+        schema:
+          type: string
+        description: ISO 8601 datetime upper bound (inclusive).
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Page number.
+      - in: query
+        name: resource_id
+        schema:
+          type: string
+        description: Filter by resource ID (the UUID of a specific resource).
+      - in: query
+        name: resource_type
+        schema:
+          type: string
+        description: Filter by resource type, e.g. 'incident'.
+      tags:
+      - Audit Logs
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAuditLogList'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Organization not found.
+  /api/v1/organizations/{organization_id}/audit-logs/{audit_log_id}/:
+    get:
+      operationId: v1_organizations_audit_logs_retrieve
+      description: Retrieve a single audit log record by UUID. The record must belong
+        to the requesting user's organization. Requires `audit_log.view` permission.
+      summary: Get audit log detail
+      parameters:
+      - in: path
+        name: audit_log_id
+        schema:
+          type: string
+        description: UUID of the audit log record.
+        required: true
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Audit Logs
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLog'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Audit log not found.
+  /api/v1/organizations/{organization_id}/reports/summary/:
+    get:
+      operationId: v1_organizations_reports_summary_retrieve
+      description: Returns organization-scoped incident summary metrics including
+        total, open, resolved, closed, unassigned, and critical incidents.
+      summary: Incident Summary
+      parameters:
+      - in: query
+        name: end
+        schema:
+          type: string
+        description: 'End date in ISO-8601 format (e.g., 2026-01-31T23:59:59Z). Default:
+          now.'
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: query
+        name: start
+        schema:
+          type: string
+        description: 'Start date in ISO-8601 format (e.g., 2026-01-01T00:00:00Z).
+          Default: 30 days ago.'
+      tags:
+      - Reports
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IncidentSummary'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Organization not found.
+  /api/v1/organizations/{organization_id}/reports/incidents/by-status/:
+    get:
+      operationId: v1_organizations_reports_incidents_by_status_retrieve
+      description: Returns incident counts grouped by status (OPEN, ACKNOWLEDGED,
+        IN_PROGRESS, RESOLVED, CLOSED).
+      summary: Incidents by Status
+      parameters:
+      - in: query
+        name: end
+        schema:
+          type: string
+        description: 'End date in ISO-8601 format (e.g., 2026-01-31T23:59:59Z). Default:
+          now.'
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: query
+        name: start
+        schema:
+          type: string
+        description: 'Start date in ISO-8601 format (e.g., 2026-01-01T00:00:00Z).
+          Default: 30 days ago.'
+      tags:
+      - Reports
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IncidentsByStatus'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Organization not found.
+  /api/v1/organizations/{organization_id}/reports/incidents/by-priority/:
+    get:
+      operationId: v1_organizations_reports_incidents_by_priority_retrieve
+      description: Returns incident counts grouped by priority (P1, P2, P3, P4).
+      summary: Incidents by Priority
+      parameters:
+      - in: query
+        name: end
+        schema:
+          type: string
+        description: 'End date in ISO-8601 format (e.g., 2026-01-31T23:59:59Z). Default:
+          now.'
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: query
+        name: start
+        schema:
+          type: string
+        description: 'Start date in ISO-8601 format (e.g., 2026-01-01T00:00:00Z).
+          Default: 30 days ago.'
+      tags:
+      - Reports
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IncidentsByPriority'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Organization not found.
+  /api/v1/organizations/{organization_id}/reports/incidents/by-category/:
+    get:
+      operationId: v1_organizations_reports_incidents_by_category_retrieve
+      description: Returns incident counts grouped by category, including uncategorized
+        incidents.
+      summary: Incidents by Category
+      parameters:
+      - in: query
+        name: end
+        schema:
+          type: string
+        description: 'End date in ISO-8601 format (e.g., 2026-01-31T23:59:59Z). Default:
+          now.'
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: query
+        name: start
+        schema:
+          type: string
+        description: 'Start date in ISO-8601 format (e.g., 2026-01-01T00:00:00Z).
+          Default: 30 days ago.'
+      tags:
+      - Reports
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IncidentsByCategory'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Organization not found.
+  /api/v1/organizations/{organization_id}/reports/incidents/trend/:
+    get:
+      operationId: v1_organizations_reports_incidents_trend_retrieve
+      description: Returns incident volume over time grouped by daily or weekly granularity.
+      summary: Incident Trend
+      parameters:
+      - in: query
+        name: end
+        schema:
+          type: string
+        description: 'End date in ISO-8601 format (e.g., 2026-01-31T23:59:59Z). Default:
+          now.'
+      - in: query
+        name: granularity
+        schema:
+          type: string
+          enum:
+          - daily
+          - weekly
+        description: 'Time granularity for trend reports: ''daily'' or ''weekly''.
+          Default: ''daily''.'
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: query
+        name: start
+        schema:
+          type: string
+        description: 'Start date in ISO-8601 format (e.g., 2026-01-01T00:00:00Z).
+          Default: 30 days ago.'
+      tags:
+      - Reports
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IncidentTrend'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Organization not found.
+        '400':
+          description: Invalid granularity parameter.
+  /api/v1/organizations/{organization_id}/reports/sla/:
+    get:
+      operationId: v1_organizations_reports_sla_retrieve
+      description: Returns SLA performance metrics including total incidents, compliant
+        count, breached count, and compliance percentage.
+      summary: SLA Performance
+      parameters:
+      - in: query
+        name: end
+        schema:
+          type: string
+        description: 'End date in ISO-8601 format (e.g., 2026-01-31T23:59:59Z). Default:
+          now.'
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: query
+        name: start
+        schema:
+          type: string
+        description: 'Start date in ISO-8601 format (e.g., 2026-01-01T00:00:00Z).
+          Default: 30 days ago.'
+      tags:
+      - Reports
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SLAPerformance'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Organization not found.
+  /api/v1/organizations/{organization_id}/reports/resolution-time/:
+    get:
+      operationId: v1_organizations_reports_resolution_time_retrieve
+      description: Returns average resolution time in seconds for resolved incidents
+        within the date range.
+      summary: Average Resolution Time
+      parameters:
+      - in: query
+        name: end
+        schema:
+          type: string
+        description: 'End date in ISO-8601 format (e.g., 2026-01-31T23:59:59Z). Default:
+          now.'
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: query
+        name: start
+        schema:
+          type: string
+        description: 'Start date in ISO-8601 format (e.g., 2026-01-01T00:00:00Z).
+          Default: 30 days ago.'
+      tags:
+      - Reports
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AverageResolutionTime'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Organization not found.
+  /api/v1/organizations/{organization_id}/reports/escalations/:
+    get:
+      operationId: v1_organizations_reports_escalations_retrieve
+      description: Returns escalation activity metrics including total events, counts
+        by level, and counts by trigger type.
+      summary: Escalation Activity
+      parameters:
+      - in: query
+        name: end
+        schema:
+          type: string
+        description: 'End date in ISO-8601 format (e.g., 2026-01-31T23:59:59Z). Default:
+          now.'
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      - in: query
+        name: start
+        schema:
+          type: string
+        description: 'Start date in ISO-8601 format (e.g., 2026-01-01T00:00:00Z).
+          Default: 30 days ago.'
+      tags:
+      - Reports
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EscalationActivity'
+          description: ''
+        '401':
+          description: Unauthenticated.
+        '403':
+          description: Permission denied.
+        '404':
+          description: Organization not found.
+  /api/v1/organizations/{organization_id}/settings/:
+    get:
+      operationId: v1_organizations_settings_retrieve
+      description: |-
+        Returns the operational settings for the specified organization.
+
+        **Required permission: `settings.view`**
+
+        If the organization was created before the settings subsystem was introduced, a default settings record is created transparently and returned (existing orgs are safe).
+      summary: Retrieve organization settings
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Settings
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationSettingsRead'
+              examples:
+                DefaultSettingsResponse:
+                  value:
+                    id: 018f1a2b-0100-0000-0000-000000000001
+                    default_incident_priority: P3
+                    default_incident_status: OPEN
+                    incident_comments_enabled: true
+                    notification_incident_emails_enabled: true
+                    notification_escalation_emails_enabled: true
+                    notification_sla_emails_enabled: true
+                    sla_auto_apply_default_policy: true
+                    escalation_auto_apply_default_policy: true
+                    created_at: '2026-01-01T09:00:00Z'
+                    updated_at: '2026-01-01T09:00:00Z'
+                  summary: Default settings response
+          description: ''
+        '401':
+          description: Authentication credentials not provided.
+        '403':
+          description: Missing `settings.view` permission, or membership is suspended/removed.
+        '404':
+          description: Organization not found or user is not a member.
+    patch:
+      operationId: v1_organizations_settings_partial_update
+      description: |-
+        Partially updates the organization's operational settings.
+
+        **Required permission: `settings.manage`**
+
+        **Rules:**
+        - Only fields present in the request body are changed.
+        - Unknown/unsupported fields are rejected with a 400 `unknown_fields` error.
+        - Enum values (`default_incident_priority`, `default_incident_status`) must be valid choices.
+        - Boolean fields must be actual booleans.
+        - The `organization` relationship cannot be changed via this API.
+        - Each successful update creates an immutable audit log entry with the changed before/after values.
+      summary: Update organization settings
+      parameters:
+      - in: path
+        name: organization_id
+        schema:
+          type: string
+        description: UUID of the organization.
+        required: true
+      tags:
+      - Settings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedOrganizationSettingsUpdate'
+            examples:
+              PartialUpdateRequest:
+                value:
+                  default_incident_priority: P2
+                  incident_comments_enabled: false
+                summary: Partial update request
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationSettingsRead'
+              examples:
+                UpdatedSettingsResponse:
+                  value:
+                    id: 018f1a2b-0100-0000-0000-000000000001
+                    default_incident_priority: P2
+                    default_incident_status: OPEN
+                    incident_comments_enabled: false
+                    notification_incident_emails_enabled: true
+                    notification_escalation_emails_enabled: true
+                    notification_sla_emails_enabled: true
+                    sla_auto_apply_default_policy: true
+                    escalation_auto_apply_default_policy: true
+                    created_at: '2026-01-01T09:00:00Z'
+                    updated_at: '2026-01-02T14:30:00Z'
+                  summary: Updated settings response
+          description: ''
+        '400':
+          description: Validation error — invalid values or unknown fields.
+        '401':
+          description: Authentication credentials not provided.
+        '403':
+          description: Missing `settings.manage` permission, or membership is suspended/removed.
+        '404':
+          description: Organization not found or user is not a member.
+  /api/v1/notifications/:
     get:
       operationId: v1_notifications_list
       description: List notifications for the authenticated user. Supports filtering
@@ -2527,6 +3283,30 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedNotificationListList'
           description: ''
+    post:
+      operationId: v1_notifications_create
+      description: |-
+        Disable POST method for notifications.
+
+        Notifications are created by system events (SLA breaches, escalations, incidents)
+        via the NotificationService layer. Manual creation via API is not supported.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Notification'
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
   /api/v1/notifications/mark_all_read/:
     post:
       operationId: v1_notifications_mark_all_read_create
@@ -2554,41 +3334,11 @@ paths:
         '200':
           description: Unread count retrieved successfully.
   /api/v1/notifications/{id}/:
-    put:
-      operationId: v1_notifications_update
-      description: |-
-        Update a notification.
-
-        Users can only update their own notifications and only specific fields.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Notification'
-      security:
-      - jwtAuth: []
-      - BearerAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Notification'
-          description: ''
     patch:
       operationId: v1_notifications_partial_update
-      description: |-
-        Partially update a notification.
-
-        Users can only update their own notifications and only specific fields.
+      description: Partially update notification read status. Only the 'is_read' field
+        can be updated.
+      summary: Partially update notification
       parameters:
       - in: path
         name: id
@@ -2602,6 +3352,52 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PatchedNotification'
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+    delete:
+      operationId: v1_notifications_destroy
+      description: Delete a specific notification.
+      summary: Delete notification
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
+    put:
+      operationId: v1_notifications_update
+      description: Update notification read status. Only the 'is_read' field can be
+        updated.
+      summary: Update notification
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Notification'
       security:
       - jwtAuth: []
       - BearerAuth: []
@@ -2634,26 +3430,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/Notification'
           description: ''
-    delete:
-      operationId: v1_notifications_destroy
-      description: |-
-        Delete a notification.
-
-        Users can only delete their own notifications.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      security:
-      - jwtAuth: []
-      - BearerAuth: []
-      responses:
-        '204':
-          description: No response body
   /api/v1/notifications/{id}/mark_read/:
     patch:
       operationId: v1_notifications_mark_read_partial_update
@@ -2703,29 +3479,6 @@ paths:
         '200':
           description: Notification marked as unread successfully.
   /api/v1/notifications/preferences/:
-    post:
-      operationId: v1_notifications_preferences_create
-      description: |-
-        API endpoint for user notification preferences.
-
-        Users can manage their notification preferences per organization.
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/NotificationPreference'
-      security:
-      - jwtAuth: []
-      - BearerAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/NotificationPreference'
-          description: ''
     get:
       operationId: v1_notifications_preferences_list
       description: List notification preferences for the authenticated user across
@@ -2750,42 +3503,35 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedNotificationPreferenceList'
           description: ''
-  /api/v1/notifications/preferences/{id}/:
-    put:
-      operationId: v1_notifications_preferences_update
+    post:
+      operationId: v1_notifications_preferences_create
       description: |-
-        Update notification preferences.
+        Disable POST method for notification preferences.
 
-        Users can only update their own preferences.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-        required: true
+        Preferences are auto-created on-demand via NotificationPreference.get_or_create()
+        when notifications are sent. Manual creation via API is not supported.
       tags:
       - v1
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/NotificationPreferenceUpdate'
+              $ref: '#/components/schemas/NotificationPreference'
       security:
       - jwtAuth: []
       - BearerAuth: []
       responses:
-        '200':
+        '201':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NotificationPreferenceUpdate'
+                $ref: '#/components/schemas/NotificationPreference'
           description: ''
+  /api/v1/notifications/preferences/{id}/:
     patch:
       operationId: v1_notifications_preferences_partial_update
-      description: |-
-        Partially update notification preferences.
-
-        Users can only update their own preferences.
+      description: Partially update notification preferences for a specific organization.
+      summary: Partially update notification preferences
       parameters:
       - in: path
         name: id
@@ -2799,6 +3545,51 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PatchedNotificationPreferenceUpdate'
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferenceUpdate'
+          description: ''
+    delete:
+      operationId: v1_notifications_preferences_destroy
+      description: Delete notification preferences for a specific organization.
+      summary: Delete notification preferences
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
+    put:
+      operationId: v1_notifications_preferences_update
+      description: Update notification preferences for a specific organization.
+      summary: Update notification preferences
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationPreferenceUpdate'
       security:
       - jwtAuth: []
       - BearerAuth: []
@@ -2831,28 +3622,267 @@ paths:
               schema:
                 $ref: '#/components/schemas/NotificationPreference'
           description: ''
-    delete:
-      operationId: v1_notifications_preferences_destroy
-      description: |-
-        Delete notification preferences.
-
-        Users can only delete their own preferences.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      security:
-      - jwtAuth: []
-      - BearerAuth: []
-      responses:
-        '204':
-          description: No response body
 components:
   schemas:
+    ActionEnum:
+      enum:
+      - incident.created
+      - incident.updated
+      - incident.status_changed
+      - incident.priority_changed
+      - incident.assigned
+      - incident.resolved
+      - incident.closed
+      - comment.created
+      - comment.updated
+      - comment.deleted
+      - attachment.uploaded
+      - attachment.deleted
+      - member.added
+      - member.suspended
+      - member.removed
+      - role.created
+      - role.updated
+      - role.deleted
+      - role.assigned
+      - sla_policy.created
+      - sla_policy.updated
+      - sla_target.created
+      - sla_target.updated
+      - sla.breached
+      - escalation_policy.created
+      - escalation_policy.updated
+      - escalation.triggered
+      - settings.updated
+      type: string
+      description: |-
+        * `incident.created` - Incident Created
+        * `incident.updated` - Incident Updated
+        * `incident.status_changed` - Incident Status Changed
+        * `incident.priority_changed` - Incident Priority Changed
+        * `incident.assigned` - Incident Assigned
+        * `incident.resolved` - Incident Resolved
+        * `incident.closed` - Incident Closed
+        * `comment.created` - Comment Created
+        * `comment.updated` - Comment Updated
+        * `comment.deleted` - Comment Deleted
+        * `attachment.uploaded` - Attachment Uploaded
+        * `attachment.deleted` - Attachment Deleted
+        * `member.added` - Member Added
+        * `member.suspended` - Member Suspended
+        * `member.removed` - Member Removed
+        * `role.created` - Role Created
+        * `role.updated` - Role Updated
+        * `role.deleted` - Role Deleted
+        * `role.assigned` - Role Assigned
+        * `sla_policy.created` - SLA Policy Created
+        * `sla_policy.updated` - SLA Policy Updated
+        * `sla_target.created` - SLA Target Created
+        * `sla_target.updated` - SLA Target Updated
+        * `sla.breached` - SLA Breached
+        * `escalation_policy.created` - Escalation Policy Created
+        * `escalation_policy.updated` - Escalation Policy Updated
+        * `escalation.triggered` - Escalation Triggered
+        * `settings.updated` - Organization Settings Updated
+    Attachment:
+      type: object
+      description: |-
+        Read-only serializer for Attachment metadata.
+
+        Intentionally omits:
+        - file.name  (internal storage path)
+        - Any server credentials or internal configuration
+
+        Provides:
+        - download_url  (relative URL to the authorized download endpoint)
+        - uploader      (safe user summary)
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        incident:
+          type: string
+          format: uuid
+          readOnly: true
+        uploader:
+          type: object
+          additionalProperties: {}
+          description: Return safe uploader summary.
+          readOnly: true
+        original_filename:
+          type: string
+          readOnly: true
+          description: Original filename provided by the uploader (display only).
+        content_type:
+          type: string
+          readOnly: true
+          description: MIME type declared and/or validated at upload time.
+        file_size:
+          type: integer
+          readOnly: true
+          description: File size in bytes.
+        download_url:
+          type: string
+          description: |-
+            Return the relative URL to the authorized download endpoint.
+
+            The URL follows the project's nested-resource convention:
+              /api/v1/organizations/<org_id>/incidents/<incident_id>/attachments/<attachment_id>/download/
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - content_type
+      - created_at
+      - download_url
+      - file_size
+      - id
+      - incident
+      - original_filename
+      - updated_at
+      - uploader
+    AttachmentUpload:
+      type: object
+      description: |-
+        Serializer for multipart/form-data file upload.
+
+        Only accepts `file` — all other fields (uploader, organization, incident,
+        storage path) are derived server-side.
+      properties:
+        file:
+          type: string
+          format: uri
+          description: 'The file to upload. Allowed types: JPEG, PNG, WebP (images),
+            PDF (documents), TXT/LOG (logs). Maximum size is configured server-side
+            (default 10 MB).'
+      required:
+      - file
+    AuditLog:
+      type: object
+      description: |-
+        Read-only serializer for AuditLog records.
+
+        Intentionally exposes only safe metadata:
+        - No internal DB paths or credentials.
+        - actor is a safe summary dict (null for system events).
+        - changes is the sanitized JSON metadata provided at log time.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        organization:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Organization that owns this audit record.
+        actor:
+          allOf:
+          - $ref: '#/components/schemas/AuditLogActor'
+          readOnly: true
+        action:
+          allOf:
+          - $ref: '#/components/schemas/ActionEnum'
+          readOnly: true
+          description: |-
+            Stable dot-notation action identifier.
+
+            * `incident.created` - Incident Created
+            * `incident.updated` - Incident Updated
+            * `incident.status_changed` - Incident Status Changed
+            * `incident.priority_changed` - Incident Priority Changed
+            * `incident.assigned` - Incident Assigned
+            * `incident.resolved` - Incident Resolved
+            * `incident.closed` - Incident Closed
+            * `comment.created` - Comment Created
+            * `comment.updated` - Comment Updated
+            * `comment.deleted` - Comment Deleted
+            * `attachment.uploaded` - Attachment Uploaded
+            * `attachment.deleted` - Attachment Deleted
+            * `member.added` - Member Added
+            * `member.suspended` - Member Suspended
+            * `member.removed` - Member Removed
+            * `role.created` - Role Created
+            * `role.updated` - Role Updated
+            * `role.deleted` - Role Deleted
+            * `role.assigned` - Role Assigned
+            * `sla_policy.created` - SLA Policy Created
+            * `sla_policy.updated` - SLA Policy Updated
+            * `sla_target.created` - SLA Target Created
+            * `sla_target.updated` - SLA Target Updated
+            * `sla.breached` - SLA Breached
+            * `escalation_policy.created` - Escalation Policy Created
+            * `escalation_policy.updated` - Escalation Policy Updated
+            * `escalation.triggered` - Escalation Triggered
+            * `settings.updated` - Organization Settings Updated
+        resource_type:
+          type: string
+          readOnly: true
+          description: Class/entity type of the affected resource, e.g. 'incident'.
+        resource_id:
+          type: string
+          readOnly: true
+          description: String representation of the affected resource's primary key.
+        changes:
+          readOnly: true
+          description: 'Safe contextual metadata: before/after values, labels. Must
+            never contain passwords, tokens, or secrets.'
+        ip_address:
+          type: string
+          readOnly: true
+          nullable: true
+          description: Client IP address at the time of the action.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - action
+      - actor
+      - changes
+      - created_at
+      - id
+      - ip_address
+      - organization
+      - resource_id
+      - resource_type
+    AuditLogActor:
+      type: object
+      description: Safe summary of the actor (user) who performed the action.
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        first_name:
+          type: string
+        last_name:
+          type: string
+      required:
+      - email
+      - id
+    AverageResolutionTime:
+      type: object
+      description: Serializer for average resolution time metrics.
+      properties:
+        average_resolution_seconds:
+          type: integer
+          description: Average time to resolve incidents in seconds
+        resolved_incident_count:
+          type: integer
+          description: Number of resolved incidents in calculation
+      required:
+      - average_resolution_seconds
+      - resolved_incident_count
     Comment:
       type: object
       description: |-
@@ -2985,6 +4015,32 @@ components:
       - sla_at_risk
       - sla_breached
       - unassigned_incidents
+    DefaultIncidentPriorityEnum:
+      enum:
+      - P1
+      - P2
+      - P3
+      - P4
+      type: string
+      description: |-
+        * `P1` - P1 — Critical
+        * `P2` - P2 — High
+        * `P3` - P3 — Medium
+        * `P4` - P4 — Low
+    DefaultIncidentStatusEnum:
+      enum:
+      - OPEN
+      - ACKNOWLEDGED
+      - IN_PROGRESS
+      - RESOLVED
+      - CLOSED
+      type: string
+      description: |-
+        * `OPEN` - Open
+        * `ACKNOWLEDGED` - Acknowledged
+        * `IN_PROGRESS` - In Progress
+        * `RESOLVED` - Resolved
+        * `CLOSED` - Closed
     EmailVerification:
       type: object
       description: Serializer for email verification.
@@ -2993,6 +4049,27 @@ components:
           type: string
       required:
       - token
+    EscalationActivity:
+      type: object
+      description: Serializer for escalation activity metrics.
+      properties:
+        total_escalation_events:
+          type: integer
+          description: Total escalation events in date range
+        by_level:
+          type: object
+          additionalProperties:
+            type: integer
+          description: Events grouped by escalation level (level -> count)
+        by_trigger_type:
+          type: object
+          additionalProperties:
+            type: integer
+          description: Events grouped by trigger type (trigger -> count)
+      required:
+      - by_level
+      - by_trigger_type
+      - total_escalation_events
     EscalationEvaluate:
       type: object
       description: Input serializer for the manual evaluate endpoint.
@@ -3469,6 +4546,110 @@ components:
         * `ACTIVE` - Active
         * `COMPLETED` - Completed
         * `CANCELLED` - Cancelled
+    IncidentSummary:
+      type: object
+      description: Serializer for incident summary metrics.
+      properties:
+        total_incidents:
+          type: integer
+          description: Total incidents in date range
+        open_incidents:
+          type: integer
+          description: Currently open incidents (OPEN, ACKNOWLEDGED, IN_PROGRESS)
+        resolved_incidents:
+          type: integer
+          description: RESOLVED status incidents
+        closed_incidents:
+          type: integer
+          description: CLOSED status incidents
+        unassigned_incidents:
+          type: integer
+          description: Open incidents without assignee
+        critical_incidents:
+          type: integer
+          description: P1 priority incidents
+      required:
+      - closed_incidents
+      - critical_incidents
+      - open_incidents
+      - resolved_incidents
+      - total_incidents
+      - unassigned_incidents
+    IncidentTrend:
+      type: object
+      description: Serializer for incident trend over time.
+      properties:
+        granularity:
+          type: string
+          description: Time granularity used (daily or weekly)
+        data:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          description: List of time-ordered data points with date/week and count
+      required:
+      - data
+      - granularity
+    IncidentsByCategory:
+      type: object
+      description: Serializer for incident counts grouped by category.
+      properties:
+        categories:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          description: List of category counts with category_id, category_name, and
+            count
+      required:
+      - categories
+    IncidentsByPriority:
+      type: object
+      description: Serializer for incident counts grouped by priority.
+      properties:
+        P1:
+          type: integer
+          description: P1 (Critical) priority count
+        P2:
+          type: integer
+          description: P2 (High) priority count
+        P3:
+          type: integer
+          description: P3 (Medium) priority count
+        P4:
+          type: integer
+          description: P4 (Low) priority count
+      required:
+      - P1
+      - P2
+      - P3
+      - P4
+    IncidentsByStatus:
+      type: object
+      description: Serializer for incident counts grouped by status.
+      properties:
+        OPEN:
+          type: integer
+          description: OPEN status count
+        ACKNOWLEDGED:
+          type: integer
+          description: ACKNOWLEDGED status count
+        IN_PROGRESS:
+          type: integer
+          description: IN_PROGRESS status count
+        RESOLVED:
+          type: integer
+          description: RESOLVED status count
+        CLOSED:
+          type: integer
+          description: CLOSED status count
+      required:
+      - ACKNOWLEDGED
+      - CLOSED
+      - IN_PROGRESS
+      - OPEN
+      - RESOLVED
     Logout:
       type: object
       description: Serializer for logout.
@@ -3786,6 +4967,86 @@ components:
             maxLength: 0
       required:
       - name
+    OrganizationSettingsRead:
+      type: object
+      description: Read-only serializer for organization settings.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        default_incident_priority:
+          allOf:
+          - $ref: '#/components/schemas/DefaultIncidentPriorityEnum'
+          readOnly: true
+          description: |-
+            Default priority assigned to newly created incidents.
+
+            * `P1` - P1 — Critical
+            * `P2` - P2 — High
+            * `P3` - P3 — Medium
+            * `P4` - P4 — Low
+        default_incident_status:
+          allOf:
+          - $ref: '#/components/schemas/DefaultIncidentStatusEnum'
+          readOnly: true
+          description: |-
+            Default status assigned to newly created incidents.
+
+            * `OPEN` - Open
+            * `ACKNOWLEDGED` - Acknowledged
+            * `IN_PROGRESS` - In Progress
+            * `RESOLVED` - Resolved
+            * `CLOSED` - Closed
+        incident_comments_enabled:
+          type: boolean
+          readOnly: true
+          description: Whether incident comments are enabled for this organization.
+        notification_incident_emails_enabled:
+          type: boolean
+          readOnly: true
+          description: Whether incident-related notification emails are sent to organization
+            members. In-app notifications are unaffected.
+        notification_escalation_emails_enabled:
+          type: boolean
+          readOnly: true
+          description: Whether escalation-triggered notification emails are sent.
+            In-app notifications are unaffected.
+        notification_sla_emails_enabled:
+          type: boolean
+          readOnly: true
+          description: Whether SLA warning and breach notification emails are sent.
+            In-app notifications are unaffected.
+        sla_auto_apply_default_policy:
+          type: boolean
+          readOnly: true
+          description: Whether the organization's default active SLA policy is automatically
+            applied to newly created incidents.
+        escalation_auto_apply_default_policy:
+          type: boolean
+          readOnly: true
+          description: Whether the organization's default active escalation policy
+            is automatically evaluated for SLA breaches.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - default_incident_priority
+      - default_incident_status
+      - escalation_auto_apply_default_policy
+      - id
+      - incident_comments_enabled
+      - notification_escalation_emails_enabled
+      - notification_incident_emails_enabled
+      - notification_sla_emails_enabled
+      - sla_auto_apply_default_policy
+      - updated_at
     OrganizationStatusEnum:
       enum:
       - ACTIVE
@@ -3796,6 +5057,52 @@ components:
         * `ACTIVE` - Active
         * `SUSPENDED` - Suspended
         * `ARCHIVED` - Archived
+    PaginatedAttachmentList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Attachment'
+    PaginatedAuditLogList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditLog'
     PaginatedCommentList:
       type: object
       required:
@@ -4107,6 +5414,37 @@ components:
         in_app_enabled:
           type: boolean
           description: Whether in-app notifications are enabled.
+    PatchedOrganizationSettingsUpdate:
+      type: object
+      description: Write serializer for partial PATCH updates to organization settings.
+      properties:
+        default_incident_priority:
+          $ref: '#/components/schemas/DefaultIncidentPriorityEnum'
+        default_incident_status:
+          $ref: '#/components/schemas/DefaultIncidentStatusEnum'
+        incident_comments_enabled:
+          type: boolean
+          description: Whether incident comments are enabled for this organization.
+        notification_incident_emails_enabled:
+          type: boolean
+          description: Whether incident-related notification emails are sent to organization
+            members. In-app notifications are unaffected.
+        notification_escalation_emails_enabled:
+          type: boolean
+          description: Whether escalation-triggered notification emails are sent.
+            In-app notifications are unaffected.
+        notification_sla_emails_enabled:
+          type: boolean
+          description: Whether SLA warning and breach notification emails are sent.
+            In-app notifications are unaffected.
+        sla_auto_apply_default_policy:
+          type: boolean
+          description: Whether the organization's default active SLA policy is automatically
+            applied to newly created incidents.
+        escalation_auto_apply_default_policy:
+          type: boolean
+          description: Whether the organization's default active escalation policy
+            is automatically evaluated for SLA breaches.
     PatchedRoleUpdate:
       type: object
       description: Write serializer for updating a custom role.
@@ -4267,6 +5605,32 @@ components:
       - resolution_breaches
       - resolved_within_sla
       - response_breaches
+    SLAPerformance:
+      type: object
+      description: Serializer for SLA performance metrics.
+      properties:
+        total_sla_incidents:
+          type: integer
+          description: Total incidents with SLA tracking
+        compliant_incidents:
+          type: integer
+          description: SLA completed without breach
+        breached_incidents:
+          type: integer
+          description: SLA breached (response or resolution)
+        completed_sla_records:
+          type: integer
+          description: SLA records with completion timestamps
+        compliance_percentage:
+          type: number
+          format: double
+          description: Percentage of compliant incidents (0-100)
+      required:
+      - breached_incidents
+      - completed_sla_records
+      - compliance_percentage
+      - compliant_incidents
+      - total_sla_incidents
     SLAPolicy:
       type: object
       properties:

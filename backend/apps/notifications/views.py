@@ -6,7 +6,7 @@ from drf_spectacular.utils import (
     extend_schema_view,
 )
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import MethodNotAllowed, PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -53,16 +53,41 @@ from .serializers import (
         summary="Get notification details",
         description="Retrieve details of a specific notification.",
     ),
+    update=extend_schema(
+        summary="Update notification",
+        description="Update notification read status. Only the 'is_read' field can be updated.",
+    ),
+    partial_update=extend_schema(
+        summary="Partially update notification",
+        description="Partially update notification read status. Only the 'is_read' field can be updated.",
+    ),
+    destroy=extend_schema(
+        summary="Delete notification",
+        description="Delete a specific notification.",
+    ),
 )
 class NotificationViewSet(ModelViewSet):
     """
     API endpoint for user notifications.
 
     Users can only access their own notifications. Multi-tenant isolation is enforced.
+    Notifications are created by system events via the service layer, not via API POST.
     """
 
     permission_classes = (IsAuthenticated,)
     serializer_class = NotificationSerializer
+
+    def create(self, request, *args, **kwargs):
+        """
+        Disable POST method for notifications.
+
+        Notifications are created by system events (SLA breaches, escalations, incidents)
+        via the NotificationService layer. Manual creation via API is not supported.
+        """
+        raise MethodNotAllowed(
+            "POST",
+            detail="Notifications are created by system events via the service layer. Use NotificationService.create_notification() programmatically.",
+        )
 
     def get_queryset(self):
         """
@@ -357,16 +382,42 @@ class NotificationViewSet(ModelViewSet):
         summary="Get notification preferences",
         description="Retrieve notification preferences for a specific organization.",
     ),
+    update=extend_schema(
+        summary="Update notification preferences",
+        description="Update notification preferences for a specific organization.",
+    ),
+    partial_update=extend_schema(
+        summary="Partially update notification preferences",
+        description="Partially update notification preferences for a specific organization.",
+    ),
+    destroy=extend_schema(
+        summary="Delete notification preferences",
+        description="Delete notification preferences for a specific organization.",
+    ),
 )
 class NotificationPreferenceViewSet(ModelViewSet):
     """
     API endpoint for user notification preferences.
 
     Users can manage their notification preferences per organization.
+    Preferences are auto-created on-demand via NotificationPreference.get_or_create().
+    Manual creation via API POST is not supported.
     """
 
     permission_classes = (IsAuthenticated,)
     serializer_class = NotificationPreferenceSerializer
+
+    def create(self, request, *args, **kwargs):
+        """
+        Disable POST method for notification preferences.
+
+        Preferences are auto-created on-demand via NotificationPreference.get_or_create()
+        when notifications are sent. Manual creation via API is not supported.
+        """
+        raise MethodNotAllowed(
+            "POST",
+            detail="Notification preferences are auto-created on-demand via the service layer. Use NotificationPreference.get_or_create() programmatically.",
+        )
 
     def get_queryset(self):
         """
