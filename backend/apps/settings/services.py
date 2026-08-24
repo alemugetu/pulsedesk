@@ -3,7 +3,6 @@ from incidents.models import IncidentPriority, IncidentStatus
 from organizations.models import Organization
 from settings.models import OrganizationSettings
 
-
 _SETTINGS_FIELDS = (
     "default_incident_priority",
     "default_incident_status",

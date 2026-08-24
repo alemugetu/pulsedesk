@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from incidents.models import IncidentPriority, IncidentStatus
 from rest_framework import serializers
 from settings.models import OrganizationSettings
@@ -52,7 +54,7 @@ class OrganizationSettingsUpdateSerializer(serializers.ModelSerializer):
     # Fields that are silently ignored when supplied by the client (they can
     # never be written through this serializer; the FK is immutable).  This
     # avoids 400s when defensive or malicious clients include the org FK.
-    SILENTLY_IGNORED_KEYS = {"organization", "organization_id"}
+    SILENTLY_IGNORED_KEYS: ClassVar = {"organization", "organization_id"}
 
     def validate(self, attrs):
         """

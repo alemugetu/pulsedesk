@@ -38,9 +38,7 @@ class GetSettingsForOrganizationSelectorTest(TestCase):
 
     def test_creates_settings_when_missing(self):
         org = _make_org()
-        self.assertFalse(
-            OrganizationSettings.objects.filter(organization=org).exists()
-        )
+        self.assertFalse(OrganizationSettings.objects.filter(organization=org).exists())
         settings = get_settings_for_organization(org)
         self.assertIsNotNone(settings)
         self.assertEqual(settings.organization, org)
@@ -77,9 +75,7 @@ class GetSettingsByOrgIdSelectorTest(TestCase):
 
     def test_valid_uuid_backfills_when_missing(self):
         org = _make_org()
-        self.assertFalse(
-            OrganizationSettings.objects.filter(organization=org).exists()
-        )
+        self.assertFalse(OrganizationSettings.objects.filter(organization=org).exists())
         settings = get_settings_by_org_id(org.id)
         self.assertIsNotNone(settings)
 

@@ -115,9 +115,7 @@ class OrganizationSettingsModelTest(TestCase):
     def test_organization_service_creates_settings(self):
         user = _make_user("new@example.com")
         org = OrganizationService.create_organization(user, name="NewOrg")
-        self.assertTrue(
-            OrganizationSettings.objects.filter(organization=org).exists()
-        )
+        self.assertTrue(OrganizationSettings.objects.filter(organization=org).exists())
         settings = OrganizationSettings.objects.get(organization=org)
         self.assertEqual(settings.default_incident_priority, "P3")
 

@@ -31,9 +31,7 @@ def _make_user(email="user@example.com"):
 class CreateDefaultSettingsServiceTest(TestCase):
     def test_creates_settings_for_new_org(self):
         org = _make_org()
-        self.assertFalse(
-            OrganizationSettings.objects.filter(organization=org).exists()
-        )
+        self.assertFalse(OrganizationSettings.objects.filter(organization=org).exists())
         settings = OrganizationSettingsService.create_default_settings(org)
         self.assertEqual(settings.organization, org)
         self.assertEqual(settings.default_incident_priority, "P3")
@@ -98,7 +96,7 @@ class UpdateSettingsServiceTest(TestCase):
         self.assertEqual(changes["after"]["incident_comments_enabled"], False)
 
     def test_no_op_when_values_identical(self):
-        updated, changes = OrganizationSettingsService.update_settings(
+        _updated, changes = OrganizationSettingsService.update_settings(
             self.settings,
             actor=self.user,
             default_incident_priority="P3",
@@ -107,9 +105,7 @@ class UpdateSettingsServiceTest(TestCase):
         self.assertEqual(changes, {})
         # Ensure no spurious audit log was created.
         self.assertEqual(
-            AuditLog.objects.filter(
-                action=AuditAction.SETTINGS_UPDATED
-            ).count(),
+            AuditLog.objects.filter(action=AuditAction.SETTINGS_UPDATED).count(),
             0,
         )
 
@@ -139,12 +135,8 @@ class UpdateSettingsServiceTest(TestCase):
         self.assertEqual(log.resource_type, "organization_settings")
         self.assertEqual(log.resource_id, str(self.settings.id))
         # Changes dict in the audit record must be the safe before/after.
-        self.assertEqual(
-            log.changes["before"]["default_incident_priority"], "P3"
-        )
-        self.assertEqual(
-            log.changes["after"]["default_incident_priority"], "P1"
-        )
+        self.assertEqual(log.changes["before"]["default_incident_priority"], "P3")
+        self.assertEqual(log.changes["after"]["default_incident_priority"], "P1")
 
     def test_update_without_actor_is_still_audited(self):
         OrganizationSettingsService.update_settings(
@@ -154,9 +146,7 @@ class UpdateSettingsServiceTest(TestCase):
         )
         log = AuditLog.objects.get(action=AuditAction.SETTINGS_UPDATED)
         self.assertIsNone(log.actor)
-        self.assertEqual(
-            log.changes["after"]["sla_auto_apply_default_policy"], False
-        )
+        self.assertEqual(log.changes["after"]["sla_auto_apply_default_policy"], False)
 
     # ── Validation at service boundary ─────────────────────────────────
 

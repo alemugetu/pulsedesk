@@ -3,8 +3,10 @@
 # Includes a data migration that backfills default OrganizationSettings
 # for every Organization that already exists.
 
-import django.db.models.deletion
 import uuid
+from typing import ClassVar
+
+import django.db.models.deletion
 from django.db import migrations, models
 
 
@@ -58,32 +60,114 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-        ('organizations', '0002_rbac'),
+    dependencies: ClassVar = [
+        ("organizations", "0002_rbac"),
     ]
 
-    operations = [
+    operations: ClassVar = [
         migrations.CreateModel(
-            name='OrganizationSettings',
+            name="OrganizationSettings",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('default_incident_priority', models.CharField(choices=[('P1', 'P1 — Critical'), ('P2', 'P2 — High'), ('P3', 'P3 — Medium'), ('P4', 'P4 — Low')], default='P3', help_text='Default priority assigned to newly created incidents.', max_length=15)),
-                ('default_incident_status', models.CharField(choices=[('OPEN', 'Open'), ('ACKNOWLEDGED', 'Acknowledged'), ('IN_PROGRESS', 'In Progress'), ('RESOLVED', 'Resolved'), ('CLOSED', 'Closed')], default='OPEN', help_text='Default status assigned to newly created incidents.', max_length=20)),
-                ('incident_comments_enabled', models.BooleanField(default=True, help_text='Whether incident comments are enabled for this organization.')),
-                ('notification_incident_emails_enabled', models.BooleanField(default=True, help_text='Whether incident-related notification emails are sent to organization members. In-app notifications are unaffected.')),
-                ('notification_escalation_emails_enabled', models.BooleanField(default=True, help_text='Whether escalation-triggered notification emails are sent. In-app notifications are unaffected.')),
-                ('notification_sla_emails_enabled', models.BooleanField(default=True, help_text='Whether SLA warning and breach notification emails are sent. In-app notifications are unaffected.')),
-                ('sla_auto_apply_default_policy', models.BooleanField(default=True, help_text="Whether the organization's default active SLA policy is automatically applied to newly created incidents.")),
-                ('escalation_auto_apply_default_policy', models.BooleanField(default=True, help_text="Whether the organization's default active escalation policy is automatically evaluated for SLA breaches.")),
-                ('organization', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='settings', to='organizations.organization')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "default_incident_priority",
+                    models.CharField(
+                        choices=[
+                            ("P1", "P1 — Critical"),
+                            ("P2", "P2 — High"),
+                            ("P3", "P3 — Medium"),
+                            ("P4", "P4 — Low"),
+                        ],
+                        default="P3",
+                        help_text="Default priority assigned to newly created incidents.",
+                        max_length=15,
+                    ),
+                ),
+                (
+                    "default_incident_status",
+                    models.CharField(
+                        choices=[
+                            ("OPEN", "Open"),
+                            ("ACKNOWLEDGED", "Acknowledged"),
+                            ("IN_PROGRESS", "In Progress"),
+                            ("RESOLVED", "Resolved"),
+                            ("CLOSED", "Closed"),
+                        ],
+                        default="OPEN",
+                        help_text="Default status assigned to newly created incidents.",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "incident_comments_enabled",
+                    models.BooleanField(
+                        default=True,
+                        help_text="Whether incident comments are enabled for this organization.",
+                    ),
+                ),
+                (
+                    "notification_incident_emails_enabled",
+                    models.BooleanField(
+                        default=True,
+                        help_text="Whether incident-related notification emails are sent to organization members. In-app notifications are unaffected.",
+                    ),
+                ),
+                (
+                    "notification_escalation_emails_enabled",
+                    models.BooleanField(
+                        default=True,
+                        help_text="Whether escalation-triggered notification emails are sent. In-app notifications are unaffected.",
+                    ),
+                ),
+                (
+                    "notification_sla_emails_enabled",
+                    models.BooleanField(
+                        default=True,
+                        help_text="Whether SLA warning and breach notification emails are sent. In-app notifications are unaffected.",
+                    ),
+                ),
+                (
+                    "sla_auto_apply_default_policy",
+                    models.BooleanField(
+                        default=True,
+                        help_text="Whether the organization's default active SLA policy is automatically applied to newly created incidents.",
+                    ),
+                ),
+                (
+                    "escalation_auto_apply_default_policy",
+                    models.BooleanField(
+                        default=True,
+                        help_text="Whether the organization's default active escalation policy is automatically evaluated for SLA breaches.",
+                    ),
+                ),
+                (
+                    "organization",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="settings",
+                        to="organizations.organization",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Organization Settings',
-                'verbose_name_plural': 'Organization Settings',
-                'db_table': 'organization_settings',
-                'indexes': [models.Index(fields=['organization'], name='organizatio_organiz_423e61_idx')],
+                "verbose_name": "Organization Settings",
+                "verbose_name_plural": "Organization Settings",
+                "db_table": "organization_settings",
+                "indexes": [
+                    models.Index(
+                        fields=["organization"], name="organizatio_organiz_423e61_idx"
+                    )
+                ],
             },
         ),
         migrations.RunPython(

@@ -30,7 +30,7 @@ import uuid
 from audit_logs.models import AuditAction, AuditLog
 from django.contrib.auth import get_user_model
 from django.test import TestCase
-from organizations.models import Organization, Membership, MembershipStatus, Role
+from organizations.models import Membership, MembershipStatus, Role
 from organizations.services import OrganizationService
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -132,16 +132,12 @@ class SettingsGetAPITest(TwoOrgsFixture):
         # Simulate a legacy org by deleting its settings row.
         OrganizationSettings.objects.filter(organization=self.org_a).delete()
         self.assertFalse(
-            OrganizationSettings.objects.filter(
-                organization=self.org_a
-            ).exists()
+            OrganizationSettings.objects.filter(organization=self.org_a).exists()
         )
         response = self.client_a.get(_settings_url(self.org_a.id))
         self.assertEqual(response.status_code, 200)
         self.assertTrue(
-            OrganizationSettings.objects.filter(
-                organization=self.org_a
-            ).exists()
+            OrganizationSettings.objects.filter(organization=self.org_a).exists()
         )
 
     def test_get_unauthenticated_returns_401(self):
@@ -151,9 +147,7 @@ class SettingsGetAPITest(TwoOrgsFixture):
     def test_get_invalid_uuid_returns_404(self):
         self.client_a.get("/api/v1/organizations/not-uuid/settings/")
         # URL resolver won't match non-UUID → 404 from Django.
-        response = self.client_a.get(
-            f"/api/v1/organizations/{uuid.uuid4()}/settings/"
-        )
+        response = self.client_a.get(f"/api/v1/organizations/{uuid.uuid4()}/settings/")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     # ── Cross-tenant isolation (read) ─────────────────────────────────
@@ -166,25 +160,19 @@ class SettingsGetAPITest(TwoOrgsFixture):
     def test_get_cross_tenant_does_not_modify_org_b(self):
         self.client_a.get(_settings_url(self.org_b.id))
         b_settings = get_settings_for_organization(self.org_b)
-        self.assertEqual(
-            b_settings.default_incident_priority, "P3"
-        )  # unchanged
+        self.assertEqual(b_settings.default_incident_priority, "P3")  # unchanged
 
     # ── Suspended membership ──────────────────────────────────────────
 
     def test_suspended_member_gets_403(self):
-        membership = Membership.objects.get(
-            user=self.user_a, organization=self.org_a
-        )
+        membership = Membership.objects.get(user=self.user_a, organization=self.org_a)
         membership.status = MembershipStatus.SUSPENDED
         membership.save(update_fields=["status"])
         response = self.client_a.get(_settings_url(self.org_a.id))
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_removed_member_gets_403(self):
-        membership = Membership.objects.get(
-            user=self.user_a, organization=self.org_a
-        )
+        membership = Membership.objects.get(user=self.user_a, organization=self.org_a)
         membership.status = MembershipStatus.REMOVED
         membership.save(update_fields=["status"])
         response = self.client_a.get(_settings_url(self.org_a.id))
@@ -227,15 +215,11 @@ class SettingsPatchAPITest(TwoOrgsFixture):
         )
         self.assertIn("default_incident_priority", response.data)
         self.assertIn("incident_comments_enabled", response.data)
-        self.assertEqual(
-            response.data["escalation_auto_apply_default_policy"], False
-        )
+        self.assertEqual(response.data["escalation_auto_apply_default_policy"], False)
 
     def test_empty_payload_is_200_and_unchanged(self):
         before = OrganizationSettings.objects.get(organization=self.org_a)
-        response = self.client_a.patch(
-            _settings_url(self.org_a.id), {}, format="json"
-        )
+        response = self.client_a.patch(_settings_url(self.org_a.id), {}, format="json")
         self.assertEqual(response.status_code, 200)
         after = OrganizationSettings.objects.get(organization=self.org_a)
         self.assertEqual(before.updated_at, after.updated_at)
@@ -308,9 +292,7 @@ class SettingsPatchAPITest(TwoOrgsFixture):
         )
         self.assertEqual(response.status_code, 200)
         settings = OrganizationSettings.objects.get(organization=self.org_a)
-        self.assertEqual(
-            str(settings.organization_id), str(self.org_a.id)
-        )
+        self.assertEqual(str(settings.organization_id), str(self.org_a.id))
         # org_b's settings must not be touched.
         b_settings = OrganizationSettings.objects.get(organization=self.org_b)
         self.assertEqual(b_settings.default_incident_priority, "P3")
@@ -322,16 +304,12 @@ class SettingsPatchAPITest(TwoOrgsFixture):
             format="json",
         )
         self.assertEqual(response.status_code, 200)
-        logs = list(
-            AuditLog.objects.filter(action=AuditAction.SETTINGS_UPDATED)
-        )
+        logs = list(AuditLog.objects.filter(action=AuditAction.SETTINGS_UPDATED))
         self.assertEqual(len(logs), 1)
         log = logs[0]
         self.assertEqual(log.organization, self.org_a)
         self.assertEqual(log.actor, self.user_a)
-        self.assertIn(
-            "notification_sla_emails_enabled", log.changes.get("after", {})
-        )
+        self.assertIn("notification_sla_emails_enabled", log.changes.get("after", {}))
 
     def test_audit_log_changes_dict_has_no_secrets(self):
         """
@@ -355,7 +333,7 @@ class SettingsPatchAPITest(TwoOrgsFixture):
             "escalation_auto_apply_default_policy",
         }
         for side in ("before", "after"):
-            for key in log.changes.get(side, {}).keys():
+            for key in log.changes.get(side, {}):
                 self.assertIn(key, allowed)
 
     def test_patch_unauthenticated_returns_401(self):
@@ -396,9 +374,7 @@ class SettingsPatchAPITest(TwoOrgsFixture):
 
     def test_viewer_patch_returns_403(self):
         viewer = _make_user("viewer@example.com")
-        Membership.objects.create(
-            user=viewer, organization=self.org_a, status="ACTIVE"
-        )
+        Membership.objects.create(user=viewer, organization=self.org_a, status="ACTIVE")
         _assign_role(viewer, self.org_a, "viewer")
         client = _auth_client(viewer)
         response = client.patch(
@@ -412,9 +388,7 @@ class SettingsPatchAPITest(TwoOrgsFixture):
 
     def test_agent_patch_returns_403(self):
         agent = _make_user("agent@example.com")
-        Membership.objects.create(
-            user=agent, organization=self.org_a, status="ACTIVE"
-        )
+        Membership.objects.create(user=agent, organization=self.org_a, status="ACTIVE")
         _assign_role(agent, self.org_a, "agent")
         client = _auth_client(agent)
         response = client.patch(
@@ -550,7 +524,7 @@ class SettingsSecurityMatrixTest(TestCase):
             "api_key",
             "jwt",
         }
-        for key in response.data.keys():
+        for key in response.data:
             self.assertNotIn(key.lower(), bad)
 
     # 9. Audit logs do not contain secrets

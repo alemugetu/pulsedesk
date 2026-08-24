@@ -5,8 +5,8 @@ from drf_spectacular.utils import (
     OpenApiResponse,
     extend_schema,
 )
-from incidents.selectors import filter_incidents  # Phase 13.4
 from incidents.selectors import (
+    filter_incidents,  # Phase 13.4
     get_categories,
     get_category,
     get_incident,

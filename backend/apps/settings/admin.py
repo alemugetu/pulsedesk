@@ -1,10 +1,12 @@
+from typing import ClassVar
+
 from django.contrib import admin
 from settings.models import OrganizationSettings
 
 
 @admin.register(OrganizationSettings)
 class OrganizationSettingsAdmin(admin.ModelAdmin):
-    list_display = [
+    list_display: ClassVar = [
         "organization",
         "default_incident_priority",
         "default_incident_status",
@@ -14,7 +16,7 @@ class OrganizationSettingsAdmin(admin.ModelAdmin):
         "created_at",
         "updated_at",
     ]
-    list_filter = [
+    list_filter: ClassVar = [
         "default_incident_priority",
         "default_incident_status",
         "incident_comments_enabled",
@@ -24,9 +26,9 @@ class OrganizationSettingsAdmin(admin.ModelAdmin):
         "notification_escalation_emails_enabled",
         "notification_sla_emails_enabled",
     ]
-    search_fields = ["organization__name", "organization__slug"]
-    ordering = ["organization__name"]
-    raw_id_fields = ["organization"]
+    search_fields: ClassVar = ["organization__name", "organization__slug"]
+    ordering: ClassVar = ["organization__name"]
+    raw_id_fields: ClassVar = ["organization"]
 
     fieldsets = (
         (

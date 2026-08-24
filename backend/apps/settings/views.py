@@ -6,7 +6,7 @@ from drf_spectacular.utils import (
     OpenApiResponse,
     extend_schema,
 )
-from organizations.permissions import IsOrganizationMember, make_permission_class
+from organizations.permissions import IsOrganizationMember
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -52,7 +52,9 @@ class OrganizationSettingsDetailView(APIView):
         parameters=[_ORG_ID_PARAMETER],
         responses={
             200: OrganizationSettingsReadSerializer,
-            401: OpenApiResponse(description="Authentication credentials not provided."),
+            401: OpenApiResponse(
+                description="Authentication credentials not provided."
+            ),
             403: OpenApiResponse(
                 description=(
                     "Missing `settings.view` permission, or membership is "
@@ -86,9 +88,7 @@ class OrganizationSettingsDetailView(APIView):
     def get(self, request, organization_id):
         from organizations.selectors import user_has_permission
 
-        if not user_has_permission(
-            request.user, request.organization, "settings.view"
-        ):
+        if not user_has_permission(request.user, request.organization, "settings.view"):
             return Response(
                 {"detail": "You do not have permission to view organization settings."},
                 status=status.HTTP_403_FORBIDDEN,
@@ -136,14 +136,14 @@ class OrganizationSettingsDetailView(APIView):
                     OpenApiExample(
                         "Invalid priority",
                         value={
-                            "default_incident_priority": [
-                                '"P9" is not a valid choice.'
-                            ]
+                            "default_incident_priority": ['"P9" is not a valid choice.']
                         },
                     ),
                 ],
             ),
-            401: OpenApiResponse(description="Authentication credentials not provided."),
+            401: OpenApiResponse(
+                description="Authentication credentials not provided."
+            ),
             403: OpenApiResponse(
                 description=(
                     "Missing `settings.manage` permission, or membership is "
@@ -189,7 +189,9 @@ class OrganizationSettingsDetailView(APIView):
             request.user, request.organization, "settings.manage"
         ):
             return Response(
-                {"detail": "You do not have permission to manage organization settings."},
+                {
+                    "detail": "You do not have permission to manage organization settings."
+                },
                 status=status.HTTP_403_FORBIDDEN,
             )
 
