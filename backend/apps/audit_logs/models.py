@@ -75,6 +75,9 @@ class AuditAction(models.TextChoices):
     ESCALATION_POLICY_UPDATED = "escalation_policy.updated", "Escalation Policy Updated"
     ESCALATION_TRIGGERED = "escalation.triggered", "Escalation Triggered"
 
+    # ── Settings (Phase 13.6) ──────────────────────────────────────────
+    SETTINGS_UPDATED = "settings.updated", "Organization Settings Updated"
+
 
 class AuditLog(BaseModel):
     """

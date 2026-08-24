@@ -76,4 +76,9 @@ urlpatterns = [
         "<uuid:organization_id>/reports/",
         include("reports.urls"),
     ),
+    # Organization Settings (Phase 13.6)
+    path(
+        "<uuid:organization_id>/",
+        include("settings.urls"),
+    ),
 ]

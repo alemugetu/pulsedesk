@@ -186,6 +186,21 @@ INITIAL_PERMISSIONS = [
         "action": "view",
         "description": "View operational reports and analytics for the organization.",
     },
+    # Settings (Phase 13.6)
+    {
+        "codename": "settings.view",
+        "name": "View Organization Settings",
+        "resource": "settings",
+        "action": "view",
+        "description": "View the organization's operational configuration and settings.",
+    },
+    {
+        "codename": "settings.manage",
+        "name": "Manage Organization Settings",
+        "resource": "settings",
+        "action": "manage",
+        "description": "Update the organization's operational configuration and settings.",
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -220,8 +235,23 @@ _AUDIT_LOG_VIEW = {"audit_log.view"}
 # Viewer cannot — reports contain sensitive operational analytics.
 _REPORT_VIEW = {"report.view"}
 
-_VIEWER = _BASE_READ_ONLY | _INCIDENT_VIEW | _SLA_VIEW | _ESCALATION_VIEW
-_AGENT = _BASE_READ_ONLY | _INCIDENT_AGENT | _SLA_VIEW | _ESCALATION_VIEW | _REPORT_VIEW
+# Settings permission sets (Phase 13.6)
+# Viewer, Agent, Ops Manager: view only.
+# Admin and Owner: view + manage.
+# Ops Manager is explicitly excluded from manage — consistent with the
+# system role description ("Cannot change org settings").
+_SETTINGS_VIEW = {"settings.view"}
+_SETTINGS_MANAGE = _SETTINGS_VIEW | {"settings.manage"}
+
+_VIEWER = _BASE_READ_ONLY | _INCIDENT_VIEW | _SLA_VIEW | _ESCALATION_VIEW | _SETTINGS_VIEW
+_AGENT = (
+    _BASE_READ_ONLY
+    | _INCIDENT_AGENT
+    | _SLA_VIEW
+    | _ESCALATION_VIEW
+    | _REPORT_VIEW
+    | _SETTINGS_VIEW
+)
 _OPS_MANAGER = (
     _BASE_READ_ONLY
     | {
@@ -235,6 +265,7 @@ _OPS_MANAGER = (
     | _ESCALATION_MANAGE
     | _AUDIT_LOG_VIEW
     | _REPORT_VIEW
+    | _SETTINGS_VIEW
 )
 _ADMIN = (
     _OPS_MANAGER
@@ -244,8 +275,9 @@ _ADMIN = (
     | _ESCALATION_MANAGE
     | _AUDIT_LOG_VIEW
     | _REPORT_VIEW
+    | _SETTINGS_MANAGE
 )
-_OWNER = _ALL_PERMISSIONS  # Already includes report.view via INITIAL_PERMISSIONS
+_OWNER = _ALL_PERMISSIONS  # Already includes settings.view/settings.manage via INITIAL_PERMISSIONS
 
 SYSTEM_ROLES = [
     {
@@ -337,6 +369,12 @@ class OrganizationService:
             role=owner_role,
             status=MembershipStatus.ACTIVE,
         )
+
+        # Create default organization settings (Phase 13.6).
+        from settings.services import OrganizationSettingsService
+
+        OrganizationSettingsService.create_default_settings(organization)
+
         return organization
 
     @staticmethod

@@ -227,9 +227,7 @@ def get_incidents_by_category(
     for item in counts:
         result.append(
             {
-                "category_id": (
-                    str(item["category"]) if item["category"] else None
-                ),
+                "category_id": (str(item["category"]) if item["category"] else None),
                 "category_name": item["category_name"] or "Uncategorized",
                 "count": item["count"],
             }

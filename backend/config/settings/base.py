@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "attachments.apps.AttachmentsConfig",
     "audit_logs.apps.AuditLogsConfig",
     "reports.apps.ReportsConfig",
+    "settings.apps.SettingsConfig",
 ]
 
 MIDDLEWARE = [
