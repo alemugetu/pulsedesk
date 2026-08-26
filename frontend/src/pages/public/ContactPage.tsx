@@ -6,10 +6,9 @@
  */
 
 import { useEffect, useState, type FormEvent } from 'react';
-import { Send, CheckCircle } from 'lucide-react';
+import { Send, CheckCircle, User, Mail, Tag, MessageSquare } from 'lucide-react';
 import { CONTACT_CONTENT } from '../../features/public/content';
 import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
 import { Card } from '../../components/ui/Card';
 
 interface ContactForm {
@@ -140,15 +139,20 @@ export function ContactPage() {
                     <label htmlFor="name" className="block text-sm font-medium text-foreground">
                       {CONTACT_CONTENT.form.name}
                     </label>
-                    <Input
-                      id="name"
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => handleChange('name', e.target.value)}
-                      className="mt-1"
-                      aria-describedby={errors.name ? 'name-error' : undefined}
-                      aria-invalid={errors.name ? 'true' : undefined}
-                    />
+                    <div className="relative mt-1">
+                      <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                      <input
+                        id="name"
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => handleChange('name', e.target.value)}
+                        placeholder="Your name"
+                        className="w-full rounded-lg border border-input bg-surface-input/60 py-2.5 pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground caret-primary focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                        aria-describedby={errors.name ? 'name-error' : undefined}
+                        aria-invalid={errors.name ? 'true' : undefined}
+                        autoFocus
+                      />
+                    </div>
                     {errors.name && (
                       <p id="name-error" className="mt-1 text-sm text-red-600 dark:text-red-400" role="alert">
                         {errors.name}
@@ -160,15 +164,19 @@ export function ContactPage() {
                     <label htmlFor="email" className="block text-sm font-medium text-foreground">
                       {CONTACT_CONTENT.form.email}
                     </label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => handleChange('email', e.target.value)}
-                      className="mt-1"
-                      aria-describedby={errors.email ? 'email-error' : undefined}
-                      aria-invalid={errors.email ? 'true' : undefined}
-                    />
+                    <div className="relative mt-1">
+                      <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                      <input
+                        id="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => handleChange('email', e.target.value)}
+                        placeholder="your@email.com"
+                        className="w-full rounded-lg border border-input bg-surface-input/60 py-2.5 pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground caret-primary focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                        aria-describedby={errors.email ? 'email-error' : undefined}
+                        aria-invalid={errors.email ? 'true' : undefined}
+                      />
+                    </div>
                     {errors.email && (
                       <p id="email-error" className="mt-1 text-sm text-red-600 dark:text-red-400" role="alert">
                         {errors.email}
@@ -180,15 +188,19 @@ export function ContactPage() {
                     <label htmlFor="subject" className="block text-sm font-medium text-foreground">
                       {CONTACT_CONTENT.form.subject}
                     </label>
-                    <Input
-                      id="subject"
-                      type="text"
-                      value={formData.subject}
-                      onChange={(e) => handleChange('subject', e.target.value)}
-                      className="mt-1"
-                      aria-describedby={errors.subject ? 'subject-error' : undefined}
-                      aria-invalid={errors.subject ? 'true' : undefined}
-                    />
+                    <div className="relative mt-1">
+                      <Tag className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                      <input
+                        id="subject"
+                        type="text"
+                        value={formData.subject}
+                        onChange={(e) => handleChange('subject', e.target.value)}
+                        placeholder="How can we help?"
+                        className="w-full rounded-lg border border-input bg-surface-input/60 py-2.5 pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground caret-primary focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                        aria-describedby={errors.subject ? 'subject-error' : undefined}
+                        aria-invalid={errors.subject ? 'true' : undefined}
+                      />
+                    </div>
                     {errors.subject && (
                       <p id="subject-error" className="mt-1 text-sm text-red-600 dark:text-red-400" role="alert">
                         {errors.subject}
@@ -200,15 +212,19 @@ export function ContactPage() {
                     <label htmlFor="message" className="block text-sm font-medium text-foreground">
                       {CONTACT_CONTENT.form.message}
                     </label>
-                    <textarea
-                      id="message"
-                      rows={5}
-                      value={formData.message}
-                      onChange={(e) => handleChange('message', e.target.value)}
-                      className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                      aria-describedby={errors.message ? 'message-error' : undefined}
-                      aria-invalid={errors.message ? 'true' : undefined}
-                    />
+                    <div className="relative mt-1">
+                      <MessageSquare className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                      <textarea
+                        id="message"
+                        rows={5}
+                        value={formData.message}
+                        onChange={(e) => handleChange('message', e.target.value)}
+                        placeholder="Tell us more..."
+                        className="w-full rounded-lg border border-input bg-surface-input/60 py-2.5 pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground caret-primary focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                        aria-describedby={errors.message ? 'message-error' : undefined}
+                        aria-invalid={errors.message ? 'true' : undefined}
+                      />
+                    </div>
                     {errors.message && (
                       <p id="message-error" className="mt-1 text-sm text-red-600 dark:text-red-400" role="alert">
                         {errors.message}
