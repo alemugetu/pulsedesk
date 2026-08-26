@@ -4,40 +4,56 @@
 
 @layer base {
   :root {
+    /* Light Theme - PulseDesk */
     --background: 0 0% 100%;
-    --foreground: 0 0% 4%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 4%;
-    --primary: 221 83% 53%;
+    --card-foreground: 222 47% 11%;
+    --primary: 238 85% 67%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 40% 96%;
+    --primary-hover: 238 89% 75%;
+    --secondary: 210 40% 98%;
     --secondary-foreground: 222 47% 11%;
     --muted: 210 40% 96%;
     --muted-foreground: 215 16% 47%;
     --accent: 210 40% 96%;
     --accent-foreground: 222 47% 11%;
     --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 221 83% 53%;
+    --input: 210 40% 96%;
+    --ring: 238 85% 67%;
+    --canvas: 0 0% 100%;
+    --surface: 210 40% 98%;
+    --surface-input: 210 40% 96%;
+    --text-primary: 222 47% 11%;
+    --text-secondary: 215 16% 47%;
+    --placeholder: 215 16% 65%;
     --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   }
 
   .dark {
-    --background: 0 0% 4%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 4%;
-    --card-foreground: 0 0% 98%;
-    --primary: 221 83% 53%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 221 83% 53%;
+    /* Dark Theme - PulseDesk Dark Slate + Electric Indigo */
+    --background: 222 27% 7%;
+    --foreground: 210 20% 98%;
+    --card: 222 27% 7%;
+    --card-foreground: 210 20% 98%;
+    --primary: 238 85% 67%;
+    --primary-foreground: 210 20% 98%;
+    --primary-hover: 238 89% 75%;
+    --secondary: 222 27% 13%;
+    --secondary-foreground: 210 20% 98%;
+    --muted: 222 27% 13%;
+    --muted-foreground: 215 16% 65%;
+    --accent: 222 27% 13%;
+    --accent-foreground: 210 20% 98%;
+    --border: 215 25% 27%;
+    --input: 215 28% 17%;
+    --ring: 238 85% 67%;
+    --canvas: 222 27% 7%;
+    --surface: 222 27% 13%;
+    --surface-input: 215 28% 17%;
+    --text-primary: 210 20% 98%;
+    --text-secondary: 215 16% 65%;
+    --placeholder: 215 20% 47%;
   }
 }

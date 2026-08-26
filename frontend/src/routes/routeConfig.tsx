@@ -6,21 +6,53 @@
  * - Authentication routes (login, register, password management)
  * - Protected application routes (dashboard, incidents, reports, settings)
  * 
- * Phase 13.1: Route placeholders only - actual pages will be implemented in later phases.
+ * Phase 13.2: Public routes implemented with PublicLayout
  */
 
 import { type RouteObject } from 'react-router-dom';
 import { RootLayout } from '../layouts/RootLayout';
+import { PublicLayout } from '../layouts/public/PublicLayout';
 import { Placeholder } from './Placeholder';
+import { HomePage } from '../pages/public/HomePage';
+import { AboutPage } from '../pages/public/AboutPage';
+import { FeaturesPage } from '../pages/public/FeaturesPage';
+import { ContactPage } from '../pages/public/ContactPage';
+import { PrivacyPage } from '../pages/public/PrivacyPage';
+import { TermsPage } from '../pages/public/TermsPage';
 
 /**
  * Public routes - accessible without authentication
- * Future: /, /about, /features, /contact, /privacy, /terms
+ * Phase 13.2: Full public website implementation
  */
 const publicRoutes: RouteObject[] = [
   {
-    path: '/',
-    element: <Placeholder message="Landing Page - Coming Soon" />,
+    element: <PublicLayout />,
+    children: [
+      {
+        path: '/',
+        element: <HomePage />,
+      },
+      {
+        path: '/about',
+        element: <AboutPage />,
+      },
+      {
+        path: '/features',
+        element: <FeaturesPage />,
+      },
+      {
+        path: '/contact',
+        element: <ContactPage />,
+      },
+      {
+        path: '/privacy',
+        element: <PrivacyPage />,
+      },
+      {
+        path: '/terms',
+        element: <TermsPage />,
+      },
+    ],
   },
 ];
 
@@ -52,8 +84,7 @@ const protectedRoutes: RouteObject[] = [
 
 /**
  * Complete route configuration
- * Phase 13.1: Using placeholder routes to verify routing works
- * Routes are wrapped with RootLayout for structural foundation
+ * Phase 13.2: Public routes fully implemented, auth and protected routes remain as placeholders
  */
 export const routeConfig: RouteObject[] = [
   {

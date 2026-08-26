@@ -10,20 +10,17 @@
  * - App layout (with sidebar/navbar for protected routes)
  */
 
-import { type ReactNode } from 'react';
-
-interface RootLayoutProps {
-  children?: ReactNode;
-}
+import { Outlet } from 'react-router-dom';
 
 /**
  * Root layout component - minimal structural foundation.
  * Phase 13.1: Basic container with full viewport height.
+ * Phase 13.2: Fixed to use Outlet for React Router nested route rendering.
  */
-export function RootLayout({ children }: RootLayoutProps) {
+export function RootLayout() {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {children}
+      <Outlet />
     </div>
   );
 }

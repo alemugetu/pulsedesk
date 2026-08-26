@@ -5,6 +5,23 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PulseDesk</title>
+    <script>
+      // Theme initialization - prevent flash of unstyled content
+      (function() {
+        const THEME_KEY = 'pulsedesk-theme';
+        const stored = localStorage.getItem(THEME_KEY);
+        let theme = stored || 'system';
+        
+        let resolvedTheme = 'light';
+        if (theme === 'system') {
+          resolvedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        } else {
+          resolvedTheme = theme;
+        }
+        
+        document.documentElement.classList.add(resolvedTheme);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
