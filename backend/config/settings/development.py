@@ -15,6 +15,41 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 env = environ.Env()
 env.read_env(BASE_DIR / ".env")
 
+# ---------------------------------------------------------------------------
+# CORS — Development
+# Explicitly allow Vite dev server origins for local development.
+# Supports both default port 5173 and fallback port 5174.
+# ---------------------------------------------------------------------------
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+# Allow common headers for authentication and content negotiation
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
+
+# Allow common HTTP methods
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
+
 # DB_URL must be present — no silent SQLite fallback.
 # A missing or invalid DB_URL will raise ImproperlyConfigured immediately,
 # preventing accidental development against the wrong database.
