@@ -3,9 +3,8 @@
     "target": "ES2020",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
-    "types": ["vite/client"],
-    "allowArbitraryExtensions": true,
     "skipLibCheck": true,
+    "strict": true,
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -15,11 +14,13 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* Linting */
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    /* Test-specific */
+    "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom/vitest", "node"],
+
+    /* Linting — relaxed for test files */
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"],
-  "exclude": ["src/**/*.test.tsx", "src/**/*.test.ts", "src/test/**/*.ts"]
+  "include": ["src/**/*.test.tsx", "src/**/*.test.ts", "src/test/**/*.ts"]
 }

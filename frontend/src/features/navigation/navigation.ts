@@ -9,12 +9,13 @@
  * Future phases will add: Organizations, Incidents, Operations, Reports, Settings, Audit.
  */
 
-import { Home, LayoutDashboard, Settings, FileText } from 'lucide-react';
+import { Home, LayoutDashboard, Settings, FileText, Building2 } from 'lucide-react';
 import type { NavigationConfig, NavigationGroup, NavigationItem } from './navigation.types';
 
 /**
  * Main navigation items for the authenticated application
  * Phase 13.4: Only includes currently implemented/placeholder routes
+ * Phase 13.5: Organizations route added
  */
 const mainNavigationItems: NavigationItem[] = [
   {
@@ -24,6 +25,14 @@ const mainNavigationItems: NavigationItem[] = [
     icon: Home,
     visibility: 'authenticated',
     ariaLabel: 'Navigate to home page',
+  },
+  {
+    id: 'organizations',
+    label: 'Organizations',
+    path: '/app/organizations',
+    icon: Building2,
+    visibility: 'authenticated',
+    ariaLabel: 'Navigate to organizations page',
   },
   {
     id: 'dashboard',

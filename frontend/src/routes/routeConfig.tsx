@@ -31,6 +31,8 @@ import { VerifyEmailPage } from '../pages/auth/VerifyEmailPage';
 import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from '../pages/auth/ResetPasswordPage';
 import { AppHomePage } from '../pages/app/AppHomePage';
+import { OrganizationsPage } from '../pages/organizations/OrganizationsPage';
+import { OrganizationPage } from '../pages/organizations/OrganizationPage';
 
 /**
  * Public routes - accessible without authentication
@@ -123,6 +125,7 @@ const authRoutes: RouteObject[] = [
 /**
  * Protected application routes - require authentication
  * Phase 13.4: Application shell with AppLayout and AppHomePage implemented
+ * Phase 13.5: Organization routes added
  */
 const protectedRoutes: RouteObject[] = [
   {
@@ -136,6 +139,14 @@ const protectedRoutes: RouteObject[] = [
       {
         index: true,
         element: <AppHomePage />,
+      },
+      {
+        path: 'organizations',
+        element: <OrganizationsPage />,
+      },
+      {
+        path: 'organizations/:organizationId',
+        element: <OrganizationPage />,
       },
       // Future app routes will be added here in later phases
       // Examples: /app/dashboard, /app/incidents, /app/reports, etc.

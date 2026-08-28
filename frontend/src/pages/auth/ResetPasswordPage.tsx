@@ -7,7 +7,6 @@
 
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle, AlertCircle, Lock, ArrowLeft } from 'lucide-react';
 import { AuthLayout } from '../../features/auth/components/AuthLayout';
 import { AuthCard } from '../../features/auth/components/AuthCard';

@@ -1,49 +1,39 @@
 /**
  * OrganizationSwitcher component for PulseDesk application shell.
  * 
- * Phase 13.4: Foundation implementation only.
+ * Phase 13.5: Full integration with OrganizationContext.
  * 
- * This component establishes the correct shell location/interface for the
- * organization switcher. Actual organization functionality (CRUD, members,
- * roles, RBAC) will be implemented in Phase 13.5.
- * 
- * Current implementation provides:
- * - Typed placeholder state for organization data
- * - Correct shell location in the application navbar
- * - UI structure ready for Phase 13.5 integration
- * - Loading and error states for future API integration
+ * This component provides:
+ * - Real organization data from OrganizationContext
+ * - Organization switching with tenant isolation
+ * - Loading and error states
+ * - Create organization functionality
+ * - Keyboard navigation and accessibility
+ * - Responsive design
  */
 
 import { useState, useRef, useEffect } from 'react';
-import { Building2, ChevronDown, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Building2, ChevronDown, Plus, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { cn } from '../../utils/cn';
+import { useOrganizationContext } from '../../features/organizations/context/OrganizationContext';
+import type { Organization } from '../../features/organizations/types/organization';
 
-/**
- * Placeholder organization type for Phase 13.4
- * Phase 13.5 will replace this with the actual organization type from the API
- */
-interface PlaceholderOrganization {
-  id: string;
-  name: string;
-  slug?: string;
-}
-
-/**
- * Placeholder state for organization switcher
- * Phase 13.5 will integrate with actual organization state management
- */
 export function OrganizationSwitcher() {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const navigate = useNavigate();
 
-  // Placeholder organization data
-  // Phase 13.5 will replace this with actual organization data from the API
-  const [currentOrganization] = useState<PlaceholderOrganization>({
-    id: 'placeholder',
-    name: 'Select Organization',
-  });
+  const {
+    organizations,
+    currentOrganization,
+    isLoadingOrganizations,
+    organizationsError,
+    selectOrganization,
+    hasOrganizations,
+  } = useOrganizationContext();
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -85,11 +75,18 @@ export function OrganizationSwitcher() {
     };
   }, [isOpen]);
 
-  const handleCreateOrganization = () => {
+  const handleSelectOrganization = (org: Organization) => {
+    selectOrganization(org);
     setIsOpen(false);
-    // Placeholder for Phase 13.5 organization creation
-    console.log('Create organization - Phase 13.5');
   };
+
+  const handleCreateOrganization = async () => {
+    setIsOpen(false);
+    navigate('/app/organizations?create=true');
+  };
+
+  const displayText = currentOrganization?.name || 'Select Organization';
+  const isDisabled = isLoadingOrganizations || !hasOrganizations;
 
   return (
     <div className="relative">
@@ -101,12 +98,16 @@ export function OrganizationSwitcher() {
         aria-expanded={isOpen}
         aria-haspopup="true"
         className="flex items-center gap-2 px-2"
-        disabled
+        disabled={isDisabled}
       >
         <div className="flex items-center gap-2">
-          <Building2 className="h-4 w-4 text-muted-foreground" />
+          {isLoadingOrganizations ? (
+            <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
+          ) : (
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+          )}
           <span className="hidden md:inline text-sm font-medium">
-            {currentOrganization.name}
+            {displayText}
           </span>
           <ChevronDown className="h-4 w-4 hidden md:block text-muted-foreground" />
         </div>
@@ -131,12 +132,49 @@ export function OrganizationSwitcher() {
           </div>
 
           <div className="py-1 max-h-64 overflow-y-auto">
-            {/* Placeholder for organization list */}
-            <div className="px-3 py-4 text-center text-sm text-muted-foreground">
-              <Building2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>Organization management</p>
-              <p className="text-xs mt-1">Coming in Phase 13.5</p>
-            </div>
+            {isLoadingOrganizations ? (
+              <div className="px-3 py-4 text-center text-sm text-muted-foreground">
+                <Loader2 className="h-6 w-6 mx-auto mb-2 animate-spin" />
+                <p>Loading organizations...</p>
+              </div>
+            ) : organizationsError ? (
+              <div className="px-3 py-4 text-center text-sm text-destructive">
+                <AlertCircle className="h-6 w-6 mx-auto mb-2" />
+                <p>Error loading organizations</p>
+                <p className="text-xs mt-1">{organizationsError}</p>
+              </div>
+            ) : organizations.length === 0 ? (
+              <div className="px-3 py-4 text-center text-sm text-muted-foreground">
+                <Building2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>No organizations yet</p>
+                <p className="text-xs mt-1">Create your first organization to get started</p>
+              </div>
+            ) : (
+              <ul role="menu" className="py-1">
+                {organizations.map((org) => (
+                  <li key={org.id}>
+                    <button
+                      onClick={() => handleSelectOrganization(org)}
+                      className={cn(
+                        'flex w-full items-center gap-3 px-3 py-2 text-sm text-foreground',
+                        'hover:bg-accent hover:text-accent-foreground',
+                        'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-inset',
+                        'transition-colors',
+                        currentOrganization?.id === org.id && 'bg-accent'
+                      )}
+                      role="menuitem"
+                      aria-current={currentOrganization?.id === org.id ? 'true' : undefined}
+                    >
+                      <Building2 className="h-4 w-4 flex-shrink-0" />
+                      <span className="flex-1 text-left">{org.name}</span>
+                      {currentOrganization?.id === org.id && (
+                        <span className="text-xs text-muted-foreground">Current</span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <div className="border-t border-border p-2">
@@ -146,10 +184,9 @@ export function OrganizationSwitcher() {
                 'flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground',
                 'hover:bg-accent hover:text-accent-foreground',
                 'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-inset',
-                'rounded-md'
+                'rounded-md transition-colors'
               )}
               role="menuitem"
-              disabled
             >
               <Plus className="h-4 w-4" />
               Create Organization
