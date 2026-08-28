@@ -8,12 +8,14 @@
  * 
  * Phase 13.2: Public routes implemented with PublicLayout
  * Phase 13.3: Authentication routes implemented with route guards
+ * Phase 13.4: Application shell with AppLayout and protected app routes implemented
  */
 
 import { type RouteObject } from 'react-router-dom';
 import { RootLayout } from '../layouts/RootLayout';
 import { PublicLayout } from '../layouts/public/PublicLayout';
 import { AuthPageLayout } from '../layouts/auth/AuthPageLayout';
+import { AppLayout } from '../layouts/app/AppLayout';
 import { ProtectedRoute } from './guards/ProtectedRoute';
 import { PublicOnlyRoute } from './guards/PublicOnlyRoute';
 import { Placeholder } from './Placeholder';
@@ -28,6 +30,7 @@ import { RegisterPage } from '../pages/auth/RegisterPage';
 import { VerifyEmailPage } from '../pages/auth/VerifyEmailPage';
 import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from '../pages/auth/ResetPasswordPage';
+import { AppHomePage } from '../pages/app/AppHomePage';
 
 /**
  * Public routes - accessible without authentication
@@ -119,22 +122,31 @@ const authRoutes: RouteObject[] = [
 
 /**
  * Protected application routes - require authentication
- * Phase 13.3: Protected route structure in place, actual app pages coming in later phases
+ * Phase 13.4: Application shell with AppLayout and AppHomePage implemented
  */
 const protectedRoutes: RouteObject[] = [
   {
     path: '/app',
     element: (
       <ProtectedRoute>
-        <Placeholder message="Dashboard - Coming Soon" />
+        <AppLayout />
       </ProtectedRoute>
     ),
+    children: [
+      {
+        index: true,
+        element: <AppHomePage />,
+      },
+      // Future app routes will be added here in later phases
+      // Examples: /app/dashboard, /app/incidents, /app/reports, etc.
+    ],
   },
 ];
 
 /**
  * Complete route configuration
  * Phase 13.3: Public routes fully implemented, authentication routes with guards implemented
+ * Phase 13.4: Application shell with AppLayout and protected app routes implemented
  */
 export const routeConfig: RouteObject[] = [
   {

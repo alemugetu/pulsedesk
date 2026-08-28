@@ -1,0 +1,217 @@
+/**
+ * UserMenu component for PulseDesk application shell.
+ * 
+ * Provides user account actions including:
+ * - Display of authenticated user identity
+ * - Logout functionality using existing Phase 13.3 authentication
+ * - Profile/account entry placeholder
+ * 
+ * Integrates with the existing useAuth hook and authentication system.
+ */
+
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../features/auth/hooks/useAuth';
+import { User, LogOut, ChevronDown, Settings } from 'lucide-react';
+import { Button } from '../ui/Button';
+import { cn } from '../../utils/cn';
+
+export function UserMenu() {
+  const { authState, logout } = useAuth();
+  const navigate = useNavigate();
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const user = authState.user;
+  const isLoading = authState.isLoading;
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  // Close menu on Escape key
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+        buttonRef.current?.focus();
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isOpen]);
+
+  const handleLogout = async () => {
+    setIsOpen(false);
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
+  const handleProfileClick = () => {
+    setIsOpen(false);
+    // Placeholder for future profile functionality
+    // Phase 13.5+ will implement organization/user profile
+  };
+
+  const handleSettingsClick = () => {
+    setIsOpen(false);
+    // Placeholder for future settings functionality
+    // Phase 13.5+ will implement settings
+  };
+
+  // Get user display name
+  const getDisplayName = () => {
+    if (user?.first_name && user?.last_name) {
+      return `${user.first_name} ${user.last_name}`;
+    }
+    if (user?.first_name) {
+      return user.first_name;
+    }
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+    return 'User';
+  };
+
+  // Get user initials for avatar
+  const getInitials = () => {
+    if (user?.first_name && user?.last_name) {
+      return `${user.first_name[0]}${user.last_name[0]}`.toUpperCase();
+    }
+    if (user?.first_name) {
+      return user.first_name[0].toUpperCase();
+    }
+    if (user?.email) {
+      return user.email[0].toUpperCase();
+    }
+    return 'U';
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2">
+        <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
+        <div className="h-4 w-24 rounded bg-muted animate-pulse" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <Button
+        ref={buttonRef}
+        variant="ghost"
+        size="sm"
+        onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
+        aria-haspopup="true"
+        className="flex items-center gap-2 px-2"
+      >
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">
+            {getInitials()}
+          </div>
+          <span className="hidden md:inline text-sm font-medium">
+            {getDisplayName()}
+          </span>
+          <ChevronDown className="h-4 w-4 hidden md:block" />
+        </div>
+      </Button>
+
+      {isOpen && (
+        <div
+          ref={menuRef}
+          className={cn(
+            'absolute right-0 top-full mt-2 w-56 rounded-md border border-border bg-card shadow-lg',
+            'animate-in fade-in slide-in-from-top-1',
+            'z-50'
+          )}
+          role="menu"
+          aria-orientation="vertical"
+          aria-labelledby="user-menu-button"
+        >
+          <div className="px-3 py-2 border-b border-border">
+            <p className="text-sm font-medium text-foreground">{getDisplayName()}</p>
+            <p className="text-xs text-muted-foreground">{user?.email}</p>
+          </div>
+
+          <div className="py-1">
+            <button
+              onClick={handleProfileClick}
+              className={cn(
+                'flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground',
+                'hover:bg-accent hover:text-accent-foreground',
+                'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-inset',
+                'disabled:opacity-50 disabled:cursor-not-allowed'
+              )}
+              role="menuitem"
+              disabled
+            >
+              <User className="h-4 w-4" />
+              Profile
+            </button>
+
+            <button
+              onClick={handleSettingsClick}
+              className={cn(
+                'flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground',
+                'hover:bg-accent hover:text-accent-foreground',
+                'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-inset',
+                'disabled:opacity-50 disabled:cursor-not-allowed'
+              )}
+              role="menuitem"
+              disabled
+            >
+              <Settings className="h-4 w-4" />
+              Settings
+            </button>
+          </div>
+
+          <div className="border-t border-border py-1">
+            <button
+              onClick={handleLogout}
+              className={cn(
+                'flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive',
+                'hover:bg-accent hover:text-destructive',
+                'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-inset'
+              )}
+              role="menuitem"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
