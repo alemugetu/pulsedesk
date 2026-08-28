@@ -2,12 +2,13 @@
  * Centralized Axios API client for PulseDesk.
  * 
  * This provides a clean foundation for API communication.
- * Authentication/token lifecycle will be added in Phase 13.3.
+ * Phase 13.3: Authentication/token lifecycle fully integrated.
  */
 
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import { env } from '../config/env';
 import { normalizeApiError } from './errors';
+import { getAccessToken } from '../features/auth/services/tokenService';
 
 /**
  * Create and configure the Axios instance.
@@ -22,15 +23,13 @@ function createApiClient(): AxiosInstance {
     },
   });
 
-  // Request interceptor - can be extended for auth in Phase 13.3
+  // Request interceptor - add authentication header
   client.interceptors.request.use(
     (config) => {
-      // Future: Add authentication headers here
-      // const token = getAuthToken();
-      // if (token) {
-      //   config.headers.Authorization = `Bearer ${token}`;
-      // }
-      
+      const token = getAccessToken();
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
       return config;
     },
     (error) => {
@@ -94,8 +93,8 @@ export async function request<T = unknown>(config: AxiosRequestConfig): Promise<
 }
 
 /**
- * Set authentication token (for Phase 13.3).
- * This is a placeholder for future authentication implementation.
+ * Set authentication token.
+ * Phase 13.3: This is now integrated with the token service.
  */
 export function setAuthToken(token: string | null): void {
   if (token) {
@@ -106,7 +105,8 @@ export function setAuthToken(token: string | null): void {
 }
 
 /**
- * Clear authentication token (for Phase 13.3).
+ * Clear authentication token.
+ * Phase 13.3: This is now integrated with the token service.
  */
 export function clearAuthToken(): void {
   delete apiClient.defaults.headers.common['Authorization'];

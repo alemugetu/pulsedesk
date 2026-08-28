@@ -32,28 +32,28 @@
   }
 
   .dark {
-    /* Dark Theme - PulseDesk Dark Slate + Electric Indigo */
-    --background: 222 27% 7%;
-    --foreground: 210 20% 98%;
-    --card: 222 27% 7%;
-    --card-foreground: 210 20% 98%;
-    --primary: 238 85% 67%;
-    --primary-foreground: 210 20% 98%;
-    --primary-hover: 238 89% 75%;
-    --secondary: 222 27% 13%;
-    --secondary-foreground: 210 20% 98%;
-    --muted: 222 27% 13%;
-    --muted-foreground: 215 16% 65%;
-    --accent: 222 27% 13%;
-    --accent-foreground: 210 20% 98%;
-    --border: 215 25% 27%;
-    --input: 215 28% 17%;
-    --ring: 238 85% 67%;
-    --canvas: 222 27% 7%;
-    --surface: 222 27% 13%;
-    --surface-input: 215 28% 17%;
-    --text-primary: 210 20% 98%;
-    --text-secondary: 215 16% 65%;
-    --placeholder: 215 20% 47%;
+    /* Dark Theme - Approved PulseDesk Palette */
+    --background: 222 27% 7%; /* Canvas: #0b0f17 */
+    --foreground: 210 40% 98%; /* Text Primary: #f8fafc */
+    --card: 217 33% 17%; /* Surface: #151c28 */
+    --card-foreground: 210 40% 98%; /* Text Primary: #f8fafc */
+    --primary: 238 73% 66%; /* Primary: #6366f1 */
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 238 78% 75%; /* Primary Hover: #818cf8 */
+    --secondary: 215 28% 17%; /* Input: #1e293b */
+    --secondary-foreground: 210 40% 98%; /* Text Primary: #f8fafc */
+    --muted: 215 28% 17%; /* Input: #1e293b */
+    --muted-foreground: 215 16% 65%; /* Text Secondary: #94a3b8 */
+    --accent: 215 28% 17%; /* Input: #1e293b */
+    --accent-foreground: 210 40% 98%; /* Text Primary: #f8fafc */
+    --border: 215 25% 27%; /* Border: #334155 */
+    --input: 215 28% 17%; /* Input: #1e293b */
+    --ring: 238 73% 66%; /* Primary: #6366f1 */
+    --canvas: 222 27% 7%; /* Canvas: #0b0f17 */
+    --surface: 217 33% 17%; /* Surface: #151c28 */
+    --surface-input: 215 28% 17%; /* Input: #1e293b */
+    --text-primary: 210 40% 98%; /* Text Primary: #f8fafc */
+    --text-secondary: 215 16% 65%; /* Text Secondary: #94a3b8 */
+    --placeholder: 215 20% 47%; /* Placeholder: #64748b */
   }
 }

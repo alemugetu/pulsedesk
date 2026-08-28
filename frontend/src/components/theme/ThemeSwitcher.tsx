@@ -7,14 +7,14 @@
 
 import { useState } from 'react';
 import { Sun, Moon, Monitor } from 'lucide-react';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '../../theme/useTheme';
 import { cn } from '../../utils/cn';
 
 /**
  * ThemeSwitcher component for theme management
  */
 export function ThemeSwitcher() {
-  const { theme, setTheme, setLight, setDark, setSystem } = useTheme();
+  const { theme, setLight, setDark, setSystem } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
 
   const themeOptions = [

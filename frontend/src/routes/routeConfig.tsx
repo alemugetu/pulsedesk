@@ -7,11 +7,15 @@
  * - Protected application routes (dashboard, incidents, reports, settings)
  * 
  * Phase 13.2: Public routes implemented with PublicLayout
+ * Phase 13.3: Authentication routes implemented with route guards
  */
 
 import { type RouteObject } from 'react-router-dom';
 import { RootLayout } from '../layouts/RootLayout';
 import { PublicLayout } from '../layouts/public/PublicLayout';
+import { AuthPageLayout } from '../layouts/auth/AuthPageLayout';
+import { ProtectedRoute } from './guards/ProtectedRoute';
+import { PublicOnlyRoute } from './guards/PublicOnlyRoute';
 import { Placeholder } from './Placeholder';
 import { HomePage } from '../pages/public/HomePage';
 import { AboutPage } from '../pages/public/AboutPage';
@@ -19,6 +23,11 @@ import { FeaturesPage } from '../pages/public/FeaturesPage';
 import { ContactPage } from '../pages/public/ContactPage';
 import { PrivacyPage } from '../pages/public/PrivacyPage';
 import { TermsPage } from '../pages/public/TermsPage';
+import { LoginPage } from '../pages/auth/LoginPage';
+import { RegisterPage } from '../pages/auth/RegisterPage';
+import { VerifyEmailPage } from '../pages/auth/VerifyEmailPage';
+import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from '../pages/auth/ResetPasswordPage';
 
 /**
  * Public routes - accessible without authentication
@@ -58,33 +67,74 @@ const publicRoutes: RouteObject[] = [
 
 /**
  * Authentication routes - login, register, password management
- * Future: /login, /register, /verify-email, /forgot-password, /reset-password
+ * Phase 13.3: Full authentication implementation with public-only route guards
  */
 const authRoutes: RouteObject[] = [
   {
-    path: '/login',
-    element: <Placeholder message="Login Page - Coming Soon" />,
-  },
-  {
-    path: '/register',
-    element: <Placeholder message="Register Page - Coming Soon" />,
+    element: <AuthPageLayout />,
+    children: [
+      {
+        path: '/login',
+        element: (
+          <PublicOnlyRoute>
+            <LoginPage />
+          </PublicOnlyRoute>
+        ),
+      },
+      {
+        path: '/register',
+        element: (
+          <PublicOnlyRoute>
+            <RegisterPage />
+          </PublicOnlyRoute>
+        ),
+      },
+      {
+        path: '/verify-email',
+        element: (
+          <PublicOnlyRoute>
+            <VerifyEmailPage />
+          </PublicOnlyRoute>
+        ),
+      },
+      {
+        path: '/forgot-password',
+        element: (
+          <PublicOnlyRoute>
+            <ForgotPasswordPage />
+          </PublicOnlyRoute>
+        ),
+      },
+      {
+        path: '/reset-password',
+        element: (
+          <PublicOnlyRoute>
+            <ResetPasswordPage />
+          </PublicOnlyRoute>
+        ),
+      },
+    ],
   },
 ];
 
 /**
  * Protected application routes - require authentication
- * Future: /app, /app/dashboard, /app/incidents, /app/reports, /app/settings
+ * Phase 13.3: Protected route structure in place, actual app pages coming in later phases
  */
 const protectedRoutes: RouteObject[] = [
   {
     path: '/app',
-    element: <Placeholder message="Dashboard - Coming Soon" />,
+    element: (
+      <ProtectedRoute>
+        <Placeholder message="Dashboard - Coming Soon" />
+      </ProtectedRoute>
+    ),
   },
 ];
 
 /**
  * Complete route configuration
- * Phase 13.2: Public routes fully implemented, auth and protected routes remain as placeholders
+ * Phase 13.3: Public routes fully implemented, authentication routes with guards implemented
  */
 export const routeConfig: RouteObject[] = [
   {

@@ -24,6 +24,7 @@ export const colors = {
     'card-foreground': '#0a0a0a',
     primary: '#3b82f6',
     'primary-foreground': '#ffffff',
+    'primary-hover': '#2563eb',
     secondary: '#f1f5f9',
     'secondary-foreground': '#0f172a',
     muted: '#f1f5f9',
@@ -33,25 +34,28 @@ export const colors = {
     border: '#e2e8f0',
     input: '#e2e8f0',
     ring: '#3b82f6',
+    placeholder: '#9ca3af',
   },
   
-  // Dark mode colors
+  // Dark mode colors - approved PulseDesk palette
   dark: {
-    background: '#0a0a0a',
-    foreground: '#fafafa',
-    card: '#0a0a0a',
-    'card-foreground': '#fafafa',
-    primary: '#3b82f6',
+    background: '#0b0f17', // Canvas
+    foreground: '#f8fafc', // Text Primary
+    card: '#151c28', // Surface
+    'card-foreground': '#f8fafc', // Text Primary
+    primary: '#6366f1', // Primary
     'primary-foreground': '#ffffff',
-    secondary: '#1e293b',
-    'secondary-foreground': '#f1f5f9',
-    muted: '#1e293b',
-    'muted-foreground': '#94a3b8',
-    accent: '#1e293b',
-    'accent-foreground': '#f1f5f9',
-    border: '#1e293b',
-    input: '#1e293b',
-    ring: '#3b82f6',
+    'primary-hover': '#818cf8', // Primary Hover
+    secondary: '#1e293b', // Input
+    'secondary-foreground': '#f8fafc', // Text Primary
+    muted: '#1e293b', // Input
+    'muted-foreground': '#94a3b8', // Text Secondary
+    accent: '#1e293b', // Input
+    'accent-foreground': '#f8fafc', // Text Primary
+    border: '#334155', // Border
+    input: '#1e293b', // Input
+    ring: '#6366f1', // Primary
+    placeholder: '#64748b', // Placeholder
   },
 } as const;
 

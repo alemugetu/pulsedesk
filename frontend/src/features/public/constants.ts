@@ -22,11 +22,15 @@ export const NAV_ROUTES = {
 } as const;
 
 /**
- * Authentication route placeholders (for future implementation)
+ * Authentication routes
+ * Phase 13.3: Full authentication implementation
  */
 export const AUTH_ROUTES = {
   LOGIN: { path: '/login', label: 'Sign In' },
   REGISTER: { path: '/register', label: 'Get Started' },
+  VERIFY_EMAIL: { path: '/verify-email', label: 'Verify Email' },
+  FORGOT_PASSWORD: { path: '/forgot-password', label: 'Forgot Password' },
+  RESET_PASSWORD: { path: '/reset-password', label: 'Reset Password' },
 } as const;
 
 /**
