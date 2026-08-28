@@ -47,7 +47,7 @@ export interface TokenResponse {
 /**
  * User login response (returns tokens)
  */
-export interface UserLoginResponse extends TokenResponse {}
+export type UserLoginResponse = TokenResponse;
 
 /**
  * Logout request

@@ -85,7 +85,7 @@ export function usePasswordReset() {
 
     try {
       await requestPasswordReset(email);
-    } catch (error) {
+    } catch {
       // Error is handled by useAuth
     }
   };
@@ -101,7 +101,7 @@ export function usePasswordReset() {
 
     try {
       await confirmPasswordReset(resetData);
-    } catch (error) {
+    } catch {
       // Error is handled by useAuth
     }
   };
@@ -109,6 +109,7 @@ export function usePasswordReset() {
   return {
     email,
     resetData,
+    setResetData,
     errors,
     isLoading: authState.isLoading,
     serverError: authState.error,

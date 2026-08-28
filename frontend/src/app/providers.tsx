@@ -10,7 +10,7 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from 'react-router-dom';
 import { ThemeProvider } from '../theme/ThemeProvider';
-import { AuthProvider } from '../features/auth/hooks/useAuth';
+import { AuthProvider } from '../features/auth/hooks/AuthContext';
 import { queryClient } from '../lib/queryClient';
 import { router } from '../routes';
 import { App } from './App';

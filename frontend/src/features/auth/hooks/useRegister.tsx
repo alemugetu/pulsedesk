@@ -68,7 +68,7 @@ export function useRegister() {
 
     try {
       await register(formData);
-    } catch (error) {
+    } catch {
       // Error is handled by useAuth
     }
   };

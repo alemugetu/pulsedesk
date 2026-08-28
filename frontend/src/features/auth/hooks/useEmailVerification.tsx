@@ -46,7 +46,7 @@ export function useEmailVerification() {
 
     try {
       await verifyEmail(token);
-    } catch (error) {
+    } catch {
       // Error is handled by useAuth
     }
   };
@@ -62,7 +62,7 @@ export function useEmailVerification() {
 
     try {
       await resendVerification(email);
-    } catch (error) {
+    } catch {
       // Error is handled by useAuth
     }
   };

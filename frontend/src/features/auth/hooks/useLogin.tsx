@@ -57,7 +57,7 @@ export function useLogin() {
 
     try {
       await login(credentials);
-    } catch (error) {
+    } catch {
       // Error is handled by useAuth
     }
   };

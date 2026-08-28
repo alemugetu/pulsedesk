@@ -34,7 +34,7 @@ export function ForgotPasswordPage() {
     try {
       await handleRequestReset(e);
       setIsSuccess(true);
-    } catch (error) {
+    } catch {
       // Error handled by hook
     }
   };

@@ -8,8 +8,8 @@
  */
 
 import { useContext } from 'react';
-import { ThemeContext } from './ThemeProvider';
-import type { ThemeContextValue } from './ThemeProvider';
+import { ThemeContext } from './ThemeContext';
+import type { ThemeContextValue } from './ThemeContext';
 
 /**
  * Internal hook to access the theme context.

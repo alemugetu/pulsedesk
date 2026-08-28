@@ -7,6 +7,7 @@
 
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle, AlertCircle, Lock, ArrowLeft } from 'lucide-react';
 import { AuthLayout } from '../../features/auth/components/AuthLayout';
 import { AuthCard } from '../../features/auth/components/AuthCard';
@@ -19,10 +20,15 @@ import { usePasswordReset } from '../../features/auth/hooks/usePasswordReset';
 export function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
   const [isSuccess, setIsSuccess] = useState(false);
-  const [isInvalidToken, setIsInvalidToken] = useState(false);
+  
+  // Derive invalid token state from URL params during render
+  const token = searchParams.get('token');
+  const userId = searchParams.get('user_id');
+  const isInvalidToken = !token || !userId;
 
   const {
     resetData,
+    setResetData,
     errors,
     isLoading,
     serverError,
@@ -33,23 +39,17 @@ export function ResetPasswordPage() {
 
   // Get token and user_id from URL on mount
   useEffect(() => {
-    const token = searchParams.get('token');
-    const userId = searchParams.get('user_id');
-
-    if (!token || !userId) {
-      setIsInvalidToken(true);
-    } else {
-      resetData.token = token;
-      resetData.user_id = userId;
+    if (token && userId) {
+      setResetData(prev => ({ ...prev, token, user_id: userId }));
     }
-  }, [searchParams, resetData]);
+  }, [token, userId, setResetData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await handleConfirmReset(e);
       setIsSuccess(true);
-    } catch (error) {
+    } catch {
       // Error handled by hook
     }
   };

@@ -11,6 +11,16 @@ import { useTheme } from '../../theme/useTheme';
 import { cn } from '../../utils/cn';
 
 /**
+ * Icon lookup object for theme modes - defined outside component to avoid
+ * creating new component references on each render
+ */
+const THEME_ICONS = {
+  light: Sun,
+  dark: Moon,
+  system: Monitor,
+} as const;
+
+/**
  * ThemeSwitcher component for theme management
  */
 export function ThemeSwitcher() {
@@ -38,12 +48,7 @@ export function ThemeSwitcher() {
     },
   ];
 
-  const getCurrentIcon = () => {
-    const current = themeOptions.find(opt => opt.value === theme.mode);
-    return current ? current.icon : Monitor;
-  };
-
-  const CurrentIcon = getCurrentIcon();
+  const CurrentIcon = THEME_ICONS[theme.mode] || Monitor;
 
   return (
     <div className="relative">

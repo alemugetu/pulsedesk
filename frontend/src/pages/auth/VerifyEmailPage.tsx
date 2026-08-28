@@ -5,7 +5,7 @@
  * Also provides option to resend verification email.
  */
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle, Mail, ArrowLeft } from 'lucide-react';
 import { AuthLayout } from '../../features/auth/components/AuthLayout';
@@ -18,9 +18,9 @@ import { useEmailVerification } from '../../features/auth/hooks/useEmailVerifica
 
 export function VerifyEmailPage() {
   const [searchParams] = useSearchParams();
+  const token = searchParams.get('token') ?? '';
+  const [showResend, setShowResend] = useState(!token);
   const [isVerified, setIsVerified] = useState(false);
-  const [showResend, setShowResend] = useState(false);
-  const [token, setToken] = useState('');
 
   const {
     email,
@@ -33,22 +33,12 @@ export function VerifyEmailPage() {
     clearError,
   } = useEmailVerification();
 
-  // Get token from URL on mount
-  useEffect(() => {
-    const urlToken = searchParams.get('token');
-    if (urlToken) {
-      setToken(urlToken);
-    } else {
-      setShowResend(true);
-    }
-  }, [searchParams]);
-
   const handleVerifyClick = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await handleVerify(token);
       setIsVerified(true);
-    } catch (error) {
+    } catch {
       // Error handled by hook
     }
   };
@@ -58,7 +48,7 @@ export function VerifyEmailPage() {
     try {
       await handleResend(e);
       setIsVerified(true);
-    } catch (error) {
+    } catch {
       // Error handled by hook
     }
   };

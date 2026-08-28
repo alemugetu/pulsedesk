@@ -9,18 +9,11 @@
  * - Application-wide theme availability
  */
 
-import { createContext, useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { ThemeMode, Theme } from './theme';
 import { THEME_STORAGE_KEY } from './theme';
 import { resolveThemeMode, getInitialThemeMode } from './themeUtils';
-
-export interface ThemeContextValue {
-  theme: Theme;
-  setTheme: (mode: ThemeMode) => void;
-  toggleTheme: () => void;
-}
-
-export const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
+import { ThemeContext } from './ThemeContext';
 
 interface ThemeProviderProps {
   children: ReactNode;
@@ -109,4 +102,3 @@ export function ThemeProvider({ children, defaultTheme = 'system' }: ThemeProvid
     </ThemeContext.Provider>
   );
 }
-
