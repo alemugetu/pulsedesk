@@ -35,7 +35,7 @@ function getContentIcon(contentType: string) {
 
 export function AttachmentItem({ attachment, incidentId }: AttachmentItemProps) {
   const { currentOrganization, hasPermission } = useOrganizationContext();
-  const { user: authUser } = useAuth();
+  const { authState: { user: authUser } } = useAuth();
   const deleteMutation = useDeleteAttachment(incidentId);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 

@@ -4,6 +4,7 @@
  * Provides helper functions for permission-based UI behavior.
  * IMPORTANT: These are frontend UX checks only - backend authorization is the security boundary.
  * Never rely solely on frontend permission checks for security.
+ * Phase 13.8: Added SLA and escalation permissions.
  */
 
 import type { PermissionCodename } from '../types/role';
@@ -22,6 +23,11 @@ export function isValidPermission(codename: string): codename is PermissionCoden
     'role.view',
     'role.manage',
     'role.assign',
+    'sla.view',
+    'sla.manage',
+    'escalation.view',
+    'escalation.manage',
+    'escalation.evaluate',
   ] as const;
   
   return validPermissions.includes(codename);
@@ -104,4 +110,39 @@ export function hasAnyPermission(userPermissions: string[], requiredPermissions:
  */
 export function hasAllPermissions(userPermissions: string[], requiredPermissions: string[]): boolean {
   return requiredPermissions.every(permission => userPermissions.includes(permission));
+}
+
+/**
+ * Get permissions that allow viewing SLA policies
+ */
+export function canViewSlaPolicies(userPermissions: string[]): boolean {
+  return userPermissions.includes('sla.view');
+}
+
+/**
+ * Get permissions that allow managing SLA policies
+ */
+export function canManageSlaPolicies(userPermissions: string[]): boolean {
+  return userPermissions.includes('sla.manage');
+}
+
+/**
+ * Get permissions that allow viewing escalation policies
+ */
+export function canViewEscalationPolicies(userPermissions: string[]): boolean {
+  return userPermissions.includes('escalation.view');
+}
+
+/**
+ * Get permissions that allow managing escalation policies
+ */
+export function canManageEscalationPolicies(userPermissions: string[]): boolean {
+  return userPermissions.includes('escalation.manage');
+}
+
+/**
+ * Get permissions that allow evaluating escalations
+ */
+export function canEvaluateEscalations(userPermissions: string[]): boolean {
+  return userPermissions.includes('escalation.evaluate');
 }

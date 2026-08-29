@@ -38,7 +38,6 @@ export function useIncident(incidentId: string | null) {
       if (!incidentId) {
         throw new Error('Incident ID is required');
       }
-      console.log('useIncident - fetching incident:', organization.id, incidentId);
       return getIncident(organization.id, incidentId);
     },
     enabled: !!organization?.id && !!incidentId,

@@ -6,7 +6,7 @@ import { OrganizationContext } from '../../organizations/context/organizationCon
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 vi.mock('../../auth/hooks/useAuth', () => ({
-  useAuth: () => ({ user: { id: 'current-user', email: 'me@example.com' } }),
+  useAuth: () => ({ authState: { user: { id: 'current-user', email: 'me@example.com' } } }),
 }));
 
 vi.mock('../hooks/useDeleteAttachment', () => ({

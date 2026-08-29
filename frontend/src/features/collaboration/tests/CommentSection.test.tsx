@@ -7,15 +7,15 @@ import { CommentSection } from '../components/CommentSection';
 import * as commentHooks from '../hooks/useComments';
 
 vi.mock('../../auth/hooks/useAuth', () => ({
-  useAuth: () => ({ user: { id: 'u1', email: 'me@example.com' } }),
+  useAuth: () => ({ authState: { user: { id: 'u1', email: 'me@example.com' } } }),
 }));
 
 const INCIDENT_ID = 'inc-1';
 
 function makeCtxValue(permissions: string[] = ['incident.view']): OrganizationContextValue {
   return {
-    organizations: [{ id: 'org-1', name: 'Acme', slug: 'acme', created_at: '2024-01-01T00:00:00Z' }],
-    currentOrganization: { id: 'org-1', name: 'Acme', slug: 'acme', created_at: '2024-01-01T00:00:00Z' },
+    organizations: [{ id: 'org-1', name: 'Acme', slug: 'acme', status: 'ACTIVE', created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z' }],
+    currentOrganization: { id: 'org-1', name: 'Acme', slug: 'acme', status: 'ACTIVE', created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z' },
     isLoadingOrganizations: false,
     isLoadingCurrent: false,
     organizationsError: null,

@@ -105,6 +105,7 @@ describe('attachmentService', () => {
     const mockBlob = new Blob(['file-content'], { type: 'application/pdf' });
 
     it('downloads a blob via apiClient with responseType blob and triggers download', async () => {
+      vi.useFakeTimers();
       const { downloadAttachment } = await import('../services/attachmentService');
       vi.mocked(apiClient.get).mockResolvedValue({
         data: mockBlob,
@@ -129,6 +130,7 @@ describe('attachmentService', () => {
         .mockImplementation((node) => node);
 
       await downloadAttachment(ORG_ID, INCIDENT_ID, ATTACHMENT_ID, 'report.pdf');
+      await vi.advanceTimersByTimeAsync(1000);
 
       expect(apiClient.get).toHaveBeenCalledWith(
         `/api/v1/organizations/${ORG_ID}/incidents/${INCIDENT_ID}/attachments/${ATTACHMENT_ID}/download/`,
@@ -145,6 +147,7 @@ describe('attachmentService', () => {
       createElementSpy.mockRestore();
       appendChild.mockRestore();
       removeChild.mockRestore();
+      vi.useRealTimers();
     });
   });
 });

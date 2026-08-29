@@ -133,8 +133,14 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
       predicate: (query) => {
         const key = query.queryKey;
         // Clear queries that are organization-scoped
-        return Array.isArray(key) && key.some(k => 
-          typeof k === 'string' && (k.includes('organizations') || k.includes('members') || k.includes('roles'))
+        return Array.isArray(key) && key.some(k =>
+          typeof k === 'string' && (
+            k.includes('organizations') ||
+            k.includes('members') ||
+            k.includes('roles') ||
+            k.includes('sla') ||
+            k.includes('escalation')
+          )
         );
       },
     });

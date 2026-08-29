@@ -7,7 +7,7 @@ import * as hooks from '../hooks/useUploadAttachment';
 import { MAX_ATTACHMENT_SIZE_BYTES } from '../types/attachment.types';
 
 vi.mock('../../auth/hooks/useAuth', () => ({
-  useAuth: () => ({ user: { id: 'u1', email: 'me@example.com' } }),
+  useAuth: () => ({ authState: { user: { id: 'u1', email: 'me@example.com' } } }),
 }));
 
 function wrap(ui: React.ReactElement, perms: readonly string[] = ['incident.view']) {

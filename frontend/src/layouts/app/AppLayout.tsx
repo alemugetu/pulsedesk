@@ -33,6 +33,7 @@ import { cn } from '../../utils/cn';
 
 export function AppLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const handleMobileMenuToggle = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -42,18 +43,24 @@ export function AppLayout() {
     setIsMobileMenuOpen(false);
   };
 
+  const handleSidebarToggle = () => {
+    setIsSidebarCollapsed((isCollapsed) => !isCollapsed);
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex h-dvh flex-col overflow-hidden bg-background">
       {/* Application Navbar */}
       <AppNavbar
         onMobileMenuToggle={handleMobileMenuToggle}
         isMobileMenuOpen={isMobileMenuOpen}
+        onSidebarToggle={handleSidebarToggle}
+        isSidebarCollapsed={isSidebarCollapsed}
       />
 
       {/* Main Layout Container */}
-      <div className="flex">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Desktop Sidebar */}
-        <Sidebar />
+        <Sidebar isCollapsed={isSidebarCollapsed} />
 
         {/* Mobile Sidebar */}
         <MobileSidebar
@@ -64,7 +71,7 @@ export function AppLayout() {
         {/* Main Content Area */}
         <main
           className={cn(
-            'flex-1 min-h-[calc(100vh-4rem)]', // Subtract navbar height
+            'min-w-0 min-h-0 flex-1',
             'overflow-y-auto',
             'focus:outline-none'
           )}

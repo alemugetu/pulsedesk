@@ -2,6 +2,7 @@
  * IncidentDetail component.
  * 
  * Displays full incident details including header, metadata, and actions.
+ * Phase 13.8: Integrated SLA and Escalation section.
  */
 
 import type { Incident } from '../types/incident.types';
@@ -12,6 +13,7 @@ import { Loading } from '../../../components/ui/Loading';
 import { ErrorState } from '../../../components/ui/ErrorState';
 import { Card } from '../../../components/ui/Card';
 import { CollaborationSection } from '../../collaboration/components/CollaborationSection';
+import { SlaEscalationSection } from '../../sla/components/SlaEscalationSection';
 
 interface IncidentDetailProps {
   incident: Incident | null;
@@ -82,6 +84,9 @@ export function IncidentDetail({
           />
         </div>
       </Card>
+
+      {/* Phase 13.8: SLA and Escalation Section */}
+      <SlaEscalationSection incident={incident} />
 
       <CollaborationSection incidentId={incident.id} />
     </div>

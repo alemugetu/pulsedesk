@@ -17,7 +17,8 @@ export function formatFileSize(bytes: number): string {
     i += 1;
   }
   const precision = size >= 100 || i === 0 ? 0 : 1;
-  return `${size.toFixed(precision)} ${units[i]}`;
+  const formatted = size.toFixed(precision).replace(/\.0$/, '');
+  return `${formatted} ${units[i]}`;
 }
 
 export function getFileExtension(filename: string): string {

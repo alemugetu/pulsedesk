@@ -117,7 +117,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
       <div
         ref={sidebarRef}
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-72 bg-card border-r border-border shadow-lg md:hidden',
+          'fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-card border-r border-border shadow-lg md:hidden',
           'transform transition-transform duration-200 ease-in-out',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}

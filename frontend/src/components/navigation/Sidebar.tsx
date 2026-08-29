@@ -20,33 +20,43 @@ import { cn } from '../../utils/cn';
 interface SidebarProps {
   /** Additional CSS classes */
   className?: string;
+  /** Whether to show the compact icon-only desktop navigation */
+  isCollapsed?: boolean;
 }
 
-export function Sidebar({ className }: SidebarProps) {
+export function Sidebar({ className, isCollapsed = false }: SidebarProps) {
   const location = useLocation();
 
   return (
     <aside
       className={cn(
-        'hidden md:flex flex-col w-64 border-r border-border bg-card',
-        'h-[calc(100vh-4rem)]', // Subtract navbar height
-        'overflow-y-auto',
+        'hidden h-full min-h-0 shrink-0 flex-col overflow-hidden border-r border-border bg-card md:flex',
+        'transition-[width] duration-200 ease-in-out',
+        isCollapsed ? 'w-16' : 'w-64',
         className
       )}
+      id="desktop-sidebar"
       aria-label="Main navigation"
     >
-      <nav className="flex-1 px-3 py-4 space-y-6">
+      <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4 space-y-6">
         {navigationGroups.map((group) => (
           <div key={group.id}>
             {group.label && (
-              <h3 className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <h3 className={cn(
+                'px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider',
+                isCollapsed && 'sr-only'
+              )}>
                 {group.label}
               </h3>
             )}
             <ul className="space-y-1" role="list">
               {group.items.map((item) => (
                 <li key={item.id}>
-                  <SidebarNavLink item={item} currentPath={location.pathname} />
+                  <SidebarNavLink
+                    item={item}
+                    currentPath={location.pathname}
+                    isCollapsed={isCollapsed}
+                  />
                 </li>
               ))}
             </ul>
@@ -55,10 +65,11 @@ export function Sidebar({ className }: SidebarProps) {
       </nav>
 
       {/* Footer section for future use */}
-      <div className="p-4 border-t border-border">
-        <div className="text-xs text-muted-foreground">
+      <div className={cn('border-t border-border', isCollapsed ? 'p-2 text-center' : 'p-4')}>
+        <div className={cn('text-xs text-muted-foreground', isCollapsed && 'sr-only')}>
           PulseDesk v1.0.0
         </div>
+        {isCollapsed && <span className="text-xs font-semibold text-muted-foreground" aria-hidden="true">P</span>}
       </div>
     </aside>
   );
@@ -75,9 +86,10 @@ interface SidebarNavLinkProps {
     ariaLabel?: string;
   };
   currentPath: string;
+  isCollapsed: boolean;
 }
 
-function SidebarNavLink({ item, currentPath }: SidebarNavLinkProps) {
+function SidebarNavLink({ item, currentPath, isCollapsed }: SidebarNavLinkProps) {
   const Icon = item.icon;
   const isActive = currentPath === item.path || currentPath.startsWith(`${item.path}/`);
 
@@ -89,6 +101,7 @@ function SidebarNavLink({ item, currentPath }: SidebarNavLinkProps) {
           'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
           'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-inset',
           'relative',
+          isCollapsed && 'justify-center px-2',
           // Active state styling - subtle background instead of hard border
           isLinkActive
             ? 'bg-accent text-foreground'
@@ -98,6 +111,7 @@ function SidebarNavLink({ item, currentPath }: SidebarNavLinkProps) {
         )
       }
       aria-label={item.ariaLabel || item.label}
+      title={isCollapsed ? item.label : undefined}
       aria-current={isActive ? 'page' : undefined}
       onClick={(e) => {
         if (item.disabled) {
@@ -106,8 +120,8 @@ function SidebarNavLink({ item, currentPath }: SidebarNavLinkProps) {
       }}
     >
       <Icon className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
-      <span className="flex-1">{item.label}</span>
-      {item.badge && (
+      <span className={cn('flex-1', isCollapsed && 'sr-only')}>{item.label}</span>
+      {item.badge && !isCollapsed && (
         <span
           className={cn(
             'inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium rounded-full',

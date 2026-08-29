@@ -84,9 +84,7 @@ export async function getIncident(
   incidentId: string
 ): Promise<Incident> {
   const url = `${getIncidentsBaseUrl(organizationId)}/${incidentId}/`;
-  console.log('incidentService.getIncident - URL:', url);
   const result = await api.get<Incident>(url);
-  console.log('incidentService.getIncident - result:', result);
   return result;
 }
 
@@ -101,9 +99,7 @@ export async function createIncident(
   data: CreateIncidentRequest
 ): Promise<Incident> {
   const url = `${getIncidentsBaseUrl(organizationId)}/`;
-  console.log('incidentService.createIncident - URL:', url, 'data:', data);
   const result = await api.post<Incident>(url, data);
-  console.log('incidentService.createIncident - result:', result);
   return result;
 }
 

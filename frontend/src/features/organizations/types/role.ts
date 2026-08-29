@@ -70,6 +70,7 @@ export type RoleDetailResponse = Role;
 /**
  * Available permission codenames based on backend RBAC system
  * These are the actual permissions used in the PulseDesk backend
+ * Phase 13.8: Added escalation.evaluate permission
  */
 export const PERMISSION_CODENAMES = [
   'organization.view',
@@ -89,6 +90,7 @@ export const PERMISSION_CODENAMES = [
   'sla.manage',
   'escalation.view',
   'escalation.manage',
+  'escalation.evaluate',
   'audit_log.view',
   'report.view',
 ] as const;

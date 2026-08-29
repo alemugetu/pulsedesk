@@ -55,7 +55,7 @@ export function CommentSection({ incidentId }: CommentSectionProps) {
         ) : isError ? (
           <ErrorState
             title="Failed to load comments"
-            message={error?.message || 'An unexpected error occurred.'}
+            description={error?.message || 'An unexpected error occurred.'}
             onRetry={() => refetch()}
             data-testid="comments-error"
           />

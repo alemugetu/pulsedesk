@@ -1,4 +1,5 @@
-import { useRef, useState, ChangeEvent, DragEvent, KeyboardEvent } from 'react';
+import { useRef, useState } from 'react';
+import type { ChangeEvent, DragEvent, KeyboardEvent } from 'react';
 import {
   Paperclip,
   Upload,

@@ -5,6 +5,8 @@
  * Based on backend models and serializers in backend/apps/incidents/
  */
 
+import type { SLAState, IncidentSLASummary } from '../../sla/types/sla.types';
+
 /**
  * Incident status enum matching backend IncidentStatus
  */
@@ -16,9 +18,9 @@ export type IncidentStatus = 'OPEN' | 'ACKNOWLEDGED' | 'IN_PROGRESS' | 'RESOLVED
 export type IncidentPriority = 'P1' | 'P2' | 'P3' | 'P4';
 
 /**
- * SLA state enum for filtering
+ * Re-export SLA types for convenience
  */
-export type SLAState = 'BREACHED' | 'ON_TRACK' | 'COMPLETED';
+export type { SLAState, IncidentSLASummary };
 
 /**
  * Incident category model
@@ -55,18 +57,6 @@ export interface UserReference {
 export interface AssigneeReference {
   id: string;
   user: UserReference;
-}
-
-/**
- * SLA summary (embedded in incident response)
- * This is optional and may be null if no SLA policy is configured
- */
-export interface IncidentSLASummary {
-  id: string;
-  deadline: string;
-  state: SLAState;
-  breached_at: string | null;
-  completed_at: string | null;
 }
 
 /**

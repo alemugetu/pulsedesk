@@ -136,7 +136,7 @@ export function CommentItem({ comment, onRefetch }: CommentItemProps) {
         {isEditing ? (
           <div className="mt-2 space-y-2">
             <textarea
-              className="w-full rounded-md border border-surface-400 bg-surface-200 text-text-primary px-3 py-2 text-sm focus:outline-none focus:border-primary-500 min-h-[80px]"
+              className="w-full rounded-md border border-surface-400 bg-white text-gray-900 px-3 py-2 text-sm focus:outline-none focus:border-primary-500 min-h-[80px]"
               value={editBody}
               onChange={(e) => setEditBody(e.target.value)}
               aria-label="Edit comment body"

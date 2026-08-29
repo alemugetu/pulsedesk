@@ -1,4 +1,5 @@
-import { useState, FormEvent, ChangeEvent } from 'react';
+import { useState } from 'react';
+import type { FormEvent, ChangeEvent } from 'react';
 import { Send, Lock, Unlock } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { validateCommentBody } from '../utils/commentUtils';
@@ -70,7 +71,7 @@ export function CommentForm({
     >
       <textarea
         name="comment-body"
-        className="w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500 min-h-[96px] resize-y placeholder:text-muted-foreground"
+        className="w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500 min-h-[96px] resize-y placeholder:text-gray-500"
         placeholder="Add a comment..."
         value={body}
         onChange={handleChange}
@@ -115,7 +116,7 @@ export function CommentForm({
             type="submit"
             size="sm"
             variant="primary"
-            disabled={isDisabled || !body.trim()}
+            disabled={isDisabled}
             data-testid="comment-submit-button"
           >
             <Send size={14} aria-hidden="true" />

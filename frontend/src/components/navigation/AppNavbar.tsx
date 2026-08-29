@@ -25,26 +25,49 @@ interface AppNavbarProps {
   onMobileMenuToggle: () => void;
   /** Whether mobile sidebar is currently open */
   isMobileMenuOpen?: boolean;
+  /** Callback to collapse or expand the desktop sidebar */
+  onSidebarToggle: () => void;
+  /** Whether the desktop sidebar is collapsed */
+  isSidebarCollapsed: boolean;
 }
 
-export function AppNavbar({ onMobileMenuToggle, isMobileMenuOpen = false }: AppNavbarProps) {
+export function AppNavbar({
+  onMobileMenuToggle,
+  isMobileMenuOpen = false,
+  onSidebarToggle,
+  isSidebarCollapsed,
+}: AppNavbarProps) {
   return (
     <header
       className={cn(
-        'sticky top-0 z-40 w-full border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60'
+        'sticky top-0 z-40 w-full shrink-0 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60'
       )}
     >
       <div className="flex h-16 items-center justify-between px-4 md:px-6">
-        {/* Left side: Mobile menu trigger and branding */}
+        {/* Left side: navigation triggers and branding */}
         <div className="flex items-center gap-4">
-          {/* Mobile menu trigger */}
+          {/* Mobile menu trigger wrapped in div to guarantee md:hidden responsiveness */}
+          <div className="block md:hidden">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onMobileMenuToggle}
+              aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={isMobileMenuOpen}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          </div>
+
+          {/* Desktop sidebar toggle */}
           <Button
             variant="ghost"
             size="sm"
-            onClick={onMobileMenuToggle}
-            aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={isMobileMenuOpen}
-            className="md:hidden"
+            onClick={onSidebarToggle}
+            aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-expanded={!isSidebarCollapsed}
+            aria-controls="desktop-sidebar"
+            className="hidden md:inline-flex"
           >
             <Menu className="h-5 w-5" />
           </Button>

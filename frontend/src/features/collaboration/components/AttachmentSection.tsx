@@ -55,7 +55,7 @@ export function AttachmentSection({ incidentId }: AttachmentSectionProps) {
         ) : isError ? (
           <ErrorState
             title="Failed to load attachments"
-            message={error?.message || 'An unexpected error occurred.'}
+            description={error?.message || 'An unexpected error occurred.'}
             onRetry={() => refetch()}
             data-testid="attachments-error"
           />

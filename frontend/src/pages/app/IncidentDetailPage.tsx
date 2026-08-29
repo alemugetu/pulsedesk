@@ -10,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { useIncident } from '../../features/incidents/hooks/useIncident';
 import { IncidentDetail } from '../../features/incidents/components/IncidentDetail';
 import { Button } from '../../components/ui/Button';
-import { ArrowLeft, Edit } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useCurrentOrganization } from '../../features/organizations/context/organizationContextDef';
 
 export function IncidentDetailPage() {
@@ -23,12 +23,6 @@ export function IncidentDetailPage() {
 
   const handleBack = () => {
     navigate('/app/incidents');
-  };
-
-  const handleEdit = () => {
-    if (incidentId) {
-      navigate(`/app/incidents/${incidentId}/edit`);
-    }
   };
 
   const handleStatusChange = (newStatus: string) => {
@@ -58,7 +52,6 @@ export function IncidentDetailPage() {
             <p className="text-muted-foreground">View and manage incident information</p>
           </div>
         </div>
-        {/* Edit functionality not yet implemented */}
       </div>
 
       <IncidentDetail

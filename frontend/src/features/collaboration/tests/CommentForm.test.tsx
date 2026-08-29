@@ -6,7 +6,7 @@ import { CommentForm } from '../components/CommentForm';
 import * as hooks from '../hooks/useCreateComment';
 
 vi.mock('../../auth/hooks/useAuth', () => ({
-  useAuth: () => ({ user: { id: 'u1', email: 'me@example.com' } }),
+  useAuth: () => ({ authState: { user: { id: 'u1', email: 'me@example.com' } } }),
 }));
 
 const INCIDENT_ID = 'inc-1';
