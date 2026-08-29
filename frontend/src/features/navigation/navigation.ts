@@ -8,10 +8,11 @@
  * Phase 13.4: Initial navigation structure with Home/placeholder items.
  * Phase 13.5: Organizations route added.
  * Phase 13.6: Incidents route added.
- * Future phases will add: Operations, Reports, Settings, Audit.
+ * Phase 13.9: Operations route added (replaces the disabled Dashboard placeholder).
+ * Future phases will add: Reports, Settings, Audit.
  */
 
-import { Home, LayoutDashboard, Settings, FileText, Building2, AlertTriangle } from 'lucide-react';
+import { Home, Gauge, Settings, FileText, Building2, AlertTriangle } from 'lucide-react';
 import type { NavigationConfig, NavigationGroup, NavigationItem } from './navigation.types';
 
 /**
@@ -19,6 +20,7 @@ import type { NavigationConfig, NavigationGroup, NavigationItem } from './naviga
  * Phase 13.4: Only includes currently implemented/placeholder routes
  * Phase 13.5: Organizations route added
  * Phase 13.6: Incidents route added
+ * Phase 13.9: Operations route added
  */
 const mainNavigationItems: NavigationItem[] = [
   {
@@ -46,13 +48,12 @@ const mainNavigationItems: NavigationItem[] = [
     ariaLabel: 'Navigate to organizations page',
   },
   {
-    id: 'dashboard',
-    label: 'Dashboard',
-    path: '/app/dashboard',
-    icon: LayoutDashboard,
+    id: 'operations',
+    label: 'Operations',
+    path: '/app/operations',
+    icon: Gauge,
     visibility: 'authenticated',
-    disabled: true,
-    ariaLabel: 'Dashboard - Coming Soon',
+    ariaLabel: 'Navigate to operations command center',
   },
 ];
 

@@ -36,6 +36,7 @@ import { OrganizationPage } from '../pages/organizations/OrganizationPage';
 import { IncidentsPage } from '../pages/app/IncidentsPage';
 import { IncidentDetailPage } from '../pages/app/IncidentDetailPage';
 import { CreateIncidentPage } from '../pages/app/CreateIncidentPage';
+import { OperationsCommandCenterPage } from '../features/operations/pages/OperationsCommandCenterPage';
 
 /**
  * Public routes - accessible without authentication
@@ -130,6 +131,7 @@ const authRoutes: RouteObject[] = [
  * Phase 13.4: Application shell with AppLayout and AppHomePage implemented
  * Phase 13.5: Organization routes added
  * Phase 13.6: Incident routes added
+ * Phase 13.9: Operations Command Center route added
  */
 const protectedRoutes: RouteObject[] = [
   {
@@ -163,6 +165,10 @@ const protectedRoutes: RouteObject[] = [
       {
         path: 'incidents/:incidentId',
         element: <IncidentDetailPage />,
+      },
+      {
+        path: 'operations',
+        element: <OperationsCommandCenterPage />,
       },
       // Future app routes will be added here in later phases
       // Examples: /app/dashboard, /app/reports, /app/settings, etc.
