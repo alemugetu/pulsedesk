@@ -23,7 +23,7 @@ export function IncidentsPage() {
   const { filters, setFilter, clearFilters, hasActiveFilters } = useIncidentFilters();
   
   const { data, isLoading, error } = useIncidents(filters);
-  const errorMessage = error instanceof Error ? error.message : String(error);
+  const errorMessage = error ? (error instanceof Error ? error.message : String(error)) : null;
   
   const handleIncidentClick = (incident: Incident) => {
     navigate(`/app/incidents/${incident.id}`);

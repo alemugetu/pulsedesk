@@ -71,6 +71,7 @@ export function AuthFormField({
           value={value}
           onChange={onChange}
           error={error}
+          showError={false}
           placeholder={placeholder}
           autoComplete={autoComplete}
           disabled={disabled}

@@ -19,7 +19,7 @@ export function IncidentDetailPage() {
   const organization = useCurrentOrganization();
   
   const { data: incident, isLoading, error } = useIncident(incidentId || null);
-  const errorMessage = error instanceof Error ? error.message : String(error);
+  const errorMessage = error ? (error instanceof Error ? error.message : String(error)) : null;
 
   const handleBack = () => {
     navigate('/app/incidents');
@@ -58,12 +58,7 @@ export function IncidentDetailPage() {
             <p className="text-muted-foreground">View and manage incident information</p>
           </div>
         </div>
-        {incident && (
-          <Button onClick={handleEdit}>
-            <Edit className="w-4 h-4 mr-2" />
-            Edit
-          </Button>
-        )}
+        {/* Edit functionality not yet implemented */}
       </div>
 
       <IncidentDetail

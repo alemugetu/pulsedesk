@@ -56,7 +56,7 @@ describe('incidentService', () => {
 
       const result = await getIncidents('org-123', { status: 'OPEN' });
 
-      expect(api.get).toHaveBeenCalledWith('/api/v1/organizations/org-123/incidents', {
+      expect(api.get).toHaveBeenCalledWith('/api/v1/organizations/org-123/incidents/', {
         params: { status: 'OPEN' },
       });
       expect(result).toEqual(mockResponse);
@@ -124,7 +124,7 @@ describe('incidentService', () => {
 
       const result = await createIncident('org-123', requestData);
 
-      expect(api.post).toHaveBeenCalledWith('/api/v1/organizations/org-123/incidents', requestData);
+      expect(api.post).toHaveBeenCalledWith('/api/v1/organizations/org-123/incidents/', requestData);
       expect(result).toEqual(mockIncident);
     });
   });

@@ -153,9 +153,9 @@ function normalizeAxiosError(error: AxiosError): ApiError {
   }
 
   // Default for other status codes
-  const errorMessage = (data as Record<string, unknown>)?.detail || 
-                      (data as Record<string, unknown>)?.message || 
-                      'An error occurred';
+  const errorMessage = (data as Record<string, unknown>)?.detail ||
+    (data as Record<string, unknown>)?.message ||
+    'An error occurred';
   return {
     type: ApiErrorType.UNKNOWN,
     message: errorMessage as string,
@@ -223,6 +223,16 @@ function isApiError(error: unknown): error is ApiError {
  */
 export function getErrorMessage(error: ApiError): string {
   return error.message;
+}
+
+/**
+ * Helper to get a specific field error from an ApiError
+ */
+export function getFieldError(error: ApiError, field: string): string | undefined {
+  if (error.fieldErrors && error.fieldErrors[field] && error.fieldErrors[field].length > 0) {
+    return error.fieldErrors[field][0];
+  }
+  return undefined;
 }
 
 /**

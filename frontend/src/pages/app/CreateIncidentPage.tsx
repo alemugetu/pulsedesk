@@ -38,10 +38,18 @@ export function CreateIncidentPage() {
         description: data.description,
         priority: data.priority,
       };
+      
+      console.log('Creating incident with data:', createData);
+      console.log('Organization:', organization);
+      
       const incident = await createIncidentAsync(createData);
+      
+      console.log('Incident created successfully:', incident);
+      
       // Navigate to the new incident detail page
       navigate(`/app/incidents/${incident.id}`);
     } catch (err) {
+      console.error('Failed to create incident:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to create incident';
       setError(errorMessage);
     }

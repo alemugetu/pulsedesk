@@ -39,31 +39,27 @@ export function useIncidentFilters() {
    * Update a single filter
    */
   const setFilter = useCallback(<K extends keyof IncidentFilters>(key: K, value: IncidentFilters[K]) => {
-    setFilters(prev => {
-      const updated = { ...prev, [key]: value };
-      
-      // Update URL params
-      const newParams = new URLSearchParams(searchParams);
+    setFilters(prev => ({ ...prev, [key]: value }));
+    
+    setSearchParams(prevParams => {
+      const newParams = new URLSearchParams(prevParams);
       if (value === undefined || value === null || value === '') {
         newParams.delete(key);
       } else {
         newParams.set(key, String(value));
       }
-      setSearchParams(newParams);
-      
-      return updated;
+      return newParams;
     });
-  }, [searchParams, setSearchParams]);
+  }, [setSearchParams]);
 
   /**
    * Update multiple filters at once
    */
   const setFiltersBulk = useCallback((newFilters: Partial<IncidentFilters>) => {
-    setFilters(prev => {
-      const updated = { ...prev, ...newFilters };
-      
-      // Update URL params
-      const newParams = new URLSearchParams(searchParams);
+    setFilters(prev => ({ ...prev, ...newFilters }));
+    
+    setSearchParams(prevParams => {
+      const newParams = new URLSearchParams(prevParams);
       Object.entries(newFilters).forEach(([key, value]) => {
         if (value === undefined || value === null || value === '') {
           newParams.delete(key);
@@ -71,11 +67,9 @@ export function useIncidentFilters() {
           newParams.set(key, String(value));
         }
       });
-      setSearchParams(newParams);
-      
-      return updated;
+      return newParams;
     });
-  }, [searchParams, setSearchParams]);
+  }, [setSearchParams]);
 
   /**
    * Clear all filters

@@ -81,6 +81,16 @@ export const PERMISSION_CODENAMES = [
   'role.view',
   'role.manage',
   'role.assign',
+  'incident.view',
+  'incident.manage',
+  'settings.view',
+  'settings.manage',
+  'sla.view',
+  'sla.manage',
+  'escalation.view',
+  'escalation.manage',
+  'audit_log.view',
+  'report.view',
 ] as const;
 
 export type PermissionCodename = typeof PERMISSION_CODENAMES[number];

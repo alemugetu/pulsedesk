@@ -71,7 +71,7 @@ export async function getIncidents(
     page?: number;
   }
 ): Promise<IncidentListResponse> {
-  const url = getIncidentsBaseUrl(organizationId);
+  const url = `${getIncidentsBaseUrl(organizationId)}/`;
   return api.get<IncidentListResponse>(url, { params });
 }
 
@@ -84,7 +84,10 @@ export async function getIncident(
   incidentId: string
 ): Promise<Incident> {
   const url = `${getIncidentsBaseUrl(organizationId)}/${incidentId}/`;
-  return api.get<Incident>(url);
+  console.log('incidentService.getIncident - URL:', url);
+  const result = await api.get<Incident>(url);
+  console.log('incidentService.getIncident - result:', result);
+  return result;
 }
 
 /**
@@ -97,8 +100,11 @@ export async function createIncident(
   organizationId: string,
   data: CreateIncidentRequest
 ): Promise<Incident> {
-  const url = getIncidentsBaseUrl(organizationId);
-  return api.post<Incident>(url, data);
+  const url = `${getIncidentsBaseUrl(organizationId)}/`;
+  console.log('incidentService.createIncident - URL:', url, 'data:', data);
+  const result = await api.post<Incident>(url, data);
+  console.log('incidentService.createIncident - result:', result);
+  return result;
 }
 
 /**
@@ -132,7 +138,7 @@ export async function getIncidentCategories(
     is_active?: boolean;
   }
 ): Promise<IncidentCategory[]> {
-  const url = getCategoriesBaseUrl(organizationId);
+  const url = `${getCategoriesBaseUrl(organizationId)}/`;
   return api.get<IncidentCategory[]>(url, { params });
 }
 
@@ -156,7 +162,7 @@ export async function createIncidentCategory(
   organizationId: string,
   data: CreateCategoryRequest
 ): Promise<IncidentCategory> {
-  const url = getCategoriesBaseUrl(organizationId);
+  const url = `${getCategoriesBaseUrl(organizationId)}/`;
   return api.post<IncidentCategory>(url, data);
 }
 

@@ -11,6 +11,9 @@ backend/.mypy_cache/
 backend/.ruff_cache/
 backend/docs
 .agents/skills/supabase-postgres-best-practices/
+PHASE_13.3_IMPLEMENTATION_REPORT.md
+PHASE_13.7_ENGINEERING_REPORT.md
+
 
 # ==========================
 # Django

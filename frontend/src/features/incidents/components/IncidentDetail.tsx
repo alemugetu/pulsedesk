@@ -11,6 +11,7 @@ import { IncidentStatusActions } from './IncidentStatusActions';
 import { Loading } from '../../../components/ui/Loading';
 import { ErrorState } from '../../../components/ui/ErrorState';
 import { Card } from '../../../components/ui/Card';
+import { CollaborationSection } from '../../collaboration/components/CollaborationSection';
 
 interface IncidentDetailProps {
   incident: Incident | null;
@@ -81,6 +82,8 @@ export function IncidentDetail({
           />
         </div>
       </Card>
+
+      <CollaborationSection incidentId={incident.id} />
     </div>
   );
 }

@@ -9,10 +9,11 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   fullWidth?: boolean;
+  showError?: boolean; // Control whether to display error message
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, fullWidth = false, id, ...props }, ref) => {
+  ({ className, label, error, fullWidth = false, showError = true, id, ...props }, ref) => {
     const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
 
     return (
@@ -40,10 +41,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             className
           )}
           aria-invalid={error ? 'true' : 'false'}
-          aria-describedby={error ? `${inputId}-error` : undefined}
+          aria-describedby={error && showError ? `${inputId}-error` : undefined}
           {...props}
         />
-        {error && (
+        {error && showError && (
           <p
             id={`${inputId}-error`}
             className="text-sm text-red-500"
