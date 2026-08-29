@@ -5,9 +5,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CreateOrganizationForm } from '../CreateOrganizationForm';
 import type { Organization } from '../../types/organization';
 
-// Mock the OrganizationContext
+// Mock the organizationContextDef
 const mockCreateOrganization = vi.fn();
-vi.mock('../../context/OrganizationContext', () => ({
+vi.mock('../../context/organizationContextDef', () => ({
   useOrganizationContext: () => ({
     createOrganization: mockCreateOrganization,
     isLoadingCurrent: false,

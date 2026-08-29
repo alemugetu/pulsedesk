@@ -17,7 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import { Building2, ChevronDown, Plus, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { cn } from '../../utils/cn';
-import { useOrganizationContext } from '../../features/organizations/context/OrganizationContext';
+import { useOrganizationContext } from '../../features/organizations/context/organizationContextDef';
 import type { Organization } from '../../features/organizations/types/organization';
 
 export function OrganizationSwitcher() {

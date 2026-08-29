@@ -21,17 +21,11 @@ import { useOrganizationMembers } from '../hooks/useOrganizationMembers';
 import { useOrganizationRoles } from '../hooks/useOrganizationRoles';
 import {
   OrganizationContext,
-  useOrganizationContext,
-  useCurrentOrganization,
-  useHasOrganizations,
+  type OrganizationContextValue,
 } from './organizationContextDef';
 import { AuthContext } from '../../auth/hooks/authContextDef';
 import type { Organization } from '../types/organization';
 import type { CreateOrganizationRequest } from '../types/organization';
-import type { OrganizationContextValue } from './organizationContextDef';
-
-// Re-export hooks for backward compatibility
-export { useOrganizationContext, useCurrentOrganization, useHasOrganizations };
 
 /**
  * Storage key for persisting selected organization

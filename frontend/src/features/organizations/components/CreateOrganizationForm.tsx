@@ -16,7 +16,7 @@ import type { FormEvent } from 'react';
 import { Building2, Loader2, CheckCircle } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { cn } from '../../../utils/cn';
-import { useOrganizationContext } from '../context/OrganizationContext';
+import { useOrganizationContext } from '../context/organizationContextDef';
 import type { Organization, CreateOrganizationRequest } from '../types/organization';
 
 interface CreateOrganizationFormProps {

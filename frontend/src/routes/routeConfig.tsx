@@ -33,6 +33,9 @@ import { ResetPasswordPage } from '../pages/auth/ResetPasswordPage';
 import { AppHomePage } from '../pages/app/AppHomePage';
 import { OrganizationsPage } from '../pages/organizations/OrganizationsPage';
 import { OrganizationPage } from '../pages/organizations/OrganizationPage';
+import { IncidentsPage } from '../pages/app/IncidentsPage';
+import { IncidentDetailPage } from '../pages/app/IncidentDetailPage';
+import { CreateIncidentPage } from '../pages/app/CreateIncidentPage';
 
 /**
  * Public routes - accessible without authentication
@@ -126,6 +129,7 @@ const authRoutes: RouteObject[] = [
  * Protected application routes - require authentication
  * Phase 13.4: Application shell with AppLayout and AppHomePage implemented
  * Phase 13.5: Organization routes added
+ * Phase 13.6: Incident routes added
  */
 const protectedRoutes: RouteObject[] = [
   {
@@ -148,8 +152,20 @@ const protectedRoutes: RouteObject[] = [
         path: 'organizations/:organizationId',
         element: <OrganizationPage />,
       },
+      {
+        path: 'incidents',
+        element: <IncidentsPage />,
+      },
+      {
+        path: 'incidents/new',
+        element: <CreateIncidentPage />,
+      },
+      {
+        path: 'incidents/:incidentId',
+        element: <IncidentDetailPage />,
+      },
       // Future app routes will be added here in later phases
-      // Examples: /app/dashboard, /app/incidents, /app/reports, etc.
+      // Examples: /app/dashboard, /app/reports, /app/settings, etc.
     ],
   },
 ];
@@ -158,6 +174,8 @@ const protectedRoutes: RouteObject[] = [
  * Complete route configuration
  * Phase 13.3: Public routes fully implemented, authentication routes with guards implemented
  * Phase 13.4: Application shell with AppLayout and protected app routes implemented
+ * Phase 13.5: Organization routes added
+ * Phase 13.6: Incident routes added
  */
 export const routeConfig: RouteObject[] = [
   {

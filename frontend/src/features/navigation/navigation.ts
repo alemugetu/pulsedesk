@@ -6,16 +6,19 @@
  * navigation components to ensure consistency.
  * 
  * Phase 13.4: Initial navigation structure with Home/placeholder items.
- * Future phases will add: Organizations, Incidents, Operations, Reports, Settings, Audit.
+ * Phase 13.5: Organizations route added.
+ * Phase 13.6: Incidents route added.
+ * Future phases will add: Operations, Reports, Settings, Audit.
  */
 
-import { Home, LayoutDashboard, Settings, FileText, Building2 } from 'lucide-react';
+import { Home, LayoutDashboard, Settings, FileText, Building2, AlertTriangle } from 'lucide-react';
 import type { NavigationConfig, NavigationGroup, NavigationItem } from './navigation.types';
 
 /**
  * Main navigation items for the authenticated application
  * Phase 13.4: Only includes currently implemented/placeholder routes
  * Phase 13.5: Organizations route added
+ * Phase 13.6: Incidents route added
  */
 const mainNavigationItems: NavigationItem[] = [
   {
@@ -25,6 +28,14 @@ const mainNavigationItems: NavigationItem[] = [
     icon: Home,
     visibility: 'authenticated',
     ariaLabel: 'Navigate to home page',
+  },
+  {
+    id: 'incidents',
+    label: 'Incidents',
+    path: '/app/incidents',
+    icon: AlertTriangle,
+    visibility: 'authenticated',
+    ariaLabel: 'Navigate to incidents page',
   },
   {
     id: 'organizations',

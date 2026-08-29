@@ -17,7 +17,7 @@ import { Building2, Plus } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { OrganizationList } from '../../features/organizations/components/OrganizationList';
 import { CreateOrganizationForm } from '../../features/organizations/components/CreateOrganizationForm';
-import { useOrganizationContext } from '../../features/organizations/context/OrganizationContext';
+import { useOrganizationContext } from '../../features/organizations/context/organizationContextDef';
 import type { Organization } from '../../features/organizations/types/organization';
 
 type ViewMode = 'list' | 'create';

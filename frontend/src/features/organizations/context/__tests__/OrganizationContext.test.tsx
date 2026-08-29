@@ -49,7 +49,8 @@ vi.mock('../../../auth/hooks/authContextDef', () => ({
 }));
 
 // Now import the provider and hook (mocks are set up above)
-const { OrganizationProvider, useOrganizationContext } = await import('../OrganizationContext');
+const { OrganizationProvider } = await import('../OrganizationContext');
+const { useOrganizationContext } = await import('../organizationContextDef');
 
 function TestConsumer() {
   const ctx = useOrganizationContext();

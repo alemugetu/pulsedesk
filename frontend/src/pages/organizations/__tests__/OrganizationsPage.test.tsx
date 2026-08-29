@@ -26,7 +26,7 @@ const mockContext = {
   getCurrentRole: vi.fn(() => null),
 };
 
-vi.mock('../../../features/organizations/context/OrganizationContext', () => ({
+vi.mock('../../../features/organizations/context/organizationContextDef', () => ({
   useOrganizationContext: () => mockContext,
 }));
 
