@@ -76,6 +76,7 @@ const settingsNavigationItems: NavigationItem[] = [
 /**
  * Reports navigation items
  * Phase 13.4: Placeholder for future reports implementation
+ * Phase 13.11: Enabled for Reports & Analytics
  */
 const reportsNavigationItems: NavigationItem[] = [
   {
@@ -84,8 +85,8 @@ const reportsNavigationItems: NavigationItem[] = [
     path: '/app/reports',
     icon: FileText,
     visibility: 'authenticated',
-    disabled: true,
-    ariaLabel: 'Reports - Coming Soon',
+    disabled: false,
+    ariaLabel: 'Navigate to reports page',
   },
 ];
 

@@ -141,6 +141,13 @@ export function canManageEscalationPolicies(userPermissions: string[]): boolean 
 }
 
 /**
+ * Get permissions that allow viewing reports
+ */
+export function canViewReports(userPermissions: string[]): boolean {
+  return userPermissions.includes('report.view');
+}
+
+/**
  * Get permissions that allow evaluating escalations
  */
 export function canEvaluateEscalations(userPermissions: string[]): boolean {
