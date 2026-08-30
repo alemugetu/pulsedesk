@@ -9,7 +9,9 @@
  * Phase 13.5: Organizations route added.
  * Phase 13.6: Incidents route added.
  * Phase 13.9: Operations route added (replaces the disabled Dashboard placeholder).
- * Future phases will add: Reports, Settings, Audit.
+ * Phase 13.11: Reports route enabled.
+ * Phase 13.12: Settings route enabled.
+ * Future phases will add: Audit.
  */
 
 import { Home, Gauge, Settings, FileText, Building2, AlertTriangle } from 'lucide-react';
@@ -21,6 +23,8 @@ import type { NavigationConfig, NavigationGroup, NavigationItem } from './naviga
  * Phase 13.5: Organizations route added
  * Phase 13.6: Incidents route added
  * Phase 13.9: Operations route added
+ * Phase 13.11: Reports route added
+ * Phase 13.12: Settings route added
  */
 const mainNavigationItems: NavigationItem[] = [
   {
@@ -55,11 +59,20 @@ const mainNavigationItems: NavigationItem[] = [
     visibility: 'authenticated',
     ariaLabel: 'Navigate to operations command center',
   },
+  {
+    id: 'reports',
+    label: 'Reports',
+    path: '/app/reports',
+    icon: FileText,
+    visibility: 'authenticated',
+    ariaLabel: 'Navigate to reports page',
+  },
 ];
 
 /**
  * Settings navigation items
  * Phase 13.4: Placeholder for future settings implementation
+ * Phase 13.12: Enabled for Organization Settings
  */
 const settingsNavigationItems: NavigationItem[] = [
   {
@@ -68,27 +81,12 @@ const settingsNavigationItems: NavigationItem[] = [
     path: '/app/settings',
     icon: Settings,
     visibility: 'authenticated',
-    disabled: true,
-    ariaLabel: 'Settings - Coming Soon',
+    disabled: false,
+    ariaLabel: 'Navigate to organization settings',
   },
 ];
 
-/**
- * Reports navigation items
- * Phase 13.4: Placeholder for future reports implementation
- * Phase 13.11: Enabled for Reports & Analytics
- */
-const reportsNavigationItems: NavigationItem[] = [
-  {
-    id: 'reports',
-    label: 'Reports',
-    path: '/app/reports',
-    icon: FileText,
-    visibility: 'authenticated',
-    disabled: false,
-    ariaLabel: 'Navigate to reports page',
-  },
-];
+
 
 /**
  * Navigation groups for organized navigation structure
@@ -99,11 +97,6 @@ export const navigationGroups: NavigationGroup[] = [
     items: mainNavigationItems,
   },
   {
-    id: 'reports',
-    label: 'Reports',
-    items: reportsNavigationItems,
-  },
-  {
     id: 'settings',
     label: 'Settings',
     items: settingsNavigationItems,
@@ -112,6 +105,7 @@ export const navigationGroups: NavigationGroup[] = [
 
 /**
  * Complete navigation configuration
+ * Phase 13.12: Reports moved to main navigation, Settings enabled
  */
 export const navigationConfig: NavigationConfig = {
   groups: navigationGroups,

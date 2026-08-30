@@ -28,6 +28,8 @@ export function isValidPermission(codename: string): codename is PermissionCoden
     'escalation.view',
     'escalation.manage',
     'escalation.evaluate',
+    'settings.view',
+    'settings.manage',
   ] as const;
   
   return validPermissions.includes(codename);
@@ -152,4 +154,18 @@ export function canViewReports(userPermissions: string[]): boolean {
  */
 export function canEvaluateEscalations(userPermissions: string[]): boolean {
   return userPermissions.includes('escalation.evaluate');
+}
+
+/**
+ * Get permissions that allow viewing organization settings
+ */
+export function canViewSettings(userPermissions: string[]): boolean {
+  return userPermissions.includes('settings.view');
+}
+
+/**
+ * Get permissions that allow managing organization settings
+ */
+export function canManageSettings(userPermissions: string[]): boolean {
+  return userPermissions.includes('settings.manage');
 }
