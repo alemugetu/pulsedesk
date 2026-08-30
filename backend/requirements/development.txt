@@ -1,1 +1,5 @@
 -r base.txt
+
+# ASGI development server for Channels WebSockets (Channels 4.x removed
+# `manage.py runserver` support, so Daphne is required to serve /ws/ paths).
+daphne==4.2.3

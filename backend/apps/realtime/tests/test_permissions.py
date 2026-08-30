@@ -2,12 +2,15 @@
 Tests for WebSocket authentication and authorization.
 """
 
+from django.test import TestCase, override_settings
+
 from accounts.models import User
-from django.test import TestCase
 from organizations.models import Membership, Organization, Role
 from realtime.permissions import (
+    SUBPROTOCOL_AUTH_PREFIX,
     WebSocketAuthenticationError,
     WebSocketPermissionError,
+    extract_bearer_token,
 )
 
 
@@ -25,6 +28,56 @@ class TestWebSocketErrors(TestCase):
         error = WebSocketPermissionError("Test message", "test_code")
         self.assertEqual(error.message, "Test message")
         self.assertEqual(error.code, "test_code")
+
+
+class TestExtractBearerToken(TestCase):
+    """Test JWT extraction from WebSocket connection scope."""
+
+    SAMOA_JWT = (
+        "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0."
+        "dGVzdC1zaWduYXR1cmU"
+    )
+
+    def _scope(self, headers=None, subprotocols=None):
+        return {
+            "headers": headers or [],
+            "subprotocols": subprotocols or [],
+        }
+
+    def test_header_authorization_wins(self):
+        """The Authorization header is always preferred."""
+        scope = self._scope(
+            headers=[("AUTHORIZATION".encode(), f"Bearer {self.SAMOA_JWT}".encode())],
+            subprotocols=[f"{SUBPROTOCOL_AUTH_PREFIX}other-token"],
+        )
+        self.assertEqual(extract_bearer_token(scope), self.SAMOA_JWT)
+
+    def test_header_without_bearer_prefix_ignored(self):
+        """An Authorization header without 'Bearer' yields no token."""
+        scope = self._scope(
+            headers=[("AUTHORIZATION".encode(), self.SAMOA_JWT.encode())]
+        )
+        self.assertIsNone(extract_bearer_token(scope))
+
+    def test_subprotocol_enabled(self):
+        """The offered subprotocol is used when subprotocol auth is enabled."""
+        scope = self._scope(subprotocols=[f"{SUBPROTOCOL_AUTH_PREFIX}{self.SAMOA_JWT}"])
+        with override_settings(REALTIME_ALLOW_SUBPROTOCOL_AUTH=True):
+            self.assertEqual(extract_bearer_token(scope), self.SAMOA_JWT)
+
+    def test_subprotocol_disabled_by_default(self):
+        """Subprotocol auth is rejected unless explicitly enabled."""
+        scope = self._scope(subprotocols=[f"{SUBPROTOCOL_AUTH_PREFIX}{self.SAMOA_JWT}"])
+        with override_settings(REALTIME_ALLOW_SUBPROTOCOL_AUTH=False):
+            self.assertIsNone(extract_bearer_token(scope))
+
+    def test_unrelated_subprotocols_ignored(self):
+        """Only the PulseDesk subprotocol carries the token."""
+        scope = self._scope(
+            subprotocols=["graphql-ws", "superchat"]
+        )
+        with override_settings(REALTIME_ALLOW_SUBPROTOCOL_AUTH=True):
+            self.assertIsNone(extract_bearer_token(scope))
 
 
 class TestWebSocketAuthorizationLogic(TestCase):

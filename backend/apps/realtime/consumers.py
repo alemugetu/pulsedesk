@@ -11,6 +11,7 @@ import logging
 from channels.generic.websocket import AsyncWebsocketConsumer
 from realtime.events import CHANNEL_GROUP_PREFIX
 from realtime.permissions import (
+    SUBPROTOCOL_AUTH_PREFIX,
     WebSocketAuthenticationError,
     WebSocketPermissionError,
     authenticate_websocket_connection,
@@ -54,8 +55,19 @@ class OperationsConsumer(AsyncWebsocketConsumer):
             # Join the organization's operations group
             await self.channel_layer.group_add(self.group_name, self.channel_name)
 
+            # Echo the offered subprotocol (if any) so the handshake completes
+            # cleanly when the JWT was carried as a Sec-WebSocket-Protocol value.
+            selected_subprotocol = next(
+                (
+                    protocol
+                    for protocol in self.scope.get("subprotocols", [])
+                    if protocol.lower().startswith(SUBPROTOCOL_AUTH_PREFIX)
+                ),
+                None,
+            )
+
             # Accept the connection
-            await self.accept()
+            await self.accept(subprotocol=selected_subprotocol)
 
             logger.info(
                 "WebSocket connection accepted",

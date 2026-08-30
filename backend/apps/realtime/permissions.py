@@ -9,6 +9,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from channels.db import database_sync_to_async
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from organizations.models import Membership, Organization
 from organizations.services import OrganizationService
@@ -21,6 +22,15 @@ if TYPE_CHECKING:
     from accounts.models import User
 else:
     User = get_user_model()
+
+# The browser WebSocket API cannot set the Authorization header on the
+# handshake. When the header is unavailable the client may instead offer the
+# JWT as a Sec-WebSocket-Protocol subprotocol prefixed with this value. The
+# subprotocol path is dev/demo-only and must be explicitly enabled by setting
+# REALTIME_ALLOW_SUBPROTOCOL_AUTH = True (see config/settings/development.py);
+# production deployments must authenticate via the Authorization header (e.g.
+# through a gateway/proxy that injects it).
+SUBPROTOCOL_AUTH_PREFIX = "pulsedesk.realtime."
 
 
 class WebSocketAuthenticationError(Exception):
@@ -39,6 +49,33 @@ class WebSocketPermissionError(Exception):
         self.message = message
         self.code = code
         super().__init__(message)
+
+
+def extract_bearer_token(scope: dict[str, Any]) -> str | None:
+    """
+    Extract the JWT from the connection scope.
+
+    Prefers the Authorization header (the production transport). Falls back to
+    the offered Sec-WebSocket-Protocol subprotocol only when
+    REALTIME_ALLOW_SUBPROTOCOL_AUTH is enabled, so browser-based development
+    can authenticate without a header-capable gateway.
+    """
+    headers = scope.get("headers", [])
+    for header_name, header_value in headers:
+        if header_name.decode().lower() == "authorization":
+            auth_header = header_value.decode()
+            if auth_header.startswith("Bearer "):
+                return auth_header[7:]
+
+    if not getattr(settings, "REALTIME_ALLOW_SUBPROTOCOL_AUTH", False):
+        return None
+
+    for subprotocol in scope.get("subprotocols", []):
+        lowered = subprotocol.lower()
+        if lowered.startswith(SUBPROTOCOL_AUTH_PREFIX):
+            return subprotocol[len(SUBPROTOCOL_AUTH_PREFIX):]
+
+    return None
 
 
 @database_sync_to_async
@@ -61,18 +98,10 @@ def authenticate_websocket_connection(
         WebSocketAuthenticationError: If authentication fails
         WebSocketPermissionError: If authorization fails
     """
-    # Extract JWT token from Authorization header only
-    # Query-string authentication is disabled for security
-    token = None
-    headers = scope.get("headers", [])
-
-    # Try headers: Authorization: Bearer xxx
-    for header_name, header_value in headers:
-        if header_name.decode().lower() == "authorization":
-            auth_header = header_value.decode()
-            if auth_header.startswith("Bearer "):
-                token = auth_header[7:]
-                break
+    # Extract JWT token from the Authorization header (production transport)
+    # or, when enabled, from the offered Sec-WebSocket-Protocol subprotocol
+    # (development transport for browsers).
+    token = extract_bearer_token(scope)
 
     if not token:
         raise WebSocketAuthenticationError(

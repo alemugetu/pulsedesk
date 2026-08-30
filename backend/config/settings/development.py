@@ -98,3 +98,11 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+# ---------------------------------------------------------------------------
+# Realtime WebSocket development auth
+# The browser WebSocket API cannot send the Authorization header, so local
+# frontend development authenticates the operations feed by offering the JWT
+# as a Sec-WebSocket-Protocol subprotocol. Production stays header-only.
+# ---------------------------------------------------------------------------
+REALTIME_ALLOW_SUBPROTOCOL_AUTH = True

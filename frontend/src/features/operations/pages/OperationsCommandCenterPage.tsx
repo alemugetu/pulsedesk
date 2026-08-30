@@ -19,6 +19,7 @@ import {
   useOrganizationContext,
 } from '../../organizations/context/organizationContextDef';
 import { OperationsHeader } from '../components/OperationsHeader';
+import { RealtimeConnectionStatus } from '../../realtime/components/RealtimeConnectionStatus';
 import { OperationsSummary } from '../components/OperationsSummary';
 import { IncidentStatusChart } from '../components/IncidentStatusChart';
 import { IncidentPriorityChart } from '../components/IncidentPriorityChart';
@@ -72,6 +73,8 @@ export function OperationsCommandCenterPage() {
   return (
     <div className="space-y-8">
       <OperationsHeader />
+
+      <RealtimeConnectionStatus />
 
       <OperationsSummary />
 

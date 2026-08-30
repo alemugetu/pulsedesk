@@ -17,6 +17,35 @@ class TestOperationsConsumer(TestCase):
         # The pattern should contain organizations in the regex
         self.assertIn("organizations", str(pattern.pattern))
 
+    def test_websocket_pattern_matches_real_path(self):
+        """Channels URLRouter matches the scope path without a leading slash."""
+        pattern = str(websocket_urlpatterns[0].pattern)
+        # Channels passes the websocket path to the URLRouter WITHOUT the
+        # leading slash (scope path 'ws/v1/...'), so the pattern must anchor
+        # at '^ws/...' — a route anchored at '^/ws/...' never matches and
+        # returns 500 "No route found".
+        self.assertTrue(
+            pattern.startswith("^ws/v1/organizations/"),
+            f"pattern must start with '^ws/v1/organizations/', got: {pattern}",
+        )
+
+    def test_websocket_pattern_resolves_operations_path(self):
+        """The real path resolved by the resolver (no 500) yields the org id."""
+        pattern = websocket_urlpatterns[0].pattern
+        matched = pattern.match(
+            "ws/v1/organizations/00000000-0000-0000-0000-000000000000/operations/"
+        )
+        self.assertIsNotNone(matched)
+        _, _, kwargs = matched
+        self.assertEqual(
+            kwargs["organization_id"],
+            "00000000-0000-0000-0000-000000000000",
+        )
+        # A non-operations path must not resolve to this route.
+        self.assertIsNone(
+            pattern.match("ws/v1/organizations/00000000-0000-0000-0000-000000000000/other/")
+        )
+
     def test_consumer_has_realtime_event_handler(self):
         """Test that consumer has realtime_event handler."""
         from realtime.consumers import OperationsConsumer

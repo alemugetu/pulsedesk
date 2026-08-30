@@ -218,6 +218,12 @@ SIMPLE_JWT = {
 # ---------------------------------------------------------------------------
 ASGI_APPLICATION = "config.asgi.application"
 
+# WebSocket authentication: the backend authenticates the handshake via the
+# Authorization header. Browsers cannot set that header, so development
+# environments may also accept the JWT as a Sec-WebSocket-Protocol subprotocol.
+# Production must keep this OFF (enabled per environment in development.py).
+REALTIME_ALLOW_SUBPROTOCOL_AUTH = False
+
 # ---------------------------------------------------------------------------
 # Celery — shared configuration
 # Broker and result backend URLs are set per environment (development,

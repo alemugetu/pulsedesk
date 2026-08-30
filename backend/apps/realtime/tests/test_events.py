@@ -21,6 +21,11 @@ class TestRealtimeEventType(TestCase):
             "escalation.triggered",
             "escalation.completed",
             "notification.created",
+            "comment.created",
+            "comment.updated",
+            "comment.deleted",
+            "attachment.created",
+            "attachment.deleted",
         }
         actual_types = set(RealtimeEventType.all_values())
         self.assertEqual(expected_types, actual_types)

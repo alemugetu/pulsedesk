@@ -29,6 +29,7 @@ import { AppNavbar } from '../../components/navigation/AppNavbar';
 import { Sidebar } from '../../components/navigation/Sidebar';
 import { MobileSidebar } from '../../components/navigation/MobileSidebar';
 import { Breadcrumbs } from '../../components/navigation/Breadcrumbs';
+import { RealtimeConnectionBridge } from '../../features/realtime/components/RealtimeConnectionBridge';
 import { cn } from '../../utils/cn';
 
 export function AppLayout() {
@@ -47,8 +48,11 @@ export function AppLayout() {
     setIsSidebarCollapsed((isCollapsed) => !isCollapsed);
   };
 
-  return (
+return (
     <div className="flex h-dvh flex-col overflow-hidden bg-background">
+      {/* App-wide realtime connection driver (renders nothing) */}
+      <RealtimeConnectionBridge />
+
       {/* Application Navbar */}
       <AppNavbar
         onMobileMenuToggle={handleMobileMenuToggle}
