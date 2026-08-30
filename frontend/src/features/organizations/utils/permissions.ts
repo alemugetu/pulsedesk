@@ -30,6 +30,7 @@ export function isValidPermission(codename: string): codename is PermissionCoden
     'escalation.evaluate',
     'settings.view',
     'settings.manage',
+    'audit_log.view',
   ] as const;
   
   return validPermissions.includes(codename);
@@ -168,4 +169,11 @@ export function canViewSettings(userPermissions: string[]): boolean {
  */
 export function canManageSettings(userPermissions: string[]): boolean {
   return userPermissions.includes('settings.manage');
+}
+
+/**
+ * Get permissions that allow viewing the audit log
+ */
+export function canViewAuditLogs(userPermissions: string[]): boolean {
+  return userPermissions.includes('audit_log.view');
 }

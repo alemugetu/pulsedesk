@@ -39,6 +39,7 @@ import { CreateIncidentPage } from '../pages/app/CreateIncidentPage';
 import { OperationsCommandCenterPage } from '../features/operations/pages/OperationsCommandCenterPage';
 import { ReportsPage } from '../pages/app/ReportsPage';
 import { OrganizationSettingsPage } from '../pages/app/OrganizationSettingsPage';
+import { AuditLogsPage } from '../pages/app/AuditLogsPage';
 
 /**
  * Public routes - accessible without authentication
@@ -175,6 +176,10 @@ const protectedRoutes: RouteObject[] = [
       {
         path: 'reports',
         element: <ReportsPage />,
+      },
+      {
+        path: 'audit',
+        element: <AuditLogsPage />,
       },
       {
         path: 'settings',

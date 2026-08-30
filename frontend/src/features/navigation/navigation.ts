@@ -11,10 +11,10 @@
  * Phase 13.9: Operations route added (replaces the disabled Dashboard placeholder).
  * Phase 13.11: Reports route enabled.
  * Phase 13.12: Settings route enabled.
- * Future phases will add: Audit.
+ * Phase 13.13: Audit Logs route enabled.
  */
 
-import { Home, Gauge, Settings, FileText, Building2, AlertTriangle } from 'lucide-react';
+import { Home, Gauge, Settings, FileText, Building2, AlertTriangle, ScrollText } from 'lucide-react';
 import type { NavigationConfig, NavigationGroup, NavigationItem } from './navigation.types';
 
 /**
@@ -25,6 +25,7 @@ import type { NavigationConfig, NavigationGroup, NavigationItem } from './naviga
  * Phase 13.9: Operations route added
  * Phase 13.11: Reports route added
  * Phase 13.12: Settings route added
+ * Phase 13.13: Audit Logs route added
  */
 const mainNavigationItems: NavigationItem[] = [
   {
@@ -66,6 +67,14 @@ const mainNavigationItems: NavigationItem[] = [
     icon: FileText,
     visibility: 'authenticated',
     ariaLabel: 'Navigate to reports page',
+  },
+  {
+    id: 'audit-logs',
+    label: 'Audit Logs',
+    path: '/app/audit',
+    icon: ScrollText,
+    visibility: 'authenticated',
+    ariaLabel: 'Navigate to audit logs page',
   },
 ];
 
