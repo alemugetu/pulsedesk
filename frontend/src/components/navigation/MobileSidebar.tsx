@@ -17,6 +17,7 @@ import { useEffect, useRef } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { navigationGroups } from '../../features/navigation/navigation';
+import { useOrganizationContext } from '../../features/organizations/context/organizationContextDef';
 import { cn } from '../../utils/cn';
 
 interface MobileSidebarProps {
@@ -28,8 +29,20 @@ interface MobileSidebarProps {
 
 export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
   const location = useLocation();
+  const { hasPermission } = useOrganizationContext();
   const sidebarRef = useRef<HTMLDivElement>(null);
   const firstFocusableRef = useRef<HTMLButtonElement>(null);
+
+  // Filter navigation items by permission
+  const visibleGroups = navigationGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        if (!item.requiredPermission) return true;
+        return hasPermission(item.requiredPermission);
+      }),
+    }))
+    .filter((group) => group.items.length > 0);
 
   // Handle Escape key to close sidebar
   useEffect(() => {
@@ -152,7 +165,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
 
         {/* Navigation content */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
-          {navigationGroups.map((group) => (
+          {visibleGroups.map((group) => (
             <div key={group.id}>
               {group.label && (
                 <h3 className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">

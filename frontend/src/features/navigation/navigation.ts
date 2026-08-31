@@ -42,6 +42,7 @@ const mainNavigationItems: NavigationItem[] = [
     path: '/app/incidents',
     icon: AlertTriangle,
     visibility: 'authenticated',
+    requiredPermission: 'incident.view',
     ariaLabel: 'Navigate to incidents page',
   },
   {
@@ -50,6 +51,7 @@ const mainNavigationItems: NavigationItem[] = [
     path: '/app/organizations',
     icon: Building2,
     visibility: 'authenticated',
+    requiredPermission: 'organization.view',
     ariaLabel: 'Navigate to organizations page',
   },
   {
@@ -58,6 +60,7 @@ const mainNavigationItems: NavigationItem[] = [
     path: '/app/members',
     icon: Users,
     visibility: 'authenticated',
+    requiredPermission: 'member.view',
     ariaLabel: 'Navigate to team members page',
   },
   {
@@ -66,6 +69,7 @@ const mainNavigationItems: NavigationItem[] = [
     path: '/app/operations',
     icon: Gauge,
     visibility: 'authenticated',
+    requiredPermission: 'incident.view',
     ariaLabel: 'Navigate to operations command center',
   },
   {
@@ -74,6 +78,7 @@ const mainNavigationItems: NavigationItem[] = [
     path: '/app/reports',
     icon: FileText,
     visibility: 'authenticated',
+    requiredPermission: 'report.view',
     ariaLabel: 'Navigate to reports page',
   },
   {
@@ -82,6 +87,7 @@ const mainNavigationItems: NavigationItem[] = [
     path: '/app/audit',
     icon: ScrollText,
     visibility: 'authenticated',
+    requiredPermission: 'audit_log.view',
     ariaLabel: 'Navigate to audit logs page',
   },
 ];
@@ -98,7 +104,7 @@ const settingsNavigationItems: NavigationItem[] = [
     path: '/app/settings',
     icon: Settings,
     visibility: 'authenticated',
-    disabled: false,
+    requiredPermission: 'settings.view',
     ariaLabel: 'Navigate to organization settings',
   },
 ];
@@ -115,6 +121,7 @@ const configurationNavigationItems: NavigationItem[] = [
     path: '/app/sla',
     icon: Siren,
     visibility: 'authenticated',
+    requiredPermission: 'sla.view',
     ariaLabel: 'Navigate to SLA policies',
   },
   {
@@ -123,6 +130,7 @@ const configurationNavigationItems: NavigationItem[] = [
     path: '/app/escalation',
     icon: Shield,
     visibility: 'authenticated',
+    requiredPermission: 'escalation.view',
     ariaLabel: 'Navigate to escalation policies',
   },
   {
@@ -131,6 +139,7 @@ const configurationNavigationItems: NavigationItem[] = [
     path: '/app/categories',
     icon: FolderOpen,
     visibility: 'authenticated',
+    requiredPermission: 'incident.view',
     ariaLabel: 'Navigate to incident categories',
   },
   {
@@ -139,6 +148,7 @@ const configurationNavigationItems: NavigationItem[] = [
     path: '/app/roles',
     icon: KeyRound,
     visibility: 'authenticated',
+    requiredPermission: 'role.view',
     ariaLabel: 'Navigate to roles and permissions',
   },
 ];

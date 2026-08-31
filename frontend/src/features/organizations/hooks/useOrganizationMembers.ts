@@ -7,7 +7,12 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as memberService from '../services/memberService';
-import type { MembershipRoleAssignRequest } from '../types/membership';
+import type {
+  MembershipRoleAssignRequest,
+  AddMembershipRequest,
+  UpdateMembershipStatusRequest,
+  RegisterAndAddMemberRequest,
+} from '../types/membership';
 
 /**
  * Query keys for organization members - tenant-aware for cache isolation
@@ -44,8 +49,68 @@ export function useAssignMembershipRole(organizationId: string) {
     mutationFn: ({ membershipId, data }: { membershipId: string; data: MembershipRoleAssignRequest }) =>
       memberService.assignMembershipRole(organizationId, membershipId, data),
     onSuccess: () => {
-      // Invalidate and refetch members list for this organization
       queryClient.invalidateQueries({ queryKey: memberKeys.lists(organizationId) });
     },
   });
 }
+
+/**
+ * Hook to add an existing user as a member
+ */
+export function useAddMember(organizationId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: AddMembershipRequest) =>
+      memberService.addOrganizationMember(organizationId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: memberKeys.lists(organizationId) });
+    },
+  });
+}
+
+/**
+ * Hook to register a user and add them as a member in one orchestrated flow
+ */
+export function useRegisterAndAddMember(organizationId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: RegisterAndAddMemberRequest) =>
+      memberService.registerAndAddMember(organizationId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: memberKeys.lists(organizationId) });
+    },
+  });
+}
+
+/**
+ * Hook to update a member's status (suspend, reactivate)
+ */
+export function useUpdateMemberStatus(organizationId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ membershipId, data }: { membershipId: string; data: UpdateMembershipStatusRequest }) =>
+      memberService.updateMembershipStatus(organizationId, membershipId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: memberKeys.lists(organizationId) });
+    },
+  });
+}
+
+/**
+ * Hook to remove a member from an organization
+ */
+export function useRemoveMember(organizationId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (membershipId: string) =>
+      memberService.removeOrganizationMember(organizationId, membershipId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: memberKeys.lists(organizationId) });
+    },
+  });
+}
+

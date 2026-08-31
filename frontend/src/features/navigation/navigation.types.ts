@@ -31,8 +31,8 @@ export interface NavigationItem {
   children?: NavigationItem[];
   /** Optional badge count or indicator */
   badge?: number | string;
-  /** Whether this item is disabled */
-  disabled?: boolean;
+  /** Optional required permission codename (e.g. member.view, incident.view) */
+  requiredPermission?: string;
   /** Optional aria-label for accessibility */
   ariaLabel?: string;
 }

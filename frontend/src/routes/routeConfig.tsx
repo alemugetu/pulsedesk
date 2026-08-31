@@ -18,6 +18,7 @@ import { AuthPageLayout } from '../layouts/auth/AuthPageLayout';
 import { AppLayout } from '../layouts/app/AppLayout';
 import { ProtectedRoute } from './guards/ProtectedRoute';
 import { PublicOnlyRoute } from './guards/PublicOnlyRoute';
+import { PermissionRouteGuard } from './guards/PermissionRouteGuard';
 import { Placeholder } from './Placeholder';
 import { HomePage } from '../pages/public/HomePage';
 import { AboutPage } from '../pages/public/AboutPage';
@@ -45,6 +46,7 @@ import { EscalationPoliciesPage } from '../features/sla/pages/EscalationPolicies
 import { IncidentCategoriesPage } from '../features/incidents/pages/IncidentCategoriesPage';
 import { RolesPage } from '../features/organizations/pages/RolesPage';
 import { MembersPage } from '../pages/app/MembersPage';
+import { CreateMemberPage } from '../pages/app/CreateMemberPage';
 
 /**
  * Public routes - accessible without authentication
@@ -156,62 +158,124 @@ const protectedRoutes: RouteObject[] = [
       },
       {
         path: 'organizations',
-        element: <OrganizationsPage />,
+        element: (
+          <PermissionRouteGuard permission="organization.view">
+            <OrganizationsPage />
+          </PermissionRouteGuard>
+        ),
       },
       {
         path: 'organizations/:organizationId',
-        element: <OrganizationPage />,
+        element: (
+          <PermissionRouteGuard permission="organization.view">
+            <OrganizationPage />
+          </PermissionRouteGuard>
+        ),
       },
       {
         path: 'members',
-        element: <MembersPage />,
+        element: (
+          <PermissionRouteGuard permission="member.view">
+            <MembersPage />
+          </PermissionRouteGuard>
+        ),
+      },
+      {
+        path: 'members/new',
+        element: (
+          <PermissionRouteGuard permission="member.invite">
+            <CreateMemberPage />
+          </PermissionRouteGuard>
+        ),
       },
       {
         path: 'incidents',
-        element: <IncidentsPage />,
+        element: (
+          <PermissionRouteGuard permission="incident.view">
+            <IncidentsPage />
+          </PermissionRouteGuard>
+        ),
       },
       {
         path: 'incidents/new',
-        element: <CreateIncidentPage />,
+        element: (
+          <PermissionRouteGuard permission="incident.create">
+            <CreateIncidentPage />
+          </PermissionRouteGuard>
+        ),
       },
       {
         path: 'incidents/:incidentId',
-        element: <IncidentDetailPage />,
+        element: (
+          <PermissionRouteGuard permission="incident.view">
+            <IncidentDetailPage />
+          </PermissionRouteGuard>
+        ),
       },
       {
         path: 'operations',
-        element: <OperationsCommandCenterPage />,
+        element: (
+          <PermissionRouteGuard permission="incident.view">
+            <OperationsCommandCenterPage />
+          </PermissionRouteGuard>
+        ),
       },
       {
         path: 'reports',
-        element: <ReportsPage />,
+        element: (
+          <PermissionRouteGuard permission="report.view">
+            <ReportsPage />
+          </PermissionRouteGuard>
+        ),
       },
       {
         path: 'audit',
-        element: <AuditLogsPage />,
+        element: (
+          <PermissionRouteGuard permission="audit_log.view">
+            <AuditLogsPage />
+          </PermissionRouteGuard>
+        ),
       },
       {
         path: 'settings',
-        element: <OrganizationSettingsPage />,
+        element: (
+          <PermissionRouteGuard permission="settings.view">
+            <OrganizationSettingsPage />
+          </PermissionRouteGuard>
+        ),
       },
       {
         path: 'sla',
-        element: <SlaPoliciesPage />,
+        element: (
+          <PermissionRouteGuard permission="sla.view">
+            <SlaPoliciesPage />
+          </PermissionRouteGuard>
+        ),
       },
       {
         path: 'escalation',
-        element: <EscalationPoliciesPage />,
+        element: (
+          <PermissionRouteGuard permission="escalation.view">
+            <EscalationPoliciesPage />
+          </PermissionRouteGuard>
+        ),
       },
       {
         path: 'categories',
-        element: <IncidentCategoriesPage />,
+        element: (
+          <PermissionRouteGuard permission="incident.view">
+            <IncidentCategoriesPage />
+          </PermissionRouteGuard>
+        ),
       },
       {
         path: 'roles',
-        element: <RolesPage />,
+        element: (
+          <PermissionRouteGuard permission="role.view">
+            <RolesPage />
+          </PermissionRouteGuard>
+        ),
       },
-      // Future app routes will be added here in later phases
-      // Examples: /app/dashboard, /app/reports, /app/settings, etc.
     ],
   },
 ];

@@ -58,6 +58,37 @@ export interface MembershipRoleAssignRequest {
 }
 
 /**
+ * Request payload for adding an existing user as a member
+ * Matches backend MembershipCreateSerializer
+ */
+export interface AddMembershipRequest {
+  email?: string;
+  user_id?: string;
+  role_id?: string | null;
+}
+
+/**
+ * Request payload for updating membership status (suspend, reactivate, remove)
+ * Matches backend MembershipStatusUpdateSerializer
+ */
+export interface UpdateMembershipStatusRequest {
+  status: MembershipStatus;
+}
+
+/**
+ * Full member onboarding request combining User Registration and Organization Membership
+ */
+export interface RegisterAndAddMemberRequest {
+  email: string;
+  first_name: string;
+  last_name: string;
+  password?: string;
+  password_confirm?: string;
+  role_id?: string | null;
+}
+
+/**
  * Response from membership role assignment endpoint
  */
 export type MembershipRoleAssignResponse = Membership;
+
