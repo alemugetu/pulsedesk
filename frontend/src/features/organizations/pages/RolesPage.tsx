@@ -30,7 +30,7 @@ import {
   useUpdateRole,
   useDeleteRole,
 } from '../hooks/useOrganizationRoles';
-import { PERMISSION_CODENAMES } from '../types/role';
+import { PERMISSION_CODENAMES, getPermissionLabel } from '../types/role';
 import type { Role } from '../types/role';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/Card';
 import { Badge } from '../../../components/ui/Badge';
@@ -237,8 +237,9 @@ function RoleRow({
               <span
                 key={perm}
                 className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-muted text-muted-foreground"
+                title={perm}
               >
-                {perm}
+                {getPermissionLabel(perm)}
               </span>
             ))}
           </div>
@@ -341,6 +342,7 @@ function RoleForm({ role, orgId, onCancel, onSaved }: RoleFormProps) {
                         ? 'border-primary bg-primary/10 text-foreground'
                         : 'border-border bg-card text-muted-foreground hover:bg-accent/50'
                     )}
+                    title={code}
                   >
                     <input
                       type="checkbox"
@@ -348,7 +350,7 @@ function RoleForm({ role, orgId, onCancel, onSaved }: RoleFormProps) {
                       onChange={() => togglePermission(code)}
                       className="rounded border-border"
                     />
-                    <span className="font-mono text-xs">{code}</span>
+                    <span>{getPermissionLabel(code)}</span>
                   </label>
                 );
               })}

@@ -14,7 +14,7 @@
  * Phase 13.13: Audit Logs route enabled.
  */
 
-import { Home, Gauge, Settings, FileText, Building2, AlertTriangle, ScrollText, Shield, Siren, FolderOpen, KeyRound } from 'lucide-react';
+import { Home, Gauge, Settings, FileText, Building2, AlertTriangle, ScrollText, Shield, Siren, FolderOpen, KeyRound, Users } from 'lucide-react';
 import type { NavigationConfig, NavigationGroup, NavigationItem } from './navigation.types';
 
 /**
@@ -51,6 +51,14 @@ const mainNavigationItems: NavigationItem[] = [
     icon: Building2,
     visibility: 'authenticated',
     ariaLabel: 'Navigate to organizations page',
+  },
+  {
+    id: 'members',
+    label: 'Team Members',
+    path: '/app/members',
+    icon: Users,
+    visibility: 'authenticated',
+    ariaLabel: 'Navigate to team members page',
   },
   {
     id: 'operations',

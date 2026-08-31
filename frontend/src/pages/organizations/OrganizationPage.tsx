@@ -12,8 +12,8 @@
  */
 
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { Building2, Users, Shield, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Building2, Users, Shield, Loader2, AlertCircle, ArrowLeft, ExternalLink } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { OrganizationMembers } from '../../features/organizations/components/OrganizationMembers';
 import { OrganizationRoles } from '../../features/organizations/components/OrganizationRoles';
@@ -24,6 +24,7 @@ type TabType = 'overview' | 'members' | 'roles';
 
 export function OrganizationPage() {
   const { organizationId } = useParams<{ organizationId: string }>();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
 
   const {
@@ -156,7 +157,22 @@ export function OrganizationPage() {
         )}
 
         {activeTab === 'members' && (
-          <OrganizationMembers organizationId={organization.id} />
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Manage team members and their roles for this organization.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/app/members')}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Open Dedicated Members Page
+              </Button>
+            </div>
+            <OrganizationMembers organizationId={organization.id} />
+          </div>
         )}
 
         {activeTab === 'roles' && (

@@ -83,7 +83,12 @@ export const PERMISSION_CODENAMES = [
   'role.manage',
   'role.assign',
   'incident.view',
+  'incident.create',
+  'incident.update',
   'incident.manage',
+  'incident.assign',
+  'incident.close',
+  'incident.resolve',
   'settings.view',
   'settings.manage',
   'sla.view',
@@ -109,3 +114,64 @@ export const SYSTEM_ROLE_SLUGS = [
 ] as const;
 
 export type SystemRoleSlug = typeof SYSTEM_ROLE_SLUGS[number];
+
+/**
+ * Human-readable labels for permission codenames.
+ * Converts backend codenames (e.g., "incident.create") to user-friendly labels (e.g., "Incident — Create").
+ * Unknown permissions use a safe fallback format.
+ */
+export const PERMISSION_LABELS: Record<string, string> = {
+  'organization.view': 'Organization — View',
+  'organization.update': 'Organization — Update',
+  'member.view': 'Member — View',
+  'member.invite': 'Member — Invite',
+  'member.remove': 'Member — Remove',
+  'member.suspend': 'Member — Suspend',
+  'role.view': 'Roles — View',
+  'role.manage': 'Roles — Manage',
+  'role.assign': 'Roles — Assign',
+  'incident.view': 'Incident — View',
+  'incident.create': 'Incident — Create',
+  'incident.update': 'Incident — Update',
+  'incident.manage': 'Incident — Manage',
+  'incident.assign': 'Incident — Assign',
+  'incident.close': 'Incident — Close',
+  'incident.resolve': 'Incident — Resolve',
+  'settings.view': 'Settings — View',
+  'settings.manage': 'Settings — Manage',
+  'sla.view': 'SLA — View',
+  'sla.manage': 'SLA — Manage',
+  'escalation.view': 'Escalation — View',
+  'escalation.manage': 'Escalation — Manage',
+  'escalation.evaluate': 'Escalation — Evaluate',
+  'audit_log.view': 'Audit Log — View',
+  'report.view': 'Reports — View',
+} as const;
+
+/**
+ * Get a human-readable label for a permission codename.
+ * Falls back to a formatted version of the codename if not in the mapping.
+ */
+export function getPermissionLabel(codename: string): string {
+  return PERMISSION_LABELS[codename] || formatUnknownPermission(codename);
+}
+
+/**
+ * Format an unknown permission codename into a human-readable label.
+ * Example: "some.permission" → "Some — Permission"
+ */
+function formatUnknownPermission(codename: string): string {
+  const [resource, action] = codename.split('.');
+  if (!resource || !action) {
+    return codename;
+  }
+  const formattedResource = resource
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+  const formattedAction = action
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+  return `${formattedResource} — ${formattedAction}`;
+}

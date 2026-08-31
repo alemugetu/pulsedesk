@@ -44,6 +44,7 @@ import { SlaPoliciesPage } from '../features/sla/pages/SlaPoliciesPage';
 import { EscalationPoliciesPage } from '../features/sla/pages/EscalationPoliciesPage';
 import { IncidentCategoriesPage } from '../features/incidents/pages/IncidentCategoriesPage';
 import { RolesPage } from '../features/organizations/pages/RolesPage';
+import { MembersPage } from '../pages/app/MembersPage';
 
 /**
  * Public routes - accessible without authentication
@@ -160,6 +161,10 @@ const protectedRoutes: RouteObject[] = [
       {
         path: 'organizations/:organizationId',
         element: <OrganizationPage />,
+      },
+      {
+        path: 'members',
+        element: <MembersPage />,
       },
       {
         path: 'incidents',
