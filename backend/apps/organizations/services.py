@@ -420,6 +420,241 @@ class OrganizationService:
 
         return membership
 
+    @staticmethod
+    @transaction.atomic
+    def add_member(
+        organization: Organization,
+        user,
+        role: Role | None = None,
+        actor_membership: Membership | None = None,
+    ) -> Membership:
+        """
+        Add a user as a member to an organization and optionally assign a role.
+        If the user is not verified, send them a verification email.
+        """
+        if actor_membership is not None:
+            from organizations.selectors import user_has_permission
+
+            if not user_has_permission(
+                actor_membership.user, organization, "member.invite"
+            ):
+                raise OrganizationAccessValidationError(
+                    {"detail": "You do not have permission to invite/add members."},
+                    code="permission_denied",
+                )
+
+            # Prevent owner escalation: non-owner cannot assign owner role
+            if role is not None and role.slug == "organization-owner":
+                actor_role = actor_membership.role
+                if actor_role is None or actor_role.slug != "organization-owner":
+                    raise OrganizationAccessValidationError(
+                        {
+                            "detail": "Only the organization owner can assign the owner role."
+                        },
+                        code="owner_escalation",
+                    )
+
+        if role is not None and role.organization_id != organization.pk:
+            raise OrganizationAccessValidationError(
+                {"detail": "Role does not belong to this organization."},
+                code="cross_tenant_role",
+            )
+
+        existing = Membership.objects.filter(
+            user=user, organization=organization
+        ).first()
+
+        if existing:
+            if existing.status == MembershipStatus.ACTIVE:
+                raise OrganizationAccessValidationError(
+                    {
+                        "detail": "This user is already an active member of this organization."
+                    },
+                    code="duplicate_membership",
+                )
+            existing.status = MembershipStatus.ACTIVE
+            if role is not None:
+                existing.role = role
+            existing.save(update_fields=["status", "role", "updated_at"])
+            membership = existing
+        else:
+            membership = Membership.objects.create(
+                user=user,
+                organization=organization,
+                role=role,
+                status=MembershipStatus.ACTIVE,
+            )
+
+        # Send verification email if user is not verified
+        if not user.is_verified:
+            from accounts.email_services import EmailService
+            from accounts.email_services import email_verification_token_generator
+
+            verification_token = email_verification_token_generator.make_token(user)
+            EmailService.send_verification_email(user, verification_token)
+
+        # Audit log
+        from audit_logs.models import AuditAction
+        from audit_logs.services import AuditLogService
+
+        actor = actor_membership.user if actor_membership else None
+        AuditLogService.log(
+            organization=organization,
+            actor=actor,
+            action=AuditAction.MEMBER_ADDED,
+            resource_type="membership",
+            resource_id=str(membership.id),
+            changes={
+                "user_id": str(user.id),
+                "user_email": user.email,
+                "role_id": str(role.id) if role else None,
+                "role_name": role.name if role else None,
+            },
+        )
+
+        return membership
+
+    @staticmethod
+    @transaction.atomic
+    def update_member_status(
+        membership: Membership,
+        status: str,
+        actor_membership: Membership,
+    ) -> Membership:
+        """
+        Update the status of a membership (ACTIVE, SUSPENDED, REMOVED).
+        """
+        from organizations.selectors import user_has_permission
+
+        organization = membership.organization
+
+        if not user_has_permission(
+            actor_membership.user, organization, "member.suspend"
+        ):
+            raise OrganizationAccessValidationError(
+                {"detail": "You do not have permission to suspend or activate members."},
+                code="permission_denied",
+            )
+
+        # Protect sole owner from suspension or removal
+        if (
+            status in (MembershipStatus.SUSPENDED, MembershipStatus.REMOVED)
+            and membership.role is not None
+            and membership.role.slug == "organization-owner"
+        ):
+            owner_count = Membership.objects.filter(
+                organization=organization,
+                status=MembershipStatus.ACTIVE,
+                role__slug="organization-owner",
+            ).count()
+            if owner_count <= 1:
+                raise OrganizationAccessValidationError(
+                    {
+                        "detail": (
+                            "Cannot suspend or remove the sole organization owner. "
+                            "Transfer ownership before changing status."
+                        )
+                    },
+                    code="sole_owner_protected",
+                )
+
+        old_status = membership.status
+        membership.status = status
+        membership.save(update_fields=["status", "updated_at"])
+
+        # Audit log
+        from audit_logs.models import AuditAction
+        from audit_logs.services import AuditLogService
+
+        if status == MembershipStatus.SUSPENDED:
+            audit_action = AuditAction.MEMBER_SUSPENDED
+        elif status == MembershipStatus.REMOVED:
+            audit_action = AuditAction.MEMBER_REMOVED
+        else:
+            audit_action = AuditAction.MEMBER_ADDED
+
+        AuditLogService.log(
+            organization=organization,
+            actor=actor_membership.user,
+            action=audit_action,
+            resource_type="membership",
+            resource_id=str(membership.id),
+            changes={
+                "user_id": str(membership.user_id),
+                "user_email": membership.user.email,
+                "old_status": old_status,
+                "new_status": status,
+            },
+        )
+
+        return membership
+
+    @staticmethod
+    @transaction.atomic
+    def remove_member(
+        membership: Membership,
+        actor_membership: Membership,
+    ) -> None:
+        """
+        Remove a member from the organization.
+        """
+        from organizations.selectors import user_has_permission
+
+        organization = membership.organization
+
+        if not user_has_permission(
+            actor_membership.user, organization, "member.remove"
+        ):
+            raise OrganizationAccessValidationError(
+                {"detail": "You do not have permission to remove members."},
+                code="permission_denied",
+            )
+
+        # Protect sole owner from removal
+        if (
+            membership.role is not None
+            and membership.role.slug == "organization-owner"
+        ):
+            owner_count = Membership.objects.filter(
+                organization=organization,
+                status=MembershipStatus.ACTIVE,
+                role__slug="organization-owner",
+            ).count()
+            if owner_count <= 1:
+                raise OrganizationAccessValidationError(
+                    {
+                        "detail": (
+                            "Cannot remove the sole organization owner. "
+                            "Transfer ownership before removing."
+                        )
+                    },
+                    code="sole_owner_protected",
+                )
+
+        membership_id = str(membership.id)
+        user_id = str(membership.user_id)
+        user_email = membership.user.email
+
+        membership.status = MembershipStatus.REMOVED
+        membership.save(update_fields=["status", "updated_at"])
+
+        # Audit log
+        from audit_logs.models import AuditAction
+        from audit_logs.services import AuditLogService
+
+        AuditLogService.log(
+            organization=organization,
+            actor=actor_membership.user,
+            action=AuditAction.MEMBER_REMOVED,
+            resource_type="membership",
+            resource_id=membership_id,
+            changes={
+                "user_id": user_id,
+                "user_email": user_email,
+            },
+        )
+
+
 
 # ---------------------------------------------------------------------------
 # RBAC service

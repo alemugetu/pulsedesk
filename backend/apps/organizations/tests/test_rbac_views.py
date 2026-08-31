@@ -293,3 +293,76 @@ class MemberListWithRBACTest(RBACViewBaseTest):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         member = response.data[0]
         self.assertIn("role", member)
+
+    def test_owner_can_add_member(self):
+        new_user = User.objects.create_user(email="newmember@example.com", password="pass123")
+        new_user.email_verified_at = timezone.now()
+        new_user.save()
+        agent_role = Role.objects.get(organization=self.org, slug="agent")
+
+        self._auth_as(self.owner_user)
+        response = self.client.post(
+            f"/api/v1/organizations/{self.org.id}/members/",
+            {"email": "newmember@example.com", "role_id": str(agent_role.id)},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["user"]["email"], "newmember@example.com")
+        self.assertEqual(response.data["role"]["slug"], "agent")
+
+    def test_viewer_cannot_add_member(self):
+        new_user = User.objects.create_user(email="another@example.com", password="pass123")
+        new_user.email_verified_at = timezone.now()
+        new_user.save()
+
+        self._auth_as(self.viewer_user)
+        response = self.client.post(
+            f"/api/v1/organizations/{self.org.id}/members/",
+            {"email": "another@example.com"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_owner_can_suspend_and_reactivate_member(self):
+        self._auth_as(self.owner_user)
+        # Suspend viewer
+        response = self.client.patch(
+            f"/api/v1/organizations/{self.org.id}/members/{self.viewer_membership.id}/",
+            {"status": "SUSPENDED"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "SUSPENDED")
+
+        # Reactivate viewer
+        response = self.client.patch(
+            f"/api/v1/organizations/{self.org.id}/members/{self.viewer_membership.id}/",
+            {"status": "ACTIVE"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "ACTIVE")
+
+    def test_owner_cannot_suspend_sole_owner(self):
+        self._auth_as(self.owner_user)
+        response = self.client.patch(
+            f"/api/v1/organizations/{self.org.id}/members/{self.owner_membership.id}/",
+            {"status": "SUSPENDED"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_owner_can_remove_member(self):
+        self._auth_as(self.owner_user)
+        response = self.client.delete(
+            f"/api/v1/organizations/{self.org.id}/members/{self.viewer_membership.id}/"
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_owner_cannot_remove_sole_owner(self):
+        self._auth_as(self.owner_user)
+        response = self.client.delete(
+            f"/api/v1/organizations/{self.org.id}/members/{self.owner_membership.id}/"
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+

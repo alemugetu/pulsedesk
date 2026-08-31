@@ -18,8 +18,10 @@ from organizations.selectors import (
     list_user_organizations,
 )
 from organizations.serializers import (
+    MembershipCreateSerializer,
     MembershipRoleAssignSerializer,
     MembershipSerializer,
+    MembershipStatusUpdateSerializer,
     OrganizationCreateSerializer,
     OrganizationSerializer,
     RoleCreateSerializer,
@@ -326,22 +328,149 @@ class OrganizationDetailView(RetrieveAPIView):
         )
     ],
 )
-class OrganizationMemberListView(ListAPIView):
+class OrganizationMemberListView(APIView):
     """
-    List active members of an organization.
-    GET /api/v1/organizations/<uuid>/members/
+    List active members or create/invite a new member.
+    GET  /api/v1/organizations/<uuid>/members/
+    POST /api/v1/organizations/<uuid>/members/
     """
 
     permission_classes: ClassVar = [
         IsAuthenticated,
         IsOrganizationMember,
-        make_permission_class("member.view"),
     ]
-    serializer_class = MembershipSerializer
-    pagination_class = None
 
-    def get_queryset(self):
-        return list_organization_members(self.request.organization)
+    def get(self, request, organization_id):
+        from organizations.selectors import user_has_permission
+
+        if not user_has_permission(request.user, request.organization, "member.view"):
+            return Response(
+                {"detail": "You do not have permission to view members."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        members = list_organization_members(request.organization)
+        serializer = MembershipSerializer(members, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request, organization_id):
+        serializer = MembershipCreateSerializer(
+            data=request.data,
+            context={
+                "organization": request.organization,
+                "actor_membership": request.membership,
+            },
+        )
+        if serializer.is_valid():
+            try:
+                membership = serializer.save()
+            except Exception as exc:
+                from rest_framework.exceptions import ValidationError
+
+                if isinstance(exc, ValidationError):
+                    code = getattr(exc, "code", None)
+                    http_status = (
+                        status.HTTP_403_FORBIDDEN
+                        if code in {"permission_denied", "owner_escalation"}
+                        else status.HTTP_400_BAD_REQUEST
+                    )
+                    return Response(exc.detail, status=http_status)
+                raise
+            return Response(
+                MembershipSerializer(membership).data,
+                status=status.HTTP_201_CREATED,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@extend_schema(
+    tags=["Memberships"],
+    parameters=[_ORG_ID_PARAMETER, _MEMBERSHIP_ID_PARAMETER],
+)
+class MembershipDetailView(APIView):
+    """
+    GET    /api/v1/organizations/<uuid>/members/<membership_uuid>/
+    PATCH  /api/v1/organizations/<uuid>/members/<membership_uuid>/
+    DELETE /api/v1/organizations/<uuid>/members/<membership_uuid>/
+    """
+
+    permission_classes: ClassVar = [IsAuthenticated, IsOrganizationMember]
+
+    def _get_membership_or_404(self, request, membership_id):
+        return get_membership_by_id(membership_id, request.organization)
+
+    def get(self, request, organization_id, membership_id):
+        from organizations.selectors import user_has_permission
+
+        if not user_has_permission(request.user, request.organization, "member.view"):
+            return Response(
+                {"detail": "You do not have permission to view members."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        membership = self._get_membership_or_404(request, membership_id)
+        if membership is None:
+            return Response(
+                {"detail": "Membership not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+        return Response(MembershipSerializer(membership).data)
+
+    def patch(self, request, organization_id, membership_id):
+        membership = self._get_membership_or_404(request, membership_id)
+        if membership is None:
+            return Response(
+                {"detail": "Membership not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = MembershipStatusUpdateSerializer(
+            membership,
+            data=request.data,
+            partial=True,
+            context={"actor_membership": request.membership},
+        )
+        if serializer.is_valid():
+            try:
+                updated = serializer.save()
+            except Exception as exc:
+                from rest_framework.exceptions import ValidationError
+
+                if isinstance(exc, ValidationError):
+                    code = getattr(exc, "code", None)
+                    http_status = (
+                        status.HTTP_403_FORBIDDEN
+                        if code in {"permission_denied", "sole_owner_protected"}
+                        else status.HTTP_400_BAD_REQUEST
+                    )
+                    return Response(exc.detail, status=http_status)
+                raise
+            return Response(MembershipSerializer(updated).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, organization_id, membership_id):
+        membership = self._get_membership_or_404(request, membership_id)
+        if membership is None:
+            return Response(
+                {"detail": "Membership not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        try:
+            from organizations.services import OrganizationService
+
+            OrganizationService.remove_member(
+                membership=membership,
+                actor_membership=request.membership,
+            )
+        except Exception as exc:
+            from rest_framework.exceptions import ValidationError
+
+            if isinstance(exc, ValidationError):
+                code = getattr(exc, "code", None)
+                http_status = (
+                    status.HTTP_403_FORBIDDEN
+                    if code in {"permission_denied", "sole_owner_protected"}
+                    else status.HTTP_400_BAD_REQUEST
+                )
+                return Response(exc.detail, status=http_status)
+            raise
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 # ---------------------------------------------------------------------------

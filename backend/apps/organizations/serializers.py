@@ -1,6 +1,12 @@
 from typing import ClassVar
 
-from organizations.models import Membership, Organization, Permission, Role
+from organizations.models import (
+    Membership,
+    MembershipStatus,
+    Organization,
+    Permission,
+    Role,
+)
 from organizations.services import OrganizationService, RBACService
 from rest_framework import serializers
 
@@ -221,3 +227,96 @@ class MembershipRoleAssignSerializer(serializers.Serializer):
             role=role,
             actor_membership=actor_membership,
         )
+
+
+class MembershipCreateSerializer(serializers.Serializer):
+    """Write serializer for creating/adding an organization membership."""
+
+    email = serializers.EmailField(
+        required=False,
+        allow_blank=True,
+        help_text="Email of the user to add as a member.",
+    )
+    user_id = serializers.UUIDField(
+        required=False,
+        allow_null=True,
+        help_text="UUID of the user to add as a member.",
+    )
+    role_id = serializers.UUIDField(
+        required=False,
+        allow_null=True,
+        help_text="UUID of the initial role to assign.",
+    )
+
+    def validate(self, attrs):
+        from django.contrib.auth import get_user_model
+        from organizations.selectors import get_role_by_id
+
+        User = get_user_model()
+        email = attrs.get("email")
+        user_id = attrs.get("user_id")
+        role_id = attrs.get("role_id")
+        organization = self.context["organization"]
+
+        if not email and not user_id:
+            raise serializers.ValidationError(
+                {"email": ["Either email or user_id must be provided."]}
+            )
+
+        user = None
+        if user_id:
+            try:
+                user = User.objects.get(id=user_id)
+            except User.DoesNotExist:
+                raise serializers.ValidationError(
+                    {"user_id": ["User with this ID does not exist."]}
+                ) from None
+        elif email:
+            try:
+                user = User.objects.get(email=email.strip().lower())
+            except User.DoesNotExist:
+                raise serializers.ValidationError(
+                    {"email": ["User with this email does not exist. Please register the user account first."]}
+                ) from None
+
+        attrs["user"] = user
+
+        if role_id is not None:
+            role = get_role_by_id(role_id, organization)
+            if role is None:
+                raise serializers.ValidationError(
+                    {"role_id": ["Role not found in this organization."]}
+                )
+            attrs["role"] = role
+        else:
+            attrs["role"] = None
+
+        return attrs
+
+    def create(self, validated_data):
+        organization = self.context["organization"]
+        actor_membership = self.context.get("actor_membership")
+        return OrganizationService.add_member(
+            organization=organization,
+            user=validated_data["user"],
+            role=validated_data.get("role"),
+            actor_membership=actor_membership,
+        )
+
+
+class MembershipStatusUpdateSerializer(serializers.Serializer):
+    """Write serializer for updating a member's status (e.g. suspend or reactivate)."""
+
+    status = serializers.ChoiceField(
+        choices=MembershipStatus.choices,
+        help_text="New membership status: ACTIVE, SUSPENDED, or REMOVED.",
+    )
+
+    def update(self, instance, validated_data):
+        actor_membership = self.context["actor_membership"]
+        return OrganizationService.update_member_status(
+            membership=instance,
+            status=validated_data["status"],
+            actor_membership=actor_membership,
+        )
+

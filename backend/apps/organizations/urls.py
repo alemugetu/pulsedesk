@@ -12,11 +12,17 @@ urlpatterns = [
         views.OrganizationDetailView.as_view(),
         name="organization-detail",
     ),
-    # Member list
+    # Member list / add member
     path(
         "<uuid:organization_id>/members/",
         views.OrganizationMemberListView.as_view(),
         name="organization-members",
+    ),
+    # Member detail (get, status update / suspend, remove)
+    path(
+        "<uuid:organization_id>/members/<uuid:membership_id>/",
+        views.MembershipDetailView.as_view(),
+        name="membership-detail",
     ),
     # Membership role assignment
     path(
