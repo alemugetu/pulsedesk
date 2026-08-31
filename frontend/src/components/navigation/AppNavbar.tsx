@@ -17,6 +17,7 @@ import { Menu } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { OrganizationSwitcher } from './OrganizationSwitcher';
 import { UserMenu } from './UserMenu';
+import { NotificationBell } from './NotificationBell';
 import { ThemeSwitcher } from '../theme/ThemeSwitcher';
 import { cn } from '../../utils/cn';
 
@@ -83,12 +84,15 @@ export function AppNavbar({
           </div>
         </div>
 
-        {/* Right side: Organization switcher, theme, and user menu */}
+        {/* Right side: Organization switcher, notifications, theme, and user menu */}
         <div className="flex items-center gap-2">
           {/* Organization switcher */}
           <div className="hidden md:block">
             <OrganizationSwitcher />
           </div>
+
+          {/* Notifications */}
+          <NotificationBell />
 
           {/* Theme switcher */}
           <ThemeSwitcher />

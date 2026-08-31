@@ -37,6 +37,8 @@ export function CreateIncidentPage() {
         title: data.title,
         description: data.description,
         priority: data.priority,
+        category_id: data.category_id,
+        assignee_id: data.assignee_id,
       };
       
       console.log('Creating incident with data:', createData);

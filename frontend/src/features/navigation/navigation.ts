@@ -14,7 +14,7 @@
  * Phase 13.13: Audit Logs route enabled.
  */
 
-import { Home, Gauge, Settings, FileText, Building2, AlertTriangle, ScrollText } from 'lucide-react';
+import { Home, Gauge, Settings, FileText, Building2, AlertTriangle, ScrollText, Shield, Siren, FolderOpen, KeyRound } from 'lucide-react';
 import type { NavigationConfig, NavigationGroup, NavigationItem } from './navigation.types';
 
 /**
@@ -95,6 +95,46 @@ const settingsNavigationItems: NavigationItem[] = [
   },
 ];
 
+/**
+ * Operations & configuration navigation items
+ * Phase 13.14: Added SLA policies, escalation policies, incident categories,
+ * and roles for backend-driven configuration across the platform.
+ */
+const configurationNavigationItems: NavigationItem[] = [
+  {
+    id: 'sla',
+    label: 'SLA Policies',
+    path: '/app/sla',
+    icon: Siren,
+    visibility: 'authenticated',
+    ariaLabel: 'Navigate to SLA policies',
+  },
+  {
+    id: 'escalation',
+    label: 'Escalation Policies',
+    path: '/app/escalation',
+    icon: Shield,
+    visibility: 'authenticated',
+    ariaLabel: 'Navigate to escalation policies',
+  },
+  {
+    id: 'incident-categories',
+    label: 'Incident Categories',
+    path: '/app/categories',
+    icon: FolderOpen,
+    visibility: 'authenticated',
+    ariaLabel: 'Navigate to incident categories',
+  },
+  {
+    id: 'roles',
+    label: 'Roles & Permissions',
+    path: '/app/roles',
+    icon: KeyRound,
+    visibility: 'authenticated',
+    ariaLabel: 'Navigate to roles and permissions',
+  },
+];
+
 
 
 /**
@@ -104,6 +144,11 @@ export const navigationGroups: NavigationGroup[] = [
   {
     id: 'main',
     items: mainNavigationItems,
+  },
+  {
+    id: 'configuration',
+    label: 'Configuration',
+    items: configurationNavigationItems,
   },
   {
     id: 'settings',

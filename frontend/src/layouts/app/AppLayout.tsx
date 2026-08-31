@@ -77,6 +77,7 @@ return (
           className={cn(
             'min-w-0 min-h-0 flex-1',
             'overflow-y-auto',
+            'bg-background',
             'focus:outline-none'
           )}
           id="main-content"

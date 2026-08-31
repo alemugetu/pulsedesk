@@ -26,7 +26,6 @@ export function useIncidentSla(incident: Incident | null): IncidentSLASummary | 
 }
 
 /**
-/**
  * Helper to format time remaining until deadline
  * 
  * @param deadline - The SLA deadline as ISO string

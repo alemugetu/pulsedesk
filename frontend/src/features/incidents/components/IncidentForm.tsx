@@ -11,6 +11,9 @@ import { Input } from '../../../components/ui/Input';
 import { Select, type SelectOption } from '../../../components/ui/Select';
 import { Button } from '../../../components/ui/Button';
 import { IncidentPriorityBadge } from './IncidentPriorityBadge';
+import { useCurrentOrganization } from '../../organizations/context/organizationContextDef';
+import { useIncidentCategories } from '../hooks/useIncidentCategories';
+import { useOrganizationMembers } from '../../organizations/hooks/useOrganizationMembers';
 
 interface IncidentFormProps {
   incident?: Incident;
@@ -36,26 +39,46 @@ export function IncidentForm({
   submitLabel = 'Create Incident',
   className = '',
 }: IncidentFormProps) {
+  const organization = useCurrentOrganization();
+  const orgId = organization?.id ?? '';
+  const { data: categories = [] } = useIncidentCategories(orgId, true);
+  const { data: members = [] } = useOrganizationMembers(orgId);
   const [title, setTitle] = useState(incident?.title || '');
   const [description, setDescription] = useState(incident?.description || '');
   const [priority, setPriority] = useState<IncidentPriority>(incident?.priority || 'P3');
+  const [categoryId, setCategoryId] = useState<string>(incident?.category?.id || '');
+  const [assigneeId, setAssigneeId] = useState<string>(incident?.assignee?.id || '');
   const [titleError, setTitleError] = useState('');
+
+  const categoryOptions: SelectOption[] = categories.map((category) => ({
+    value: category.id,
+    label: category.name,
+  }));
+
+  const memberOptions: SelectOption[] = members
+    .filter((member) => member.status === 'ACTIVE')
+    .map((member) => ({
+      value: member.id,
+      label: `${member.user.first_name || member.user.email} ${member.user.last_name}`.trim(),
+    }));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validation
     if (!title.trim()) {
       setTitleError('Incident title is required');
       return;
     }
-    
+
     setTitleError('');
 
     const data: CreateIncidentRequest | UpdateIncidentRequest = {
       title: title.trim(),
       description: description.trim(),
       priority,
+      category_id: categoryId || null,
+      assignee_id: assigneeId || null,
     };
 
     onSubmit(data);
@@ -101,6 +124,30 @@ export function IncidentForm({
         />
         <div className="mt-2">
           <IncidentPriorityBadge priority={priority} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div>
+          <Select
+            id="category"
+            label="Category"
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            options={[{ value: '', label: 'No category' }, ...categoryOptions]}
+            fullWidth
+          />
+        </div>
+
+        <div>
+          <Select
+            id="assignee"
+            label="Assignee"
+            value={assigneeId}
+            onChange={(e) => setAssigneeId(e.target.value)}
+            options={[{ value: '', label: 'Unassigned' }, ...memberOptions]}
+            fullWidth
+          />
         </div>
       </div>
 

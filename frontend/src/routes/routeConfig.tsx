@@ -40,6 +40,10 @@ import { OperationsCommandCenterPage } from '../features/operations/pages/Operat
 import { ReportsPage } from '../pages/app/ReportsPage';
 import { OrganizationSettingsPage } from '../pages/app/OrganizationSettingsPage';
 import { AuditLogsPage } from '../pages/app/AuditLogsPage';
+import { SlaPoliciesPage } from '../features/sla/pages/SlaPoliciesPage';
+import { EscalationPoliciesPage } from '../features/sla/pages/EscalationPoliciesPage';
+import { IncidentCategoriesPage } from '../features/incidents/pages/IncidentCategoriesPage';
+import { RolesPage } from '../features/organizations/pages/RolesPage';
 
 /**
  * Public routes - accessible without authentication
@@ -184,6 +188,22 @@ const protectedRoutes: RouteObject[] = [
       {
         path: 'settings',
         element: <OrganizationSettingsPage />,
+      },
+      {
+        path: 'sla',
+        element: <SlaPoliciesPage />,
+      },
+      {
+        path: 'escalation',
+        element: <EscalationPoliciesPage />,
+      },
+      {
+        path: 'categories',
+        element: <IncidentCategoriesPage />,
+      },
+      {
+        path: 'roles',
+        element: <RolesPage />,
       },
       // Future app routes will be added here in later phases
       // Examples: /app/dashboard, /app/reports, /app/settings, etc.
