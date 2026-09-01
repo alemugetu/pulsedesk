@@ -29,6 +29,7 @@ import { AppNavbar } from '../../components/navigation/AppNavbar';
 import { Sidebar } from '../../components/navigation/Sidebar';
 import { MobileSidebar } from '../../components/navigation/MobileSidebar';
 import { Breadcrumbs } from '../../components/navigation/Breadcrumbs';
+import { SkipToContent } from '../../components/accessibility/SkipToContent';
 import { RealtimeConnectionBridge } from '../../features/realtime/components/RealtimeConnectionBridge';
 import { cn } from '../../utils/cn';
 
@@ -50,6 +51,9 @@ export function AppLayout() {
 
 return (
     <div className="flex h-dvh flex-col overflow-hidden bg-background">
+      {/* Accessible skip link */}
+      <SkipToContent targetId="main-content" />
+
       {/* App-wide realtime connection driver (renders nothing) */}
       <RealtimeConnectionBridge />
 

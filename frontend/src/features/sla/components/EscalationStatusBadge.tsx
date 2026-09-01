@@ -35,13 +35,13 @@ function getEscalationStatusDisplayText(status: EscalationStatus): string {
 function getEscalationStatusColorClass(status: EscalationStatus): string {
   switch (status) {
     case 'ACTIVE':
-      return 'bg-yellow-500 text-white';
+      return 'bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950/80 dark:text-amber-200 dark:border-amber-700';
     case 'COMPLETED':
-      return 'bg-green-500 text-white';
+      return 'bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-950/80 dark:text-emerald-200 dark:border-emerald-700';
     case 'CANCELLED':
-      return 'bg-gray-500 text-white';
+      return 'bg-slate-100 text-slate-700 border border-slate-300 dark:bg-slate-800/80 dark:text-slate-300 dark:border-slate-700';
     default:
-      return 'bg-gray-500 text-white';
+      return 'bg-slate-100 text-slate-700 border border-slate-300 dark:bg-slate-800/80 dark:text-slate-300 dark:border-slate-700';
   }
 }
 

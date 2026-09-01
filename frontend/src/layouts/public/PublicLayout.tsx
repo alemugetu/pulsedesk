@@ -7,6 +7,7 @@
 import { Outlet } from 'react-router-dom';
 import { PublicNavbar } from '../../features/public/components/PublicNavbar';
 import { PublicFooter } from '../../features/public/components/PublicFooter';
+import { SkipToContent } from '../../components/accessibility/SkipToContent';
 
 /**
  * PublicLayout component for public pages
@@ -14,8 +15,9 @@ import { PublicFooter } from '../../features/public/components/PublicFooter';
 export function PublicLayout() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
+      <SkipToContent targetId="main-content" />
       <PublicNavbar />
-      <main className="flex-1" role="main">
+      <main id="main-content" tabIndex={-1} className="flex-1 focus:outline-none" role="main">
         <Outlet />
       </main>
       <PublicFooter />

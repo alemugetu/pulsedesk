@@ -140,13 +140,17 @@ export async function registerAndAddMember(
             const errorMessages = Object.entries(fieldErrors)
               .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
               .join('; ');
-            throw new Error(`Registration failed: ${errorMessages}`);
+            const error = new Error(`Registration failed: ${errorMessages}`);
+            (error as Error & { cause?: unknown }).cause = err;
+            throw error;
           }
         }
         
         // Log the full error for debugging
         console.error('Full error object:', JSON.stringify(err, null, 2));
-        throw new Error(`Failed to create user account: ${errorMessage}`);
+        const error = new Error(`Failed to create user account: ${errorMessage}`);
+        (error as Error & { cause?: unknown }).cause = err;
+        throw error;
       }
     }
   }
@@ -169,11 +173,15 @@ export async function registerAndAddMember(
         const errorMessages = Object.entries(fieldErrors)
           .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
           .join('; ');
-        throw new Error(`Failed to add member: ${errorMessages}`);
+        const error = new Error(`Failed to add member: ${errorMessages}`);
+        (error as Error & { cause?: unknown }).cause = err;
+        throw error;
       }
     }
     
-    throw new Error(`User account exists, but adding to organization failed: ${errorMessage}`);
+    const error = new Error(`User account exists, but adding to organization failed: ${errorMessage}`);
+    (error as Error & { cause?: unknown }).cause = err;
+    throw error;
   }
 }
 

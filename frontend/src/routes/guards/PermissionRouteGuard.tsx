@@ -18,6 +18,7 @@ import { useNavigate } from 'react-router-dom';
 import { ShieldX, ArrowLeft, Home } from 'lucide-react';
 import { useOrganizationContext } from '../../features/organizations/context/organizationContextDef';
 import { Button } from '../../components/ui/Button';
+import { formatPermissionName } from '../../utils/accessibility';
 
 interface PermissionRouteGuardProps {
   /** The permission codename required to access this route (e.g. "member.view") */
@@ -41,6 +42,8 @@ export function PermissionRouteGuard({ permission, children }: PermissionRouteGu
     return <>{children}</>;
   }
 
+  const readablePermission = formatPermissionName(permission);
+
   // Render Forbidden state
   return (
     <div
@@ -57,12 +60,15 @@ export function PermissionRouteGuard({ permission, children }: PermissionRouteGu
       </h1>
 
       <p className="text-sm text-muted-foreground max-w-md mb-2">
-        You don't have the required permission to access this page.
+        You don't have permission to {readablePermission.toLowerCase()} for this organization.
       </p>
 
-      <p className="text-xs text-muted-foreground/70 mb-8 font-mono">
-        Required: <code className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{permission}</code>
-      </p>
+      <details className="mb-6 text-xs text-muted-foreground/70">
+        <summary className="cursor-pointer hover:underline focus:outline-none">Technical permission details</summary>
+        <p className="mt-1 font-mono">
+          Required: <code className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{permission}</code>
+        </p>
+      </details>
 
       <div className="flex items-center gap-3">
         <Button

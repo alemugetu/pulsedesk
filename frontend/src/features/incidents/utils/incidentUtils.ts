@@ -62,30 +62,30 @@ export function getPriorityColorClass(priority: IncidentPriority): string {
 }
 
 /**
- * Get status text color class
+ * Get status text color class with theme-aware background and border
  */
 export function getStatusTextColorClass(status: IncidentStatus): string {
   const colorMap: Record<IncidentStatus, string> = {
-    OPEN: 'text-blue-400',
-    ACKNOWLEDGED: 'text-yellow-400',
-    IN_PROGRESS: 'text-orange-400',
-    RESOLVED: 'text-green-400',
-    CLOSED: 'text-gray-400',
+    OPEN: 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800',
+    ACKNOWLEDGED: 'text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800',
+    IN_PROGRESS: 'text-orange-800 dark:text-orange-200 bg-orange-50 dark:bg-orange-950/50 border border-orange-200 dark:border-orange-800',
+    RESOLVED: 'text-emerald-800 dark:text-emerald-200 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800',
+    CLOSED: 'text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700',
   };
-  return colorMap[status] || 'text-gray-400';
+  return colorMap[status] || 'text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700';
 }
 
 /**
- * Get priority text color class
+ * Get priority text color class with theme-aware background and border
  */
 export function getPriorityTextColorClass(priority: IncidentPriority): string {
   const colorMap: Record<IncidentPriority, string> = {
-    P1: 'text-red-400',
-    P2: 'text-orange-400',
-    P3: 'text-yellow-400',
-    P4: 'text-blue-400',
+    P1: 'text-rose-800 dark:text-rose-200 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800',
+    P2: 'text-orange-800 dark:text-orange-200 bg-orange-50 dark:bg-orange-950/50 border border-orange-200 dark:border-orange-800',
+    P3: 'text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800',
+    P4: 'text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800',
   };
-  return colorMap[priority] || 'text-gray-400';
+  return colorMap[priority] || 'text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700';
 }
 
 /**

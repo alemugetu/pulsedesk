@@ -15,10 +15,9 @@
  * - Accessibility features
  */
 
-import { Users, Loader2, AlertCircle } from 'lucide-react';
+import { Users, AlertCircle } from 'lucide-react';
 import { OrganizationMembers } from '../../features/organizations/components/OrganizationMembers';
 import { useCurrentOrganization } from '../../features/organizations/context/organizationContextDef';
-import { cn } from '../../utils/cn';
 
 export function MembersPage() {
   const organization = useCurrentOrganization();

@@ -116,6 +116,39 @@ export function UserMenu() {
     return 'U';
   };
 
+  // Focus first menu item on open
+  useEffect(() => {
+    if (isOpen && menuRef.current) {
+      const firstEnabledItem = menuRef.current.querySelector<HTMLElement>('[role="menuitem"]:not([disabled])');
+      firstEnabledItem?.focus();
+    }
+  }, [isOpen]);
+
+  // Arrow key navigation inside menu
+  const handleMenuKeyDown = (event: React.KeyboardEvent) => {
+    if (!menuRef.current) return;
+    const items = Array.from(menuRef.current.querySelectorAll<HTMLElement>('[role="menuitem"]:not([disabled])'));
+    if (items.length === 0) return;
+
+    const currentIndex = items.indexOf(document.activeElement as HTMLElement);
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      const nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0;
+      items[nextIndex]?.focus();
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      const prevIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1;
+      items[prevIndex]?.focus();
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      items[0]?.focus();
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      items[items.length - 1]?.focus();
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center gap-2">
@@ -129,11 +162,13 @@ export function UserMenu() {
     <div className="relative">
       <Button
         ref={buttonRef}
+        id="user-menu-button"
         variant="ghost"
         size="sm"
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
         aria-haspopup="true"
+        aria-label="User account menu"
         className="flex items-center gap-2 px-2"
       >
         <div className="flex items-center gap-2">
@@ -150,6 +185,7 @@ export function UserMenu() {
       {isOpen && (
         <div
           ref={menuRef}
+          onKeyDown={handleMenuKeyDown}
           className={cn(
             'absolute right-0 top-full mt-2 w-56 rounded-md border border-border bg-card shadow-lg',
             'animate-in fade-in slide-in-from-top-1',

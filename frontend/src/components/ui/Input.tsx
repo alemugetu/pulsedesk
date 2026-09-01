@@ -2,7 +2,7 @@
  * Input component - a reusable, accessible input primitive.
  */
 
-import { type InputHTMLAttributes, forwardRef } from 'react';
+import { type InputHTMLAttributes, forwardRef, useId } from 'react';
 import { cn } from '../../utils/cn';
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -13,25 +13,33 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, fullWidth = false, showError = true, id, ...props }, ref) => {
-    const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+  ({ className, label, error, fullWidth = false, showError = true, id, required, ...props }, ref) => {
+    const generatedId = useId();
+    const inputId = id || generatedId;
 
     return (
       <div className={cn('flex flex-col gap-1.5', fullWidth && 'w-full')}>
         {label && (
           <label
             htmlFor={inputId}
-            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-foreground"
           >
             {label}
+            {required && (
+              <span className="text-destructive ml-1" aria-hidden="true">
+                *
+              </span>
+            )}
           </label>
         )}
         <input
           ref={ref}
           id={inputId}
+          required={required}
+          aria-required={required ? true : undefined}
           className={cn(
             'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2',
-            'text-sm ring-offset-background',
+            'text-sm ring-offset-background text-foreground',
             'file:border-0 file:bg-transparent file:text-sm file:font-medium',
             'placeholder:text-muted-foreground',
             'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',

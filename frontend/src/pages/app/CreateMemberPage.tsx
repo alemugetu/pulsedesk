@@ -13,14 +13,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  UserPlus,
   ArrowLeft,
   AlertCircle,
   CheckCircle,
-  Mail,
-  User,
-  Lock,
-  Shield,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';

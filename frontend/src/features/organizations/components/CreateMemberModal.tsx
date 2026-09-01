@@ -18,17 +18,13 @@ import React, { useState } from 'react';
 import {
   X,
   UserPlus,
-  Mail,
-  User,
-  Lock,
-  Shield,
-  Loader2,
   AlertCircle,
   CheckCircle,
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select, type SelectOption } from '../../../components/ui/Select';
+import { FocusTrap } from '../../../components/accessibility/FocusTrap';
 import { useOrganizationRoles } from '../hooks/useOrganizationRoles';
 import { useRegisterAndAddMember, useAddMember } from '../hooks/useOrganizationMembers';
 import { cn } from '../../../utils/cn';
@@ -194,7 +190,9 @@ export function CreateMemberModal({
   };
 
   return (
-    <div
+    <FocusTrap
+      active={isOpen}
+      onEscape={handleClose}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
@@ -438,6 +436,6 @@ export function CreateMemberModal({
           </div>
         </form>
       </div>
-    </div>
+    </FocusTrap>
   );
 }

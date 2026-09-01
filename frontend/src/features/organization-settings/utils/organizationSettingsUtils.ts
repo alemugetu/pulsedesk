@@ -63,10 +63,16 @@ export function isValidIncidentStatus(value: string): value is IncidentStatus {
  * Format API error message for display
  */
 export function formatSettingsError(error: unknown): string {
-  if (error && typeof error === 'object' && 'detail' in error) {
+  if (error && typeof error === 'object' && 'detail' in error && error.detail) {
     return String(error.detail);
   }
-  if (error && typeof error === 'object' && 'message' in error) {
+  if (
+    error &&
+    typeof error === 'object' &&
+    'message' in error &&
+    error.message &&
+    error.message !== 'Unknown error'
+  ) {
     return String(error.message);
   }
   return 'An error occurred while updating settings';

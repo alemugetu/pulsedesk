@@ -9,6 +9,21 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { IncidentForm } from '../components/IncidentForm';
 import type { Incident, CreateIncidentRequest } from '../types/incident.types';
 
+vi.mock('../../organizations/context/organizationContextDef', () => ({
+  useCurrentOrganization: () => ({ id: 'org-1', name: 'Test Org' }),
+  useOrganizationContext: () => ({
+    currentOrganization: { id: 'org-1', name: 'Test Org' },
+  }),
+}));
+
+vi.mock('../hooks/useIncidentCategories', () => ({
+  useIncidentCategories: () => ({ data: [], isLoading: false }),
+}));
+
+vi.mock('../../organizations/hooks/useOrganizationMembers', () => ({
+  useOrganizationMembers: () => ({ data: [], isLoading: false }),
+}));
+
 describe('IncidentForm', () => {
   const mockIncident: Incident = {
     id: '1',
@@ -37,9 +52,9 @@ describe('IncidentForm', () => {
       />
     );
 
-    expect(screen.getByLabelText('Title')).toBeInTheDocument();
+    expect(screen.getByLabelText(/Title/i)).toBeInTheDocument();
     expect(screen.getByLabelText('Description')).toBeInTheDocument();
-    expect(screen.getByLabelText('Priority')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Priority' })).toBeInTheDocument();
     expect(screen.getByText('Create Incident')).toBeInTheDocument();
   });
 
@@ -94,9 +109,9 @@ describe('IncidentForm', () => {
       />
     );
 
-    const titleInput = screen.getByLabelText('Title');
+    const titleInput = screen.getByLabelText(/Title/i);
     const descriptionInput = screen.getByLabelText('Description');
-    const prioritySelect = screen.getByLabelText('Priority');
+    const prioritySelect = screen.getByRole('combobox', { name: 'Priority' });
     const submitButton = screen.getByText('Create Incident');
 
     fireEvent.change(titleInput, { target: { value: 'New Incident' } });
@@ -108,6 +123,8 @@ describe('IncidentForm', () => {
       title: 'New Incident',
       description: 'New description',
       priority: 'P1',
+      category_id: null,
+      assignee_id: null,
     } as CreateIncidentRequest);
   });
 

@@ -12,9 +12,9 @@ export interface BadgeProps extends HTMLAttributes<HTMLDivElement> {
 const variantStyles = {
   default: 'bg-primary text-primary-foreground',
   secondary: 'bg-secondary text-secondary-foreground',
-  success: 'bg-green-500 text-white',
-  warning: 'bg-yellow-500 text-white',
-  error: 'bg-red-500 text-white',
+  success: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800',
+  warning: 'bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-200 border border-amber-300 dark:border-amber-700',
+  error: 'bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-800',
 };
 
 export const Badge = forwardRef<HTMLDivElement, BadgeProps>(

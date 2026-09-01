@@ -76,30 +76,54 @@ export function IncidentPriorityChart({ data, isLoading, error, onRetry }: Incid
         )}
 
         {!error && !isLoading && !isEmpty && (
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-              <XAxis
-                dataKey="label"
-                tick={{ fontSize: 12, fill: 'currentColor' }}
-                className="text-muted-foreground"
-              />
-              <YAxis tick={{ fontSize: 12, fill: 'currentColor' }} className="text-muted-foreground" />
-              <Tooltip
-                cursor={{ fill: 'rgba(99, 102, 241, 0.1)' }}
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                  color: 'hsl(var(--foreground))',
-                }}
-              />
-              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                {chartData.map((entry) => (
-                  <Cell key={entry.key} fill={PRIORITY_COLORS[entry.key] || '#6366f1'} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <>
+            <div className="sr-only">
+              <h3>Data table for Incidents by Priority</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Priority</th>
+                    <th scope="col">Count</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {chartData.map((item) => (
+                    <tr key={item.key}>
+                      <td>{item.label}</td>
+                      <td>{item.value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div aria-hidden="true">
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 12, fill: 'currentColor' }}
+                    className="text-muted-foreground"
+                  />
+                  <YAxis tick={{ fontSize: 12, fill: 'currentColor' }} className="text-muted-foreground" />
+                  <Tooltip
+                    cursor={{ fill: 'rgba(99, 102, 241, 0.1)' }}
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      color: 'hsl(var(--foreground))',
+                    }}
+                  />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                    {chartData.map((entry) => (
+                      <Cell key={entry.key} fill={PRIORITY_COLORS[entry.key] || '#6366f1'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </>
         )}
       </CardContent>
     </Card>

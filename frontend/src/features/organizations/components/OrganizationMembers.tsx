@@ -26,7 +26,6 @@ import {
   X,
   Check,
   Search,
-  MoreVertical,
   UserX,
   UserCheck,
   Trash2,
@@ -45,6 +44,7 @@ import type { Role } from '../types/role';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select, type SelectOption } from '../../../components/ui/Select';
+import { FocusTrap } from '../../../components/accessibility/FocusTrap';
 import { CreateMemberModal } from './CreateMemberModal';
 
 interface OrganizationMembersProps {
@@ -490,7 +490,9 @@ export function OrganizationMembers({ organizationId, className }: OrganizationM
 
       {/* Modal Dialog: Confirm Suspend/Reactivate */}
       {confirmSuspendMember && (
-        <div
+        <FocusTrap
+          active={!!confirmSuspendMember}
+          onEscape={() => setConfirmSuspendMember(null)}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
@@ -552,12 +554,14 @@ export function OrganizationMembers({ organizationId, className }: OrganizationM
               </Button>
             </div>
           </div>
-        </div>
+        </FocusTrap>
       )}
 
       {/* Modal Dialog: Confirm Removal */}
       {confirmRemoveMember && (
-        <div
+        <FocusTrap
+          active={!!confirmRemoveMember}
+          onEscape={() => setConfirmRemoveMember(null)}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
@@ -602,7 +606,7 @@ export function OrganizationMembers({ organizationId, className }: OrganizationM
               </Button>
             </div>
           </div>
-        </div>
+        </FocusTrap>
       )}
     </div>
   );

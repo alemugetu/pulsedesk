@@ -2,10 +2,26 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { OrganizationMembers } from '../OrganizationMembers';
 
-// Mock the useOrganizationMembers hook
+// Mock the hooks used by OrganizationMembers
 const mockUseOrganizationMembers = vi.fn();
 vi.mock('../../hooks/useOrganizationMembers', () => ({
   useOrganizationMembers: (orgId: string) => mockUseOrganizationMembers(orgId),
+  useAssignMembershipRole: () => ({ mutate: vi.fn(), isPending: false }),
+  useUpdateMemberStatus: () => ({ mutate: vi.fn(), isPending: false }),
+  useRemoveMember: () => ({ mutate: vi.fn(), isPending: false }),
+  useRegisterAndAddMember: () => ({ mutate: vi.fn(), isPending: false }),
+  useAddMember: () => ({ mutate: vi.fn(), isPending: false }),
+}));
+
+vi.mock('../../hooks/useOrganizationRoles', () => ({
+  useOrganizationRoles: () => ({ data: [], isLoading: false, error: null }),
+}));
+
+vi.mock('../../context/organizationContextDef', () => ({
+  useOrganizationContext: () => ({
+    currentOrganization: { id: 'org-1', name: 'Acme Corp' },
+    hasPermission: () => true,
+  }),
 }));
 
 const mockMembers = [
@@ -55,7 +71,7 @@ describe('OrganizationMembers', () => {
       error: null,
     });
     render(<OrganizationMembers organizationId="org-1" />);
-    expect(screen.getByText('No members yet')).toBeInTheDocument();
+    expect(screen.getByText(/No members in this organization/i)).toBeInTheDocument();
   });
 
   it('renders member list with user info and roles', () => {

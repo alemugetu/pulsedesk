@@ -62,33 +62,57 @@ export function IncidentTrendChart({ data, isLoading, error, onRetry }: Incident
         )}
 
         {!error && !isLoading && chartData.length > 0 && (
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis
-                dataKey="label"
-                tick={{ fontSize: 12, fill: 'currentColor' }}
-                className="text-muted-foreground"
-              />
-              <YAxis tick={{ fontSize: 12, fill: 'currentColor' }} className="text-muted-foreground" />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                  color: 'hsl(var(--foreground))',
-                }}
-              />
-              <Line
-                type="monotone"
-                dataKey="count"
-                stroke="#6366f1"
-                strokeWidth={2}
-                dot={{ fill: '#6366f1', strokeWidth: 2 }}
-                activeDot={{ r: 6 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <>
+            <div className="sr-only">
+              <h3>Data table for Incident Trend</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Time Period</th>
+                    <th scope="col">Incident Count</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {chartData.map((point) => (
+                    <tr key={point.label}>
+                      <td>{point.label}</td>
+                      <td>{point.count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div aria-hidden="true">
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 12, fill: 'currentColor' }}
+                    className="text-muted-foreground"
+                  />
+                  <YAxis tick={{ fontSize: 12, fill: 'currentColor' }} className="text-muted-foreground" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      color: 'hsl(var(--foreground))',
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="count"
+                    stroke="#6366f1"
+                    strokeWidth={2}
+                    dot={{ fill: '#6366f1', strokeWidth: 2 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </>
         )}
       </CardContent>
     </Card>

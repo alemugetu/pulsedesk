@@ -5,7 +5,7 @@
  * Uses lucide-react icons for clear visual indicators.
  */
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Sun, Moon, Monitor } from 'lucide-react';
 import { useTheme } from '../../theme/useTheme';
 import { cn } from '../../utils/cn';
@@ -26,6 +26,8 @@ const THEME_ICONS = {
 export function ThemeSwitcher() {
   const { theme, setLight, setDark, setSystem } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const themeOptions = [
     { 
@@ -48,12 +50,65 @@ export function ThemeSwitcher() {
     },
   ];
 
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setIsOpen(false);
+        buttonRef.current?.focus();
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
+  // Focus active option on open
+  useEffect(() => {
+    if (isOpen && menuRef.current) {
+      const activeItem =
+        menuRef.current.querySelector<HTMLElement>('[aria-current="true"]') ||
+        menuRef.current.querySelector<HTMLElement>('[role="menuitem"]');
+      activeItem?.focus();
+    }
+  }, [isOpen]);
+
+  // Arrow key navigation inside menu
+  const handleMenuKeyDown = (event: React.KeyboardEvent) => {
+    if (!menuRef.current) return;
+    const items = Array.from(menuRef.current.querySelectorAll<HTMLElement>('[role="menuitem"]'));
+    if (items.length === 0) return;
+
+    const currentIndex = items.indexOf(document.activeElement as HTMLElement);
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      const nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0;
+      items[nextIndex]?.focus();
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      const prevIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1;
+      items[prevIndex]?.focus();
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      items[0]?.focus();
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      items[items.length - 1]?.focus();
+    }
+  };
+
   const CurrentIcon = THEME_ICONS[theme.mode] || Monitor;
 
   return (
     <div className="relative">
       {/* Theme Toggle Button */}
       <button
+        ref={buttonRef}
+        id="theme-menu-button"
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
@@ -61,12 +116,11 @@ export function ThemeSwitcher() {
           'p-2 rounded-lg',
           'text-foreground hover:bg-accent',
           'transition-colors',
-          'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background',
-          'aria-expanded:aria-expanded'
+          'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background'
         )}
         aria-expanded={isOpen}
         aria-haspopup="true"
-        aria-label="Toggle theme menu"
+        aria-label={`Current theme: ${theme.mode}. Toggle theme menu`}
       >
         <CurrentIcon className="h-5 w-5" aria-hidden="true" />
       </button>
@@ -77,12 +131,17 @@ export function ThemeSwitcher() {
           {/* Backdrop */}
           <div
             className="fixed inset-0 z-40"
-            onClick={() => setIsOpen(false)}
+            onClick={() => {
+              setIsOpen(false);
+              buttonRef.current?.focus();
+            }}
             aria-hidden="true"
           />
 
           {/* Dropdown Menu */}
           <div
+            ref={menuRef}
+            onKeyDown={handleMenuKeyDown}
             className={cn(
               'absolute right-0 top-full z-50 mt-2',
               'min-w-[140px]',
@@ -92,7 +151,7 @@ export function ThemeSwitcher() {
             )}
             role="menu"
             aria-orientation="vertical"
-            aria-labelledby="theme-menu"
+            aria-labelledby="theme-menu-button"
           >
             {themeOptions.map((option) => {
               const Icon = option.icon;
@@ -105,11 +164,12 @@ export function ThemeSwitcher() {
                   onClick={() => {
                     option.action();
                     setIsOpen(false);
+                    buttonRef.current?.focus();
                   }}
                   className={cn(
                     'relative flex w-full items-center gap-3 px-3 py-2 text-sm',
                     'transition-colors',
-                    'focus:outline-none focus:bg-accent',
+                    'focus:outline-none focus:bg-accent focus:ring-2 focus:ring-ring focus:ring-inset',
                     isActive
                       ? 'bg-accent text-foreground font-medium'
                       : 'text-muted-foreground hover:bg-accent hover:text-foreground'
