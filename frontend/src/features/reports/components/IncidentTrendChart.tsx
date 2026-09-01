@@ -83,7 +83,7 @@ export function IncidentTrendChart({ data, isLoading, error, onRetry }: Incident
               </table>
             </div>
 
-            <div aria-hidden="true">
+            <div aria-hidden="true" className="h-[300px] w-full min-w-0">
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />

@@ -227,7 +227,7 @@ export function OrganizationMembers({ organizationId, className }: OrganizationM
             className="self-start sm:self-auto"
           >
             <UserPlus className="h-4 w-4 mr-2" />
-            Add Member
+            Invite Member
           </Button>
         )}
       </div>
@@ -303,7 +303,7 @@ export function OrganizationMembers({ organizationId, className }: OrganizationM
               onClick={() => setIsAddModalOpen(true)}
             >
               <UserPlus className="h-4 w-4 mr-2" />
-              Add First Member
+              Invite First Member
             </Button>
           )}
         </div>

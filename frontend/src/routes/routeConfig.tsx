@@ -47,6 +47,7 @@ import { IncidentCategoriesPage } from '../features/incidents/pages/IncidentCate
 import { RolesPage } from '../features/organizations/pages/RolesPage';
 import { MembersPage } from '../pages/app/MembersPage';
 import { CreateMemberPage } from '../pages/app/CreateMemberPage';
+import { ProfilePage } from '../pages/app/ProfilePage';
 
 /**
  * Public routes - accessible without authentication
@@ -275,6 +276,10 @@ const protectedRoutes: RouteObject[] = [
             <RolesPage />
           </PermissionRouteGuard>
         ),
+      },
+      {
+        path: 'profile',
+        element: <ProfilePage />,
       },
     ],
   },

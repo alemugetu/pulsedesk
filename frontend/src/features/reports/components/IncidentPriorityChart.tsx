@@ -97,7 +97,7 @@ export function IncidentPriorityChart({ data, isLoading, error, onRetry }: Incid
               </table>
             </div>
 
-            <div aria-hidden="true">
+            <div aria-hidden="true" className="h-[300px] w-full min-w-0">
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                   <XAxis

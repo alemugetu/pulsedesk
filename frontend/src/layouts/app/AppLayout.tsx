@@ -50,7 +50,7 @@ export function AppLayout() {
   };
 
 return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-background">
+    <div className="flex h-full w-full flex-col overflow-hidden bg-background">
       {/* Accessible skip link */}
       <SkipToContent targetId="main-content" />
 

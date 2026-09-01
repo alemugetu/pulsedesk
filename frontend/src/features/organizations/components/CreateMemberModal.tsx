@@ -144,14 +144,14 @@ export function CreateMemberModal({
           role_id: selectedRoleId || null,
         });
 
-        setSuccessMessage(`Successfully created and added member ${trimmedEmail}!`);
+        setSuccessMessage(`Successfully registered and invited ${trimmedEmail}!`);
         setTimeout(() => {
           handleClose();
           onSuccess?.();
         }, 1200);
       } catch (err) {
         // Extract detailed error message
-        let errorMessage = 'Failed to create and add member.';
+        let errorMessage = 'Failed to invite member.';
         
         if (err instanceof Error) {
           errorMessage = err.message;
@@ -178,13 +178,13 @@ export function CreateMemberModal({
           role_id: selectedRoleId || null,
         });
 
-        setSuccessMessage(`Successfully added ${trimmedEmail} to the team!`);
+        setSuccessMessage(`Successfully invited ${trimmedEmail} to the team!`);
         setTimeout(() => {
           handleClose();
           onSuccess?.();
         }, 1200);
       } catch (err) {
-        setFormError(err instanceof Error ? err.message : 'Failed to add member to organization.');
+        setFormError(err instanceof Error ? err.message : 'Failed to send invitation.');
       }
     }
   };
@@ -207,10 +207,10 @@ export function CreateMemberModal({
             </div>
             <div>
               <h2 id="create-member-title" className="text-lg font-semibold text-foreground">
-                Add Team Member
+                Invite Team Member
               </h2>
               <p className="text-xs text-muted-foreground">
-                Adding to <span className="font-medium text-foreground">{organizationName}</span>
+                Inviting to <span className="font-medium text-foreground">{organizationName}</span>
               </p>
             </div>
           </div>
@@ -239,7 +239,7 @@ export function CreateMemberModal({
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
           >
-            Register & Add New User
+            Register & Invite New User
           </button>
           <button
             type="button"
@@ -254,7 +254,7 @@ export function CreateMemberModal({
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
           >
-            Add Existing User by Email
+            Invite by Email
           </button>
         </div>
 
@@ -431,7 +431,7 @@ export function CreateMemberModal({
               isLoading={isPending}
               disabled={isPending}
             >
-              {mode === 'new_user' ? 'Create & Add Member' : 'Add Member'}
+              {mode === 'new_user' ? 'Create & Invite Member' : 'Send Invitation'}
             </Button>
           </div>
         </form>

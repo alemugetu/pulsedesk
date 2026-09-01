@@ -58,4 +58,15 @@
     --text-secondary: 215 16% 65%; /* Text Secondary: #94a3b8 */
     --placeholder: 215 20% 47%; /* Placeholder: #64748b */
   }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
 }

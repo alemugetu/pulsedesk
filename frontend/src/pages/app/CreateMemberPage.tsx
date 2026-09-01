@@ -142,12 +142,12 @@ export function CreateMemberPage() {
           role_id: selectedRoleId || null,
         });
 
-        setSuccessMessage(`Successfully created and added member ${trimmedEmail}!`);
+        setSuccessMessage(`Successfully registered and invited ${trimmedEmail}!`);
         setTimeout(() => {
           navigate('/app/members');
         }, 1200);
       } catch (err) {
-        setFormError(err instanceof Error ? err.message : 'Failed to create and add member.');
+        setFormError(err instanceof Error ? err.message : 'Failed to invite member.');
       }
     } else {
       // Existing user mode
@@ -157,12 +157,12 @@ export function CreateMemberPage() {
           role_id: selectedRoleId || null,
         });
 
-        setSuccessMessage(`Successfully added ${trimmedEmail} to the team!`);
+        setSuccessMessage(`Successfully invited ${trimmedEmail} to the team!`);
         setTimeout(() => {
           navigate('/app/members');
         }, 1200);
       } catch (err) {
-        setFormError(err instanceof Error ? err.message : 'Failed to add member to organization.');
+        setFormError(err instanceof Error ? err.message : 'Failed to send invitation.');
       }
     }
   };
@@ -177,9 +177,9 @@ export function CreateMemberPage() {
             Back
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Add Team Member</h1>
+            <h1 className="text-2xl font-bold text-foreground">Invite Team Member</h1>
             <p className="text-sm text-muted-foreground">
-              Add new colleagues and assign roles for <span className="font-medium text-foreground">{organization.name}</span>
+              Invite colleagues and assign roles for <span className="font-medium text-foreground">{organization.name}</span>
             </p>
           </div>
         </div>
@@ -202,7 +202,7 @@ export function CreateMemberPage() {
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
           >
-            Register & Add New User
+            Register & Invite New User
           </button>
           <button
             type="button"
@@ -217,7 +217,7 @@ export function CreateMemberPage() {
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
           >
-            Add Existing User by Email
+            Invite by Email
           </button>
         </div>
 
@@ -380,7 +380,7 @@ export function CreateMemberPage() {
               isLoading={isPending}
               disabled={isPending}
             >
-              {mode === 'new_user' ? 'Create & Add Member' : 'Add Member'}
+              {mode === 'new_user' ? 'Create & Invite Member' : 'Send Invitation'}
             </Button>
           </div>
         </form>

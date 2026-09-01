@@ -78,14 +78,12 @@ export function UserMenu() {
 
   const handleProfileClick = () => {
     setIsOpen(false);
-    // Placeholder for future profile functionality
-    // Phase 13.5+ will implement organization/user profile
+    navigate('/app/profile');
   };
 
   const handleSettingsClick = () => {
     setIsOpen(false);
-    // Placeholder for future settings functionality
-    // Phase 13.5+ will implement settings
+    navigate('/app/settings');
   };
 
   // Get user display name
@@ -206,11 +204,9 @@ export function UserMenu() {
               className={cn(
                 'flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground',
                 'hover:bg-accent hover:text-accent-foreground',
-                'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-inset',
-                'disabled:opacity-50 disabled:cursor-not-allowed'
+                'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-inset'
               )}
               role="menuitem"
-              disabled
             >
               <User className="h-4 w-4" />
               Profile
@@ -221,11 +217,9 @@ export function UserMenu() {
               className={cn(
                 'flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground',
                 'hover:bg-accent hover:text-accent-foreground',
-                'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-inset',
-                'disabled:opacity-50 disabled:cursor-not-allowed'
+                'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-inset'
               )}
               role="menuitem"
-              disabled
             >
               <Settings className="h-4 w-4" />
               Settings
