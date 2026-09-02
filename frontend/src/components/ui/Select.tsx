@@ -2,7 +2,7 @@
  * Select component - a reusable, accessible select primitive.
  */
 
-import { type SelectHTMLAttributes, forwardRef, useId } from 'react';
+import { type SelectHTMLAttributes, forwardRef } from 'react';
 import { cn } from '../../utils/cn';
 
 export interface SelectOption {
@@ -34,8 +34,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     },
     ref
   ) => {
-    const generatedId = useId();
-    const selectId = id || generatedId;
+    const selectId = id;
 
     return (
       <div className={cn('flex flex-col gap-1.5', fullWidth && 'w-full')}>
