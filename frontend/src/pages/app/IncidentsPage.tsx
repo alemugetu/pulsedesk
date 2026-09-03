@@ -14,12 +14,12 @@ import { IncidentFilters } from '../../features/incidents/components/IncidentFil
 import { IncidentPagination } from '../../features/incidents/components/IncidentPagination';
 import { Button } from '../../components/ui/Button';
 import { Plus } from 'lucide-react';
-import { useCurrentOrganization } from '../../features/organizations/context/organizationContextDef';
+import { useOrganizationContext } from '../../features/organizations/context/organizationContextDef';
 import type { Incident } from '../../features/incidents/types/incident.types';
 
 export function IncidentsPage() {
   const navigate = useNavigate();
-  const organization = useCurrentOrganization();
+  const { currentOrganization: organization, hasPermission } = useOrganizationContext();
   const { filters, setFilter, clearFilters, hasActiveFilters } = useIncidentFilters();
   
   const { data, isLoading, error } = useIncidents(filters);
@@ -45,6 +45,8 @@ export function IncidentsPage() {
     );
   }
 
+  const canCreateIncident = hasPermission('incident.create');
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -52,10 +54,12 @@ export function IncidentsPage() {
           <h1 className="text-2xl font-bold">Incidents</h1>
           <p className="text-muted-foreground">Manage and track operational incidents</p>
         </div>
-        <Button onClick={handleCreateIncident}>
-          <Plus className="w-4 h-4 mr-2" />
-          New Incident
-        </Button>
+        {canCreateIncident && (
+          <Button onClick={handleCreateIncident}>
+            <Plus className="w-4 h-4 mr-2" />
+            New Incident
+          </Button>
+        )}
       </div>
 
       <div className="space-y-4">

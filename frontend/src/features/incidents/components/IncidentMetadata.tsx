@@ -20,7 +20,7 @@ export function IncidentMetadata({ incident, className = '' }: IncidentMetadataP
     <div className={`space-y-3 text-sm ${className}`}>
       <div className="flex items-center gap-2 text-muted-foreground">
         <User className="w-4 h-4" />
-        <span>Reporter: {incident.reporter?.email || 'Unknown'}</span>
+        <span>Created by: <span className="font-medium text-foreground">{incident.reporter?.email || 'Unknown'}</span></span>
       </div>
       
       <div className="flex items-center gap-2">

@@ -145,18 +145,48 @@ export function isIncidentResolved(incident: Incident): boolean {
 }
 
 /**
- * Get valid status transitions from current status
- * Based on typical incident lifecycle
+ * Get valid status transitions from current status.
+ * Strictly mirrors the backend ALLOWED_TRANSITIONS state machine:
+ *   OPEN → ACKNOWLEDGED → IN_PROGRESS → RESOLVED → CLOSED
  */
 export function getValidStatusTransitions(currentStatus: IncidentStatus): IncidentStatus[] {
   const transitions: Record<IncidentStatus, IncidentStatus[]> = {
-    OPEN: ['ACKNOWLEDGED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'],
-    ACKNOWLEDGED: ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'],
-    IN_PROGRESS: ['OPEN', 'ACKNOWLEDGED', 'RESOLVED', 'CLOSED'],
-    RESOLVED: ['OPEN', 'IN_PROGRESS', 'CLOSED'],
-    CLOSED: ['OPEN', 'IN_PROGRESS'],
+    OPEN: ['ACKNOWLEDGED'],
+    ACKNOWLEDGED: ['IN_PROGRESS'],
+    IN_PROGRESS: ['RESOLVED'],
+    RESOLVED: ['CLOSED'],
+    CLOSED: [],
   };
   return transitions[currentStatus] || [];
+}
+
+/**
+ * Get the required permission codename to transition to a given status.
+ * Mirrors backend REQUIRED_PERMISSIONS_FOR_STATUS.
+ */
+export function getRequiredPermissionForStatus(status: IncidentStatus): string {
+  const permMap: Record<IncidentStatus, string> = {
+    OPEN: 'incident.update',
+    ACKNOWLEDGED: 'incident.update',
+    IN_PROGRESS: 'incident.update',
+    RESOLVED: 'incident.resolve',
+    CLOSED: 'incident.close',
+  };
+  return permMap[status] || 'incident.update';
+}
+
+/**
+ * Get operational action button label for transitioning to a given status.
+ */
+export function getStatusActionLabel(status: IncidentStatus): string {
+  const actionLabels: Record<IncidentStatus, string> = {
+    OPEN: 'Reopen Incident',
+    ACKNOWLEDGED: 'Acknowledge Incident',
+    IN_PROGRESS: 'Start Investigation',
+    RESOLVED: 'Resolve Incident',
+    CLOSED: 'Close Incident',
+  };
+  return actionLabels[status] || `Transition to ${status}`;
 }
 
 /**

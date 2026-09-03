@@ -241,7 +241,6 @@ export function OrganizationSettingsForm({
         </SettingsField>
       </SettingsSection>
 
-      {/* SLA Settings Section */}
       <SettingsSection
         title="SLA Settings"
         description="Configure default SLA policy behavior"
@@ -267,7 +266,6 @@ export function OrganizationSettingsForm({
         </SettingsField>
       </SettingsSection>
 
-      {/* Escalation Settings Section */}
       <SettingsSection
         title="Escalation Settings"
         description="Configure default escalation policy behavior"
@@ -294,7 +292,7 @@ export function OrganizationSettingsForm({
       </SettingsSection>
 
       {/* Error Display */}
-      {saveError && (
+      {Boolean(saveError) && (
         <div className="rounded-md border border-red-500 bg-red-500/10 p-4">
           <p className="text-sm text-red-500">{String(formatSettingsError(saveError))}</p>
         </div>

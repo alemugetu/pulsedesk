@@ -51,7 +51,6 @@ const mainNavigationItems: NavigationItem[] = [
     path: '/app/organizations',
     icon: Building2,
     visibility: 'authenticated',
-    requiredPermission: 'organization.view',
     ariaLabel: 'Navigate to organizations page',
   },
   {

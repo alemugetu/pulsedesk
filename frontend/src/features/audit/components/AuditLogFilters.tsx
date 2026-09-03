@@ -11,7 +11,7 @@ import { X } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select, type SelectOption } from '../../../components/ui/Select';
-import { AUDIT_ACTIONS, type AuditLogFilters } from '../types/audit.types';
+import { AUDIT_ACTIONS, type AuditLogFilters, type AuditAction } from '../types/audit.types';
 import { getAuditActionLabel } from '../utils/auditUtils';
 import { formatDateForApi, formatDateForInput } from '../utils/auditUtils';
 
@@ -53,7 +53,7 @@ export function AuditLogFilters({
         <Select
           label="Action"
           value={filters.action ?? ''}
-          onChange={(e) => set({ action: e.target.value || undefined })}
+          onChange={(e) => set({ action: (e.target.value as AuditAction) || undefined })}
           options={ACTION_OPTIONS}
           aria-label="Filter by action"
         />

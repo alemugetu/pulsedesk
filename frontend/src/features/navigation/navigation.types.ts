@@ -35,6 +35,8 @@ export interface NavigationItem {
   requiredPermission?: string;
   /** Optional aria-label for accessibility */
   ariaLabel?: string;
+  /** Optional disabled state */
+  disabled?: boolean;
 }
 
 /**

@@ -107,7 +107,7 @@ describe('useOrganizationSettings', () => {
     });
 
     it('should handle errors', async () => {
-      const mockOrganization = { id: 'org-123', name: 'Test Org' };
+      const mockOrganization = createMockOrganization({ id: 'org-123', name: 'Test Org' });
       vi.mocked(useCurrentOrganization).mockReturnValue(mockOrganization);
 
       vi.mocked(getOrganizationSettings).mockRejectedValue(new Error('API Error'));

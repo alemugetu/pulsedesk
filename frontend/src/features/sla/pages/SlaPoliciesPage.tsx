@@ -460,7 +460,7 @@ function TargetForm({ policyId, target, existingPriorities, onCancel, onSaved }:
             id={`target-priority-${policyId}`}
             label="Priority"
             value={priority}
-            onChange={(e) => setPriority(e.target.value)}
+            onChange={(e) => setPriority(e.target.value as SLATarget['priority'])}
             options={priorityOptions}
             disabled={!!target}
             fullWidth

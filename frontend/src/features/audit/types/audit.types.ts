@@ -101,7 +101,9 @@ export interface AuditLogActor {
  * The serializer exposes the raw JSON object with no schema of its own,
  * so it is typed as a strict record of primitives.
  */
-export type AuditLogChanges = Record<string, string | number | boolean | null | AuditLogChanges>;
+export interface AuditLogChanges {
+  [key: string]: string | number | boolean | null | AuditLogChanges | undefined;
+}
 
 /**
  * A single audit log record.

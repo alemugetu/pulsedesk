@@ -30,9 +30,9 @@ export type {
   AuditLogActor,
   AuditLogChanges,
   AuditLogListResponse,
-  AuditLogDetail,
+  AuditLogDetail as AuditLogDetailType,
   AuditLogQueryParams,
-  AuditLogFilters,
+  AuditLogFilters as AuditLogFiltersType,
   AuditLogError,
 } from './types/audit.types';
 

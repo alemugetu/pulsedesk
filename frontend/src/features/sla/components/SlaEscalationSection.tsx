@@ -7,17 +7,19 @@
  * Phase 13.8 adds SLA/Escalation functionality without breaking Phase 13.7.
  */
 
+import { useState } from 'react';
 import type { Incident } from '../../incidents/types/incident.types';
 import { useIncidentSla } from '../hooks/useIncidentSla';
-import { getIncidentEscalations } from '../services/escalationService';
+import { getIncidentEscalations, evaluateIncidentEscalation } from '../services/escalationService';
 import { useQuery } from '@tanstack/react-query';
 import { useOrganizationContext } from '../../organizations/context/organizationContextDef';
 import { SlaSummaryCard } from './SlaSummaryCard';
 import { EscalationStatusBadge } from './EscalationStatusBadge';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/Card';
+import { Button } from '../../../components/ui/Button';
 import { Loading } from '../../../components/ui/Loading';
 import { ErrorState } from '../../../components/ui/ErrorState';
-
+import { ShieldAlert, Loader2 } from 'lucide-react';
 
 interface SlaEscalationSectionProps {
   incident: Incident;
@@ -40,6 +42,13 @@ function formatDate(dateString: string): string {
 export function SlaEscalationSection({ incident, className = '' }: SlaEscalationSectionProps) {
   const { currentOrganization: organization, hasPermission } = useOrganizationContext();
   const sla = useIncidentSla(incident);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [evalResult, setEvalResult] = useState<string | null>(null);
+
+  const canEvaluate =
+    hasPermission('escalation.evaluate') &&
+    incident.status !== 'RESOLVED' &&
+    incident.status !== 'CLOSED';
 
   // Fetch incident escalation history
   const {
@@ -60,6 +69,27 @@ export function SlaEscalationSection({ incident, className = '' }: SlaEscalation
     gcTime: 300000, // 5 minutes
   });
 
+  const handleEvaluate = async () => {
+    if (!organization?.id) return;
+    setIsEvaluating(true);
+    setEvalResult(null);
+    try {
+      const res = await evaluateIncidentEscalation(organization.id, incident.id, {
+        trigger_type: 'RESPONSE_BREACH',
+      });
+      if ('detail' in res && typeof res.detail === 'string') {
+        setEvalResult(res.detail);
+      } else {
+        setEvalResult('Escalation evaluated successfully.');
+      }
+      refetch();
+    } catch (err) {
+      setEvalResult(err instanceof Error ? err.message : 'Evaluation request failed.');
+    } finally {
+      setIsEvaluating(false);
+    }
+  };
+
   return (
     <div className={`space-y-6 ${className}`}>
       {/* SLA Status Section */}
@@ -67,10 +97,38 @@ export function SlaEscalationSection({ incident, className = '' }: SlaEscalation
 
       {/* Escalation History Section */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-lg">Escalation History</CardTitle>
+          {canEvaluate && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleEvaluate}
+              disabled={isEvaluating}
+              className="text-xs"
+            >
+              {isEvaluating ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <ShieldAlert className="h-3.5 w-3.5 mr-1.5" />
+              )}
+              Evaluate Escalation
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
+          {evalResult && (
+            <div className="mb-4 p-2.5 rounded-md bg-muted/40 border text-xs text-foreground flex items-center justify-between">
+              <span>{evalResult}</span>
+              <button
+                type="button"
+                onClick={() => setEvalResult(null)}
+                className="text-muted-foreground hover:text-foreground ml-2"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
           {!hasPermission('escalation.view') ? (
             <p className="text-sm text-muted-foreground">
               You do not have permission to view escalation history.

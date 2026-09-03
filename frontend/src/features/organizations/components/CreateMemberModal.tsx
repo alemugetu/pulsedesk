@@ -14,7 +14,7 @@
  * - Responsive design adhering to PulseDesk dark-slate/indigo design system
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   X,
   UserPlus,
@@ -84,7 +84,7 @@ export function CreateMemberModal({
     ];
   }, [roles]);
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setFirstName('');
     setLastName('');
     setEmail('');
@@ -93,12 +93,12 @@ export function CreateMemberModal({
     setSelectedRoleId('');
     setFormError(null);
     setSuccessMessage(null);
-  };
+  }, []);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     resetForm();
     onClose();
-  };
+  }, [resetForm, onClose]);
 
   // Handle Escape key
   useEffect(() => {
