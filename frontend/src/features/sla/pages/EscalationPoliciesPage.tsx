@@ -13,9 +13,11 @@
  * - manage: escalation.manage
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Plus, Siren, Pencil, Loader2, AlertCircle } from 'lucide-react';
 import { useCurrentOrganization } from '../../organizations/context/organizationContextDef';
+import { useOrganizationRoles } from '../../organizations/hooks/useOrganizationRoles';
+import type { Role } from '../../organizations/types/role';
 import { useEscalationPolicies } from '../hooks/useEscalationPolicies';
 import {
   createEscalationPolicy,
@@ -29,9 +31,17 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
-import { Select } from '../../../components/ui/Select';
+import { Select, type SelectOption } from '../../../components/ui/Select';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { useQueryClient } from '@tanstack/react-query';
+
+const SYSTEM_ROLE_ORDER: Record<string, number> = {
+  'organization-owner': 1,
+  'organization-admin': 2,
+  'operations-manager': 3,
+  'agent': 4,
+  'viewer': 5,
+};
 
 const TARGET_TYPE_OPTIONS = [
   { value: 'ASSIGNEE', label: 'Current Assignee' },
@@ -46,6 +56,7 @@ const TRIGGER_OPTIONS = [
 export function EscalationPoliciesPage() {
   const organization = useCurrentOrganization();
   const { data: policies, isLoading, error, refetch } = useEscalationPolicies();
+  const { data: roles = [], isLoading: isLoadingRoles } = useOrganizationRoles(organization?.id ?? '');
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState<EscalationPolicy | null>(null);
@@ -124,6 +135,8 @@ export function EscalationPoliciesPage() {
             <PolicyRow
               key={policy.id}
               policy={policy}
+              roles={roles}
+              isLoadingRoles={isLoadingRoles}
               canManage={canManage}
               onEdit={() => {
                 setEditingPolicy(policy);
@@ -282,15 +295,19 @@ function PolicyForm({ policy, onCancel, onSaved }: PolicyFormProps) {
 
 interface PolicyRowProps {
   policy: EscalationPolicy;
+  roles: Role[];
+  isLoadingRoles: boolean;
   canManage: boolean;
   onEdit: () => void;
   onChanged: () => void;
 }
 
-function PolicyRow({ policy, canManage, onEdit, onChanged }: PolicyRowProps) {
+function PolicyRow({ policy, roles, isLoadingRoles, canManage, onEdit, onChanged }: PolicyRowProps) {
   const [addingLevel, setAddingLevel] = useState(false);
   const [editingLevel, setEditingLevel] = useState<EscalationLevel | null>(null);
   const [addingRule, setAddingRule] = useState(false);
+
+  const roleMap = useMemo(() => new Map(roles.map((r) => [r.id, r.name])), [roles]);
 
   return (
     <Card>
@@ -331,6 +348,8 @@ function PolicyRow({ policy, canManage, onEdit, onChanged }: PolicyRowProps) {
             <LevelForm
               policyId={policy.id}
               level={editingLevel}
+              roles={roles}
+              isLoadingRoles={isLoadingRoles}
               nextLevelNumber={(policy.levels.length > 0
                 ? Math.max(...policy.levels.map((l) => l.level))
                 : 0) + 1}
@@ -362,7 +381,7 @@ function PolicyRow({ policy, canManage, onEdit, onChanged }: PolicyRowProps) {
                       <div className="min-w-0">
                         <p className="font-medium truncate">{level.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          Delay: {formatDelay(level.delay_minutes)} · Target: {formatTarget(level.target_type, level.target_reference)}
+                          Delay: {formatDelay(level.delay_minutes)} · Target: {formatTarget(level.target_type, level.target_reference, roleMap)}
                         </p>
                       </div>
                     </div>
@@ -447,9 +466,12 @@ function formatDelay(delayMinutes: number): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
-function formatTarget(targetType: string, ref: string): string {
+function formatTarget(targetType: string, ref: string, roleMap?: Map<string, string>): string {
   if (targetType === 'ASSIGNEE') return 'Current Assignee';
-  if (targetType === 'ROLE' && ref) return `Role`;
+  if (targetType === 'ROLE') {
+    const roleName = ref ? roleMap?.get(ref) : undefined;
+    return roleName ? `Role: ${roleName}` : 'Role';
+  }
   return targetType;
 }
 
@@ -457,11 +479,21 @@ interface LevelFormProps {
   policyId: string;
   level: EscalationLevel | null;
   nextLevelNumber: number;
+  roles?: Role[];
+  isLoadingRoles?: boolean;
   onCancel: () => void;
   onSaved: () => void;
 }
 
-function LevelForm({ policyId, level, nextLevelNumber, onCancel, onSaved }: LevelFormProps) {
+function LevelForm({
+  policyId,
+  level,
+  nextLevelNumber,
+  roles = [],
+  isLoadingRoles = false,
+  onCancel,
+  onSaved,
+}: LevelFormProps) {
   const organization = useCurrentOrganization();
   const queryClient = useQueryClient();
   const [levelNum, setLevelNum] = useState(level?.level?.toString() ?? nextLevelNumber.toString());
@@ -471,6 +503,33 @@ function LevelForm({ policyId, level, nextLevelNumber, onCancel, onSaved }: Leve
   const [targetReference, setTargetReference] = useState(level?.target_reference ?? '');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const roleOptions: SelectOption[] = useMemo(() => {
+    const sorted = [...roles].sort((a, b) => {
+      if (a.is_system_role && b.is_system_role) {
+        const orderA = SYSTEM_ROLE_ORDER[a.slug] ?? 99;
+        const orderB = SYSTEM_ROLE_ORDER[b.slug] ?? 99;
+        return orderA - orderB || a.name.localeCompare(b.name);
+      }
+      if (a.is_system_role) return -1;
+      if (b.is_system_role) return 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    const opts: SelectOption[] = sorted.map((role) => ({
+      value: role.id,
+      label: role.name,
+    }));
+
+    if (targetReference && !opts.some((o) => o.value === targetReference)) {
+      opts.unshift({
+        value: targetReference,
+        label: isLoadingRoles ? 'Loading role...' : 'Selected Role',
+      });
+    }
+
+    return opts;
+  }, [roles, targetReference, isLoadingRoles]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -487,17 +546,18 @@ function LevelForm({ policyId, level, nextLevelNumber, onCancel, onSaved }: Leve
       return;
     }
     if (targetType === 'ROLE' && !targetReference.trim()) {
-      setError('A role reference is required when target type is Role.');
+      setError('Please select a role when target type is Role.');
       return;
     }
     setSubmitting(true);
     try {
+      const payloadRef = targetType === 'ROLE' ? targetReference.trim() : '';
       if (level) {
         await updateEscalationLevel(organization.id, policyId, level.id, {
           name: name.trim(),
           delay_minutes: Number.isNaN(delayMin) || delayMin < 0 ? 0 : delayMin,
           target_type: targetType,
-          target_reference: targetReference.trim(),
+          target_reference: payloadRef,
         });
       } else {
         await createEscalationLevel(organization.id, policyId, {
@@ -505,7 +565,7 @@ function LevelForm({ policyId, level, nextLevelNumber, onCancel, onSaved }: Leve
           name: name.trim(),
           delay_minutes: Number.isNaN(delayMin) || delayMin < 0 ? 0 : delayMin,
           target_type: targetType,
-          target_reference: targetReference.trim(),
+          target_reference: payloadRef,
         });
       }
       queryClient.invalidateQueries({ queryKey: ['escalation-policies', organization.id] });
@@ -559,17 +619,25 @@ function LevelForm({ policyId, level, nextLevelNumber, onCancel, onSaved }: Leve
             id={`lvl-target-${policyId}`}
             label="Target"
             value={targetType}
-            onChange={(e) => setTargetType(e.target.value as EscalationLevel['target_type'])}
+            onChange={(e) => {
+              const newType = e.target.value as EscalationLevel['target_type'];
+              setTargetType(newType);
+              if (newType === 'ASSIGNEE') {
+                setTargetReference('');
+              }
+            }}
             options={TARGET_TYPE_OPTIONS}
             fullWidth
           />
           {targetType === 'ROLE' && (
-            <Input
-              id={`lvl-ref-${policyId}`}
-              label="Role ID"
+            <Select
+              id={`lvl-role-${policyId}`}
+              label="Role"
               value={targetReference}
               onChange={(e) => setTargetReference(e.target.value)}
-              placeholder="Role UUID"
+              placeholder={isLoadingRoles ? 'Loading roles...' : 'Select a role'}
+              options={roleOptions}
+              disabled={isLoadingRoles}
               fullWidth
             />
           )}

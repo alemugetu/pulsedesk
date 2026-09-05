@@ -5,10 +5,14 @@
  * Shows ordered escalation steps with delay and target information.
  */
 
+import { useMemo } from 'react';
 import type { EscalationLevel } from '../types/escalation.types';
+import type { Role } from '../../organizations/types/role';
 
 interface EscalationLevelListProps {
   levels: EscalationLevel[];
+  roles?: Role[];
+  roleMap?: Map<string, string> | Record<string, string>;
   className?: string;
 }
 
@@ -30,17 +34,39 @@ function formatDelay(delayMinutes: number): string {
 /**
  * Format target for display
  */
-function formatTarget(targetType: string, targetReference: string): string {
+function formatTarget(
+  targetType: string,
+  targetReference: string,
+  roleMap?: Map<string, string> | Record<string, string>
+): string {
   if (targetType === 'ASSIGNEE') {
     return 'Current Assignee';
   }
-  if (targetType === 'ROLE' && targetReference) {
-    return `Role: ${targetReference}`;
+  if (targetType === 'ROLE') {
+    if (targetReference && roleMap) {
+      const roleName = roleMap instanceof Map ? roleMap.get(targetReference) : roleMap[targetReference];
+      if (roleName) {
+        return `Role: ${roleName}`;
+      }
+    }
+    return 'Role';
   }
   return targetType;
 }
 
-export function EscalationLevelList({ levels, className = '' }: EscalationLevelListProps) {
+export function EscalationLevelList({
+  levels,
+  roles,
+  roleMap: customRoleMap,
+  className = '',
+}: EscalationLevelListProps) {
+  const roleMap = useMemo(() => {
+    if (customRoleMap) return customRoleMap;
+    if (roles) {
+      return new Map(roles.map((r) => [r.id, r.name]));
+    }
+    return undefined;
+  }, [roles, customRoleMap]);
   if (!levels || levels.length === 0) {
     return (
       <div className={`text-sm text-muted-foreground ${className}`}>
@@ -70,7 +96,7 @@ export function EscalationLevelList({ levels, className = '' }: EscalationLevelL
               </span>
             </div>
             <div className="mt-1 text-xs text-muted-foreground">
-              Target: {formatTarget(level.target_type, level.target_reference)}
+              Target: {formatTarget(level.target_type, level.target_reference, roleMap)}
             </div>
           </div>
         </div>

@@ -89,15 +89,14 @@ class EmailService:
         """
         Send password reset email to user.
 
-        The reset link points directly to the backend API confirm endpoint.
-        When a frontend is available, swap BACKEND_URL for FRONTEND_URL
-        and update the path to the frontend route.
+        The reset link now points to the frontend Reset Password page.
+        The frontend will handle the token and user_id parameters.
         """
-        backend_url = getattr(settings, "BACKEND_URL", "http://127.0.0.1:8000").rstrip(
+        frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:5173").rstrip(
             "/"
         )
         reset_url = (
-            f"{backend_url}/api/v1/auth/password-reset/confirm/"
+            f"{frontend_url}/reset-password"
             f"?token={reset_token}&user_id={user.id}"
         )
 
