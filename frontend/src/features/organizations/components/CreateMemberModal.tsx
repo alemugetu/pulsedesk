@@ -197,7 +197,27 @@ export function CreateMemberModal({
           onSuccess?.();
         }, 1200);
       } catch (err) {
-        setFormError(err instanceof Error ? err.message : 'Failed to send invitation.');
+        let errorMessage = 'Failed to send invitation.';
+        if (err && typeof err === 'object') {
+          const apiErr = err as {
+            message?: string;
+            fieldErrors?: Record<string, string[]>;
+            details?: Record<string, unknown>;
+          };
+          if (apiErr.fieldErrors) {
+            const firstField = Object.values(apiErr.fieldErrors)[0];
+            if (firstField && firstField.length > 0) {
+              errorMessage = firstField[0];
+            }
+          } else if (apiErr.details && typeof apiErr.details.detail === 'string') {
+            errorMessage = apiErr.details.detail;
+          } else if (apiErr.message) {
+            errorMessage = apiErr.message;
+          }
+        } else if (err instanceof Error) {
+          errorMessage = err.message;
+        }
+        setFormError(errorMessage);
       }
     }
   };
