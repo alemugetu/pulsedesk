@@ -101,7 +101,7 @@ describe('IncidentDetail', () => {
 
     expect(screen.getByText('INC-001')).toBeInTheDocument();
     expect(screen.getByText('Test Incident')).toBeInTheDocument();
-    expect(screen.getByText('Open')).toBeInTheDocument();
+    expect(screen.getAllByText('Open')[0]).toBeInTheDocument();
     expect(screen.getByText('P1 — Critical')).toBeInTheDocument();
     expect(screen.getByText('Test description')).toBeInTheDocument();
   });

@@ -16,6 +16,7 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { navigationGroups } from '../../features/navigation/navigation';
 import { useOrganizationContext } from '../../features/organizations/context/organizationContextDef';
+import { OrganizationBrand } from '../../features/organizations/components/OrganizationBrand';
 import { cn } from '../../utils/cn';
 
 interface SidebarProps {
@@ -27,7 +28,7 @@ interface SidebarProps {
 
 export function Sidebar({ className, isCollapsed = false }: SidebarProps) {
   const location = useLocation();
-  const { hasPermission } = useOrganizationContext();
+  const { hasPermission, currentOrganization } = useOrganizationContext();
 
   // Filter navigation items by permission
   const visibleGroups = navigationGroups
@@ -51,6 +52,18 @@ export function Sidebar({ className, isCollapsed = false }: SidebarProps) {
       id="desktop-sidebar"
       aria-label="Main navigation"
     >
+      {currentOrganization && (
+        <div className={cn('px-3.5 py-3 border-b border-border bg-card/50', isCollapsed && 'px-2 flex justify-center')}>
+          <OrganizationBrand
+            organizationId={currentOrganization.id}
+            organizationName={currentOrganization.name}
+            size={isCollapsed ? 'sm' : 'md'}
+            showName={!isCollapsed}
+            nameClassName="text-sm font-medium text-foreground truncate"
+          />
+        </div>
+      )}
+
       <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4 space-y-6">
         {visibleGroups.map((group) => (
           <div key={group.id}>

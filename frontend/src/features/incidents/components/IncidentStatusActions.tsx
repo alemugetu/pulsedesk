@@ -28,6 +28,21 @@ interface IncidentStatusActionsProps {
   className?: string;
 }
 
+function getProgressMessage(status: IncidentStatus): string {
+  switch (status) {
+    case 'ACKNOWLEDGED':
+      return 'Acknowledging...';
+    case 'IN_PROGRESS':
+      return 'Starting work...';
+    case 'RESOLVED':
+      return 'Resolving incident...';
+    case 'CLOSED':
+      return 'Closing incident...';
+    default:
+      return 'Updating status...';
+  }
+}
+
 export function IncidentStatusActions({ 
   incident, 
   onStatusChange,
@@ -60,7 +75,7 @@ export function IncidentStatusActions({
       onStatusChange?.(newStatus);
     } catch (error) {
       console.error('Failed to update incident status:', error);
-      const msg = error instanceof Error ? error.message : 'Failed to update incident status';
+      const msg = error instanceof Error ? error.message : 'Failed to update incident status.';
       setTransitionError(msg);
     } finally {
       setActiveTarget(null);
@@ -69,7 +84,7 @@ export function IncidentStatusActions({
 
   const handleActionClick = (targetStatus: IncidentStatus) => {
     setTransitionError(null);
-    // For terminal or critical transitions (RESOLVED, CLOSED), require explicit operator confirmation
+    // For critical transitions (RESOLVED, CLOSED), require explicit operator confirmation
     if (targetStatus === 'RESOLVED' || targetStatus === 'CLOSED') {
       setConfirmStatus(targetStatus);
     } else {
@@ -83,8 +98,8 @@ export function IncidentStatusActions({
 
   if (permittedTransitions.length === 0) {
     return (
-      <div className="text-sm text-muted-foreground flex items-center gap-2">
-        <Lock className="h-4 w-4 text-muted-foreground" />
+      <div className={`text-xs text-muted-foreground flex items-center gap-2 p-3 rounded-lg bg-muted/40 border border-border ${className}`}>
+        <Lock className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden="true" />
         <span>You do not have permission to transition this incident from {getStatusDisplayText(incident.status)}.</span>
       </div>
     );
@@ -95,7 +110,8 @@ export function IncidentStatusActions({
       {transitionError && (
         <div
           role="alert"
-          className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-center gap-2"
+          aria-live="assertive"
+          className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2"
         >
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{transitionError}</span>
@@ -106,27 +122,29 @@ export function IncidentStatusActions({
         <div
           role="alertdialog"
           aria-labelledby="confirm-transition-title"
-          className="p-4 rounded-xl border border-border bg-card space-y-3"
+          aria-describedby="confirm-transition-desc"
+          className="p-4 rounded-xl border border-border bg-card shadow-sm space-y-3"
         >
           <p id="confirm-transition-title" className="text-sm font-semibold text-foreground">
             Confirm transition to {getStatusDisplayText(confirmStatus)}?
           </p>
-          <p className="text-xs text-muted-foreground">
+          <p id="confirm-transition-desc" className="text-xs text-muted-foreground">
             {confirmStatus === 'RESOLVED'
-              ? 'Marking as resolved records resolution timestamp and completes SLA resolution tracking.'
-              : 'Closing an incident finalizes the record. No further operational status changes can be made.'}
+              ? 'Marking as resolved records the resolution timestamp, satisfies resolution SLA tracking, and prepares the incident for review before closure.'
+              : 'Closing an incident finalizes the operational record. Once closed, no further status modifications can be made in PulseDesk.'}
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 pt-1">
             <Button
               size="sm"
               variant="primary"
               disabled={isLoading}
               onClick={() => handleExecuteTransition(confirmStatus)}
+              className="gap-1.5 text-xs h-8"
             >
               {isLoading && activeTarget === confirmStatus ? (
                 <>
-                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                  Updating...
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                  <span>{getProgressMessage(confirmStatus)}</span>
                 </>
               ) : (
                 `Confirm ${getStatusDisplayText(confirmStatus)}`
@@ -137,40 +155,48 @@ export function IncidentStatusActions({
               variant="secondary"
               disabled={isLoading}
               onClick={() => setConfirmStatus(null)}
+              className="text-xs h-8"
             >
               Cancel
             </Button>
           </div>
         </div>
       ) : (
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           {permittedTransitions.map((targetStatus) => {
             const isAcknowledge = targetStatus === 'ACKNOWLEDGED';
             const isResolve = targetStatus === 'RESOLVED';
+            const isClose = targetStatus === 'CLOSED';
             const isTargetBusy = isLoading && activeTarget === targetStatus;
 
             return (
               <Button
                 key={targetStatus}
-                variant={isAcknowledge ? 'primary' : 'outline'}
+                variant={isAcknowledge ? 'primary' : isResolve ? 'primary' : 'outline'}
                 size="sm"
                 onClick={() => handleActionClick(targetStatus)}
                 disabled={isLoading}
                 aria-label={`Change status to ${getStatusDisplayText(targetStatus)}`}
-                className={isAcknowledge ? 'shadow-sm' : ''}
+                className={`text-xs h-8 gap-1.5 ${
+                  isResolve ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : ''
+                }`}
               >
                 {isTargetBusy ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
                 ) : isAcknowledge ? (
-                  <CheckCircle2 className="h-4 w-4 mr-2 text-primary-foreground" />
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary-foreground" aria-hidden="true" />
                 ) : isResolve ? (
-                  <CheckCheck className="h-4 w-4 mr-2 text-emerald-500" />
+                  <CheckCheck className="h-3.5 w-3.5 text-white" aria-hidden="true" />
                 ) : targetStatus === 'IN_PROGRESS' ? (
-                  <Play className="h-4 w-4 mr-2 text-blue-500" />
+                  <Play className="h-3.5 w-3.5 text-blue-500" aria-hidden="true" />
+                ) : isClose ? (
+                  <Lock className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
                 ) : (
-                  <Lock className="h-4 w-4 mr-2" />
+                  <Lock className="h-3.5 w-3.5" aria-hidden="true" />
                 )}
-                {isTargetBusy ? 'Updating...' : getStatusDisplayText(targetStatus)}
+                <span>
+                  {isTargetBusy ? getProgressMessage(targetStatus) : getStatusDisplayText(targetStatus)}
+                </span>
               </Button>
             );
           })}

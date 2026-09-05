@@ -12,6 +12,8 @@
 import { useOrganizationContext } from '../../features/organizations/context/organizationContextDef';
 import { useOrganizationSettings } from '../../features/organization-settings';
 import { OrganizationSettingsForm } from '../../features/organization-settings';
+import { OrganizationBrandingSection } from '../../features/organization-settings/components/OrganizationBrandingSection';
+import { OrganizationBrand } from '../../features/organizations/components/OrganizationBrand';
 import { Loading } from '../../components/ui/Loading';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { Card, CardContent } from '../../components/ui/Card';
@@ -107,14 +109,27 @@ export function OrganizationSettingsPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
+      <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight text-foreground">
           Organization Settings
         </h1>
-        <p className="text-muted-foreground mt-2">
-          Configure operational settings for {currentOrganization.name}
-        </p>
+        <div className="flex items-center gap-2 text-muted-foreground flex-wrap">
+          <span>Configure operational settings for</span>
+          <OrganizationBrand
+            organizationId={currentOrganization.id}
+            organizationName={currentOrganization.name}
+            size="sm"
+            nameClassName="font-semibold text-foreground"
+          />
+        </div>
       </div>
+
+      {/* Company Branding Section */}
+      <OrganizationBrandingSection
+        organizationId={currentOrganization.id}
+        organizationName={currentOrganization.name}
+        canManage={canManage}
+      />
 
       {/* Settings Form */}
       <OrganizationSettingsForm

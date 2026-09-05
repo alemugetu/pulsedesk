@@ -19,6 +19,9 @@ import { IncidentTrendChart } from '../../features/reports/components/IncidentTr
 import { SLAMetricsCard } from '../../features/reports/components/SLAMetricsCard';
 import { EscalationMetricsCard } from '../../features/reports/components/EscalationMetricsCard';
 import { useCanViewReports } from '../../features/reports/hooks/useReports';
+import { useOptionalOrganizationContext } from '../../features/organizations/context/organizationContextDef';
+import { ReportExportControls } from '../../features/reports/components/ReportExportControls';
+import type { ReportExportDataset } from '../../features/reports/utils/csvGenerator';
 import {
   useIncidentSummary,
   useIncidentsByStatus,
@@ -34,6 +37,8 @@ import type { ReportsDateRange, TrendGranularity } from '../../features/reports/
 
 export function ReportsPage() {
   const canViewReports = useCanViewReports();
+  const orgContext = useOptionalOrganizationContext();
+  const currentOrganization = orgContext?.currentOrganization;
   const [dateRange, setDateRange] = useState<ReportsDateRange>(getDefaultDateRange);
   const [granularity, setGranularity] = useState<TrendGranularity>('daily');
 
@@ -113,6 +118,34 @@ export function ReportsPage() {
     escalationQuery.data,
   ]);
 
+  const exportDataset: ReportExportDataset = useMemo(() => ({
+    organizationName: currentOrganization?.name || 'PulseDesk Organization',
+    organizationId: currentOrganization?.id || 'unknown',
+    dateRange,
+    granularity,
+    summary: summaryQuery.data,
+    status: statusQuery.data,
+    priority: priorityQuery.data,
+    category: categoryQuery.data,
+    trend: trendQuery.data,
+    sla: slaQuery.data,
+    resolution: resolutionQuery.data,
+    escalation: escalationQuery.data,
+  }), [
+    currentOrganization?.name,
+    currentOrganization?.id,
+    dateRange,
+    granularity,
+    summaryQuery.data,
+    statusQuery.data,
+    priorityQuery.data,
+    categoryQuery.data,
+    trendQuery.data,
+    slaQuery.data,
+    resolutionQuery.data,
+    escalationQuery.data,
+  ]);
+
   const refetchAll = () => {
     summaryQuery.refetch();
     statusQuery.refetch();
@@ -143,19 +176,26 @@ export function ReportsPage() {
 
   return (
     <div className="w-full space-y-6 bg-background">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Reports</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Operational analytics and insights for your organization.
           </p>
         </div>
-        <ReportFilters
-          dateRange={dateRange}
-          granularity={granularity}
-          onDateRangeChange={setDateRange}
-          onGranularityChange={setGranularity}
-        />
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <ReportFilters
+            dateRange={dateRange}
+            granularity={granularity}
+            onDateRangeChange={setDateRange}
+            onGranularityChange={setGranularity}
+          />
+          <ReportExportControls
+            dataset={exportDataset}
+            isDisabled={allLoading || !hasAnyData}
+            canExport={canViewReports}
+          />
+        </div>
       </div>
 
       {hasAnyError && (

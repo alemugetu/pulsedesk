@@ -17,6 +17,7 @@
 import { useAuth } from '../../features/auth/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { useOrganizationContext } from '../../features/organizations/context/organizationContextDef';
+import { OrganizationBrand } from '../../features/organizations/components/OrganizationBrand';
 import { Card } from '../../components/ui/Card';
 import {
   LayoutDashboard,
@@ -160,11 +161,21 @@ export function AppHomePage() {
         <h1 className="text-3xl font-bold text-foreground">
           Welcome back, {getDisplayName()}
         </h1>
-        <p className="text-muted-foreground">
-          {currentOrganization
-            ? `You're working in ${currentOrganization.name}.`
-            : `You're authenticated and ready to use PulseDesk.`}
-        </p>
+        <div className="flex items-center gap-2 text-muted-foreground flex-wrap">
+          {currentOrganization ? (
+            <>
+              <span>You're working in</span>
+              <OrganizationBrand
+                organizationId={currentOrganization.id}
+                organizationName={currentOrganization.name}
+                size="sm"
+                nameClassName="font-medium text-foreground"
+              />
+            </>
+          ) : (
+            <span>You're authenticated and ready to use PulseDesk.</span>
+          )}
+        </div>
       </div>
 
       {/* Application Status */}

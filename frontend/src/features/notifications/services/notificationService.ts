@@ -37,13 +37,21 @@ export async function getNotifications(params?: {
   notification_type?: string;
   severity?: string;
 }): Promise<NotificationItem[]> {
-  return api.get<NotificationItem[]>(`${BASE_URL}/`, {
+  const response = await api.get<NotificationItem[] | { results: NotificationItem[] }>(`${BASE_URL}/`, {
     params: {
       ...(params?.unread_only ? { unread_only: true } : {}),
       ...(params?.notification_type ? { notification_type: params.notification_type } : {}),
       ...(params?.severity ? { severity: params.severity } : {}),
     },
   });
+
+  if (Array.isArray(response)) {
+    return response;
+  }
+  if (response && Array.isArray((response as { results: NotificationItem[] }).results)) {
+    return (response as { results: NotificationItem[] }).results;
+  }
+  return [];
 }
 
 /**

@@ -55,3 +55,11 @@ export function useHasOrganizations(): boolean {
   const { hasOrganizations, isLoadingOrganizations } = useOrganizationContext();
   return hasOrganizations && !isLoadingOrganizations;
 }
+
+/**
+ * Hook to get optional organization context
+ * Returns undefined if used outside OrganizationProvider instead of throwing
+ */
+export function useOptionalOrganizationContext(): OrganizationContextValue | undefined {
+  return useContext(OrganizationContext);
+}

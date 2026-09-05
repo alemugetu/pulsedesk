@@ -51,4 +51,13 @@ export { IncidentPriorityChart } from './components/IncidentPriorityChart';
 export { IncidentTrendChart } from './components/IncidentTrendChart';
 export { SLAMetricsCard } from './components/SLAMetricsCard';
 export { EscalationMetricsCard } from './components/EscalationMetricsCard';
-
+export { ReportExportControls } from './components/ReportExportControls';
+export {
+  generateReportCsv,
+  downloadReportCsv,
+  type ReportExportDataset,
+} from './utils/csvGenerator';
+export {
+  generateReportPdfBlob,
+  downloadReportPdf,
+} from './utils/pdfGenerator';

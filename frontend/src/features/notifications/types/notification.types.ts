@@ -17,9 +17,6 @@ export type NotificationType = 'SLA_WARNING' | 'SLA_BREACH' | 'ESCALATION_TRIGGE
  */
 export type NotificationSeverity = 'INFO' | 'WARNING' | 'CRITICAL';
 
-/**
- * Lightweight notification list item (NotificationListSerializer).
- */
 export interface NotificationItem {
   id: string;
   notification_type: NotificationType;
@@ -27,6 +24,19 @@ export interface NotificationItem {
   severity: NotificationSeverity;
   is_read: boolean;
   created_at: string;
+  organization?: string;
+  incident_id?: string | null;
+  message?: string;
+}
+
+/**
+ * Paginated response from notification list endpoint.
+ */
+export interface PaginatedNotificationResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: NotificationItem[];
 }
 
 /**

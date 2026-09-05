@@ -165,14 +165,14 @@ describe('useOperationsRealtime', () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['incident-escalations', 'org-1'] });
   });
 
-  it('ignores notification events (no frontend cache surface)', () => {
+  it('routes notification events into notifications cache', () => {
     const { invalidateSpy } = renderRouter();
 
     act(() => {
       realtimeMocks.eventListeners[0]?.(envelopeFor('notification.created'));
     });
 
-    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['notifications'] });
   });
 
   it('does not invalidate caches for cross-organization events', () => {

@@ -18,6 +18,7 @@ export const notificationKeys = {
   all: baseNotificationKey,
   list: (unreadOnly?: boolean) => [...baseNotificationKey, 'list', { unreadOnly: unreadOnly ?? false }] as const,
   unreadCount: [...baseNotificationKey, 'unread-count'] as const,
+  detail: (id: string) => [...baseNotificationKey, 'detail', id] as const,
 };
 
 /**
@@ -29,6 +30,18 @@ export function useNotifications(unreadOnly = false) {
     queryFn: () => notificationService.getNotifications({ unread_only: unreadOnly }),
     staleTime: 30000,
     gcTime: 300000,
+  });
+}
+
+/**
+ * Hook to get details of a specific notification.
+ */
+export function useNotification(notificationId: string | null) {
+  return useQuery({
+    queryKey: notificationKeys.detail(notificationId ?? ''),
+    queryFn: () => notificationService.getNotification(notificationId!),
+    enabled: !!notificationId,
+    staleTime: 60000,
   });
 }
 

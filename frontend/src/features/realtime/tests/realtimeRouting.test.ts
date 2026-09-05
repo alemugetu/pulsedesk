@@ -59,8 +59,10 @@ describe('getRealtimeInvalidationTargets', () => {
     ]);
   });
 
-  it('maps notification events to no cache targets', () => {
-    expect(getRealtimeInvalidationTargets(envelopeFor('notification.created'), 'org-1')).toEqual([]);
+  it('maps notification events to notifications cache targets', () => {
+    expect(getRealtimeInvalidationTargets(envelopeFor('notification.created'), 'org-1')).toEqual([
+      ['notifications'],
+    ]);
   });
 
   it('returns no targets for a mismatched organization (defense in depth)', () => {

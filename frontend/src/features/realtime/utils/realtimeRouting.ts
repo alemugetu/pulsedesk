@@ -20,7 +20,7 @@ import type { RealtimeEventEnvelope } from '../types/realtime.types';
  * invalidate (each wrapped with the organization id at routing time).
  */
 const EVENT_CACHE_MAP: Readonly<
-  Record<string, ReadonlyArray<'operations' | 'incidents' | 'incident' | 'comments' | 'attachments' | 'incident-escalations'>>
+  Record<string, ReadonlyArray<'operations' | 'incidents' | 'incident' | 'comments' | 'attachments' | 'incident-escalations' | 'notifications'>>
 > = {
   'incident.created': ['operations', 'incidents', 'incident'],
   'incident.updated': ['operations', 'incidents', 'incident'],
@@ -35,7 +35,7 @@ const EVENT_CACHE_MAP: Readonly<
   'sla.breached': ['operations', 'incident'],
   'escalation.triggered': ['operations', 'incident', 'incident-escalations'],
   'escalation.completed': ['operations', 'incident', 'incident-escalations'],
-  'notification.created': [],
+  'notification.created': ['notifications'],
 };
 
 /**
@@ -60,5 +60,7 @@ export function getRealtimeInvalidationTargets(
   if (!prefixes || prefixes.length === 0) {
     return [];
   }
-  return prefixes.map((prefix) => [prefix, organizationId]);
+  return prefixes.map((prefix) =>
+    prefix === 'notifications' ? ['notifications'] : [prefix, organizationId]
+  );
 }

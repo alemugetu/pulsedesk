@@ -18,6 +18,7 @@ import { Building2, ChevronDown, Plus, Loader2, AlertCircle } from 'lucide-react
 import { Button } from '../ui/Button';
 import { cn } from '../../utils/cn';
 import { useOrganizationContext } from '../../features/organizations/context/organizationContextDef';
+import { OrganizationBrand } from '../../features/organizations/components/OrganizationBrand';
 import type { Organization } from '../../features/organizations/types/organization';
 
 export function OrganizationSwitcher() {
@@ -139,9 +140,14 @@ export function OrganizationSwitcher() {
           {isLoadingOrganizations ? (
             <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
           ) : (
-            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <OrganizationBrand
+              organizationId={currentOrganization?.id}
+              organizationName={displayText}
+              size="sm"
+              showName={false}
+            />
           )}
-          <span className="hidden md:inline text-sm font-medium">
+          <span className="hidden md:inline text-sm font-medium truncate max-w-[140px]">
             {displayText}
           </span>
           <ChevronDown className="h-4 w-4 hidden md:block text-muted-foreground" />
@@ -201,8 +207,13 @@ export function OrganizationSwitcher() {
                       role="menuitem"
                       aria-current={currentOrganization?.id === org.id ? 'true' : undefined}
                     >
-                      <Building2 className="h-4 w-4 flex-shrink-0" />
-                      <span className="flex-1 text-left">{org.name}</span>
+                      <OrganizationBrand
+                        organizationId={org.id}
+                        organizationName={org.name}
+                        size="sm"
+                        showName={false}
+                      />
+                      <span className="flex-1 text-left truncate">{org.name}</span>
                       {currentOrganization?.id === org.id && (
                         <span className="text-xs text-muted-foreground">Current</span>
                       )}
