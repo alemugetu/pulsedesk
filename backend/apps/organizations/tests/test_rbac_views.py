@@ -310,6 +310,25 @@ class MemberListWithRBACTest(RBACViewBaseTest):
         self.assertEqual(response.data["user"]["email"], "newmember@example.com")
         self.assertEqual(response.data["role"]["slug"], "agent")
 
+    def test_owner_can_invite_unregistered_member_by_email(self):
+        agent_role = Role.objects.get(organization=self.org, slug="agent")
+        unregistered_email = "brandnewcolleague@example.com"
+        self.assertFalse(User.objects.filter(email=unregistered_email).exists())
+
+        self._auth_as(self.owner_user)
+        response = self.client.post(
+            f"/api/v1/organizations/{self.org.id}/members/",
+            {"email": unregistered_email, "role_id": str(agent_role.id)},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["user"]["email"], unregistered_email)
+        self.assertEqual(response.data["role"]["slug"], "agent")
+        self.assertTrue(User.objects.filter(email=unregistered_email).exists())
+        created_user = User.objects.get(email=unregistered_email)
+        self.assertFalse(created_user.is_verified)
+        self.assertFalse(created_user.has_usable_password())
+
     def test_viewer_cannot_add_member(self):
         new_user = User.objects.create_user(email="another@example.com", password="pass123")
         new_user.email_verified_at = timezone.now()

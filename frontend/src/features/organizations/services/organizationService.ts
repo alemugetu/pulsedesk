@@ -23,7 +23,7 @@ const ORGANIZATIONS_BASE_URL = '/api/v1/organizations';
  * GET /api/v1/organizations/
  */
 export async function getOrganizations(): Promise<OrganizationListResponse> {
-  return api.get<OrganizationListResponse>(ORGANIZATIONS_BASE_URL);
+  return api.get<OrganizationListResponse>(`${ORGANIZATIONS_BASE_URL}/`);
 }
 
 /**
@@ -34,7 +34,7 @@ export async function getOrganizations(): Promise<OrganizationListResponse> {
 export async function createOrganization(
   data: CreateOrganizationRequest
 ): Promise<OrganizationCreateResponse> {
-  return api.post<OrganizationCreateResponse>(ORGANIZATIONS_BASE_URL, data);
+  return api.post<OrganizationCreateResponse>(`${ORGANIZATIONS_BASE_URL}/`, data);
 }
 
 /**

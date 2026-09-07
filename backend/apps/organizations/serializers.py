@@ -272,12 +272,16 @@ class MembershipCreateSerializer(serializers.Serializer):
                     {"user_id": ["User with this ID does not exist."]}
                 ) from None
         elif email:
+            normalized_email = email.strip().lower()
             try:
-                user = User.objects.get(email=email.strip().lower())
+                user = User.objects.get(email=normalized_email)
             except User.DoesNotExist:
-                raise serializers.ValidationError(
-                    {"email": ["User with this email does not exist. Please register the user account first."]}
-                ) from None
+                user = User.objects.create_user(
+                    email=normalized_email,
+                    password=None,
+                )
+                user.set_unusable_password()
+                user.save(update_fields=["password"])
 
         attrs["user"] = user
 

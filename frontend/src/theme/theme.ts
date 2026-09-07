@@ -35,6 +35,9 @@ export const colors = {
     input: '#e2e8f0',
     ring: '#3b82f6',
     placeholder: '#9ca3af',
+    destructive: '#ef4444',
+    'destructive-foreground': '#ffffff',
+    error: '#ef4444',
   },
   
   // Dark mode colors - approved PulseDesk palette
@@ -56,6 +59,9 @@ export const colors = {
     input: '#1e293b', // Input
     ring: '#6366f1', // Primary
     placeholder: '#64748b', // Placeholder
+    destructive: '#ef4444',
+    'destructive-foreground': '#ffffff',
+    error: '#ef4444',
   },
 } as const;
 

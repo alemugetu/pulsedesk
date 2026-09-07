@@ -26,7 +26,7 @@ export function AuthError({ message, className }: AuthErrorProps) {
       role="alert"
     >
       <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
-      <p className="text-sm text-red-800 dark:text-red-200">
+      <p className="text-sm text-red-800 dark:text-red-400">
         {message}
       </p>
     </div>
