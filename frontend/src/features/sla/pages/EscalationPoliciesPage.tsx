@@ -15,8 +15,9 @@
 
 import { useState, useMemo } from 'react';
 import { Plus, Siren, Pencil, Loader2, AlertCircle } from 'lucide-react';
-import { useCurrentOrganization } from '../../organizations/context/organizationContextDef';
+import { useCurrentOrganization, useOptionalOrganizationContext } from '../../organizations/context/organizationContextDef';
 import { useOrganizationRoles } from '../../organizations/hooks/useOrganizationRoles';
+import { getApiErrorMessage } from '../../../api/errors';
 import type { Role } from '../../organizations/types/role';
 import { useEscalationPolicies } from '../hooks/useEscalationPolicies';
 import {
@@ -55,12 +56,13 @@ const TRIGGER_OPTIONS = [
 
 export function EscalationPoliciesPage() {
   const organization = useCurrentOrganization();
+  const orgContext = useOptionalOrganizationContext();
   const { data: policies, isLoading, error, refetch } = useEscalationPolicies();
   const { data: roles = [], isLoading: isLoadingRoles } = useOrganizationRoles(organization?.id ?? '');
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState<EscalationPolicy | null>(null);
-  const canManage = !!organization;
+  const canManage = orgContext ? orgContext.hasPermission('escalation.manage') : !!organization;
 
   if (!organization) {
     return (
@@ -109,7 +111,7 @@ export function EscalationPoliciesPage() {
           <AlertCircle className="h-8 w-8 text-destructive mb-4" />
           <p className="text-sm text-destructive font-medium">Failed to load escalation policies</p>
           <p className="text-xs text-muted-foreground mt-1">
-            {error instanceof Error ? error.message : 'Unknown error'}
+            {getApiErrorMessage(error, 'Unknown error')}
           </p>
           <Button className="mt-4" size="sm" variant="outline" onClick={() => refetch()}>
             Retry
@@ -222,7 +224,7 @@ function PolicyForm({ policy, onCancel, onSaved }: PolicyFormProps) {
       queryClient.invalidateQueries({ queryKey: ['escalation-policies', organization.id] });
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save escalation policy');
+      setError(getApiErrorMessage(err, 'Failed to save escalation policy'));
     } finally {
       setSubmitting(false);
     }
@@ -571,7 +573,7 @@ function LevelForm({
       queryClient.invalidateQueries({ queryKey: ['escalation-policies', organization.id] });
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save escalation level');
+      setError(getApiErrorMessage(err, 'Failed to save escalation level'));
     } finally {
       setSubmitting(false);
     }
@@ -684,7 +686,7 @@ function RuleForm({ policyId, existingTriggers, onCancel, onSaved }: RuleFormPro
       queryClient.invalidateQueries({ queryKey: ['escalation-policies', organization.id] });
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save rule');
+      setError(getApiErrorMessage(err, 'Failed to save rule'));
     } finally {
       setSubmitting(false);
     }

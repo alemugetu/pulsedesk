@@ -152,6 +152,12 @@ class EscalationPolicyListCreateView(APIView):
         },
     )
     def post(self, request, organization_id):
+        if not user_has_permission(
+            request.user, request.organization, "escalation.manage"
+        ):
+            raise PermissionDenied(
+                "You do not have permission to manage escalation policies."
+            )
         serializer = EscalationPolicyCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
@@ -224,6 +230,12 @@ class EscalationPolicyDetailView(APIView):
         },
     )
     def patch(self, request, organization_id, policy_id):
+        if not user_has_permission(
+            request.user, request.organization, "escalation.manage"
+        ):
+            raise PermissionDenied(
+                "You do not have permission to manage escalation policies."
+            )
         policy = self._get_policy_or_404(request, policy_id)
         serializer = EscalationPolicyUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -305,6 +317,12 @@ class EscalationLevelListCreateView(APIView):
         },
     )
     def post(self, request, organization_id, policy_id):
+        if not user_has_permission(
+            request.user, request.organization, "escalation.manage"
+        ):
+            raise PermissionDenied(
+                "You do not have permission to manage escalation policies."
+            )
         policy = self._get_policy_or_404(request, policy_id)
         serializer = EscalationLevelCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -382,6 +400,12 @@ class EscalationLevelDetailView(APIView):
         },
     )
     def patch(self, request, organization_id, policy_id, level_id):
+        if not user_has_permission(
+            request.user, request.organization, "escalation.manage"
+        ):
+            raise PermissionDenied(
+                "You do not have permission to manage escalation policies."
+            )
         level = self._get_level_or_404(request, policy_id, level_id)
         serializer = EscalationLevelUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -462,6 +486,12 @@ class EscalationRuleListCreateView(APIView):
         },
     )
     def post(self, request, organization_id, policy_id):
+        if not user_has_permission(
+            request.user, request.organization, "escalation.manage"
+        ):
+            raise PermissionDenied(
+                "You do not have permission to manage escalation policies."
+            )
         policy = self._get_policy_or_404(request, policy_id)
         serializer = EscalationRuleCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

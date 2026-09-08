@@ -18,8 +18,14 @@ const mockOrganization = {
   slug: 'acme-corp',
 };
 
+const mockHasPermission = vi.fn((_perm: string) => true);
+
 vi.mock('../../../organizations/context/organizationContextDef', () => ({
   useCurrentOrganization: () => mockOrganization,
+  useOptionalOrganizationContext: () => ({
+    currentOrganization: mockOrganization,
+    hasPermission: (perm: string) => mockHasPermission(perm),
+  }),
 }));
 
 // Mock hooks
@@ -304,5 +310,44 @@ describe('EscalationPoliciesPage — Escalation Level Role Assignment UX', () =>
         target_reference: 'role-custom-a-uuid',
       }
     );
+  });
+
+  it('hides creation and management controls when user lacks escalation.manage permission', () => {
+    mockHasPermission.mockImplementation((perm: string) => perm !== 'escalation.manage');
+    renderComponent();
+
+    // "New Policy" button should NOT be present
+    expect(screen.queryByRole('button', { name: /new policy/i })).not.toBeInTheDocument();
+    // "Add Level" button should NOT be present
+    expect(screen.queryByRole('button', { name: /add level/i })).not.toBeInTheDocument();
+    // "Edit" button for the policy should NOT be present
+    expect(screen.queryByRole('button', { name: /edit payment & core backend pipeline/i })).not.toBeInTheDocument();
+  });
+
+  it('displays detailed server error message when creating a policy fails', async () => {
+    const user = userEvent.setup();
+    mockHasPermission.mockReturnValue(true);
+    mockCreateEscalationPolicy.mockRejectedValueOnce({
+      type: 'VALIDATION',
+      message: 'An escalation policy with this name already exists in this organization.',
+      fieldErrors: {
+        name: ['An escalation policy with this name already exists in this organization.'],
+      },
+    });
+
+    renderComponent();
+
+    // Click "New Policy"
+    await user.click(screen.getByRole('button', { name: /new policy/i }));
+
+    // Type policy name and save
+    const nameInput = screen.getByLabelText(/policy name/i);
+    await user.type(nameInput, 'Existing Policy');
+    await user.click(screen.getByRole('button', { name: /create policy/i }));
+
+    // Should display the actual server validation error message
+    expect(
+      await screen.findByText(/an escalation policy with this name already exists in this organization/i)
+    ).toBeInTheDocument();
   });
 });

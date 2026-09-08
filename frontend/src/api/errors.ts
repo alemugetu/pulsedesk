@@ -98,9 +98,22 @@ function normalizeAxiosError(error: AxiosError): ApiError {
   // Handle validation errors (400)
   if (status === 400) {
     const fieldErrors = extractFieldErrors(data);
+    let message = 'Invalid request data';
+    if (data && typeof data === 'object') {
+      const record = data as Record<string, unknown>;
+      if (typeof record.detail === 'string') {
+        message = record.detail;
+      } else if (Array.isArray(record.non_field_errors) && record.non_field_errors.length > 0) {
+        message = String(record.non_field_errors[0]);
+      } else if (fieldErrors) {
+        const firstKey = Object.keys(fieldErrors)[0];
+        const firstErr = fieldErrors[firstKey]?.[0];
+        message = firstErr ? `${firstErr}` : 'Please correct the highlighted fields';
+      }
+    }
     return {
       type: ApiErrorType.VALIDATION,
-      message: fieldErrors ? 'Please correct the highlighted fields' : 'Invalid request data',
+      message,
       statusCode: status,
       fieldErrors,
       details: data as Record<string, unknown>,
@@ -110,9 +123,16 @@ function normalizeAxiosError(error: AxiosError): ApiError {
 
   // Handle authentication errors (401)
   if (status === 401) {
+    let message = 'Authentication required. Please log in.';
+    if (data && typeof data === 'object') {
+      const record = data as Record<string, unknown>;
+      if (typeof record.detail === 'string') {
+        message = record.detail;
+      }
+    }
     return {
       type: ApiErrorType.AUTHENTICATION,
-      message: 'Authentication required. Please log in.',
+      message,
       statusCode: status,
       details: data as Record<string, unknown>,
       originalError: error,
@@ -121,9 +141,16 @@ function normalizeAxiosError(error: AxiosError): ApiError {
 
   // Handle authorization errors (403)
   if (status === 403) {
+    let message = 'You do not have permission to perform this action.';
+    if (data && typeof data === 'object') {
+      const record = data as Record<string, unknown>;
+      if (typeof record.detail === 'string') {
+        message = record.detail;
+      }
+    }
     return {
       type: ApiErrorType.AUTHORIZATION,
-      message: 'You do not have permission to perform this action.',
+      message,
       statusCode: status,
       details: data as Record<string, unknown>,
       originalError: error,
@@ -132,9 +159,16 @@ function normalizeAxiosError(error: AxiosError): ApiError {
 
   // Handle not found errors (404)
   if (status === 404) {
+    let message = 'The requested resource was not found.';
+    if (data && typeof data === 'object') {
+      const record = data as Record<string, unknown>;
+      if (typeof record.detail === 'string') {
+        message = record.detail;
+      }
+    }
     return {
       type: ApiErrorType.NOT_FOUND,
-      message: 'The requested resource was not found.',
+      message: message,
       statusCode: status,
       details: data as Record<string, unknown>,
       originalError: error,
@@ -208,7 +242,7 @@ function isAxiosError(error: unknown): error is AxiosError {
   );
 }
 
-function isApiError(error: unknown): error is ApiError {
+export function isApiError(error: unknown): error is ApiError {
   return (
     typeof error === 'object' &&
     error !== null &&
@@ -216,6 +250,32 @@ function isApiError(error: unknown): error is ApiError {
     'message' in error &&
     Object.values(ApiErrorType).includes((error as ApiError).type)
   );
+}
+
+/**
+ * Helper to safely extract a user-facing error message from any caught error.
+ */
+export function getApiErrorMessage(error: unknown, fallback = 'An unexpected error occurred'): string {
+  if (isApiError(error)) {
+    if (error.fieldErrors) {
+      const firstKey = Object.keys(error.fieldErrors)[0];
+      const firstErr = error.fieldErrors[firstKey]?.[0];
+      if (firstErr) {
+        return firstErr;
+      }
+    }
+    if (error.details && typeof error.details.detail === 'string') {
+      return error.details.detail;
+    }
+    return error.message || fallback;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  return fallback;
 }
 
 /**
