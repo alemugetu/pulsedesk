@@ -42,21 +42,27 @@ def get_sla_policy(
         return None
 
 
-def get_default_sla_policy(organization: Organization) -> SLAPolicy | None:
+def get_default_sla_policy(
+    organization: Organization,
+) -> SLAPolicy | None:
     """
     Return the single active default SLA policy for an organization, or None.
 
-    The partial unique index (organization, is_default=True, is_active=True)
-    guarantees at most one record satisfies this query.
+    The partial unique index guarantees at most one active-default record.
+    If no policy is explicitly marked as default, falls back to the first
+    active policy for the organization to maintain continuous SLA monitoring.
     """
-    try:
-        return SLAPolicy.objects.prefetch_related("targets").get(
+    policy = SLAPolicy.objects.prefetch_related("targets").filter(
+        organization=organization,
+        is_active=True,
+        is_default=True,
+    ).first()
+    if policy is None:
+        policy = SLAPolicy.objects.prefetch_related("targets").filter(
             organization=organization,
             is_active=True,
-            is_default=True,
-        )
-    except SLAPolicy.DoesNotExist:
-        return None
+        ).first()
+    return policy
 
 
 def get_sla_target(

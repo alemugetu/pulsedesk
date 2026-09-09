@@ -342,21 +342,32 @@ class SLACalculationService:
     """
 
     @staticmethod
-    def calculate_incident_sla(incident: Incident) -> IncidentSLA | None:
+    def calculate_incident_sla(
+        incident: Incident,
+        sla_policy_id: str | None = None,
+    ) -> IncidentSLA | None:
         """
         Create an IncidentSLA record for the given incident.
 
         Selection strategy:
-          Organization → active default SLA policy → priority-specific target
+          Provided policy (sla_policy_id) → active default SLA policy → priority-specific target
 
-        If no active default policy exists, or no target is configured for
-        the incident's priority, returns None and does NOT raise an error.
-        Incident creation never fails due to a missing SLA configuration.
-
-        Must be called inside a transaction.atomic() block (e.g. from
-        IncidentService.create_incident).
+        If target is not configured for the incident's priority, falls back to the
+        closest priority target on the policy so SLA tracking is always enabled.
         """
-        policy = get_default_sla_policy(incident.organization)
+        policy = None
+        if sla_policy_id:
+            try:
+                policy = SLAPolicy.objects.prefetch_related("targets").get(
+                    id=sla_policy_id,
+                    organization=incident.organization,
+                    is_active=True,
+                )
+            except Exception:
+                policy = None
+
+        if policy is None:
+            policy = get_default_sla_policy(incident.organization)
         if policy is None:
             return None
 
@@ -388,30 +399,37 @@ class SLACalculationService:
         Evaluate and persist breach flags on an IncidentSLA.
 
         Breach logic:
-          - response_breached: current_time > response_deadline AND response not completed.
-          - resolution_breached: current_time > resolution_deadline AND resolution not completed.
-
-        Completed SLAs are never retroactively breached — once completed_at is set,
-        the breached flag is cleared and not set again.
-
-        This method is deterministic: pass a frozen `now` in tests.
-        Returns the updated (saved) IncidentSLA.
+          - response_breached:
+              If completed: response_completed_at > response_deadline or already marked response_breached.
+              If not completed: now > response_deadline.
+          - resolution_breached:
+              If completed: resolution_completed_at > resolution_deadline or already marked resolution_breached.
+              If not completed: now > resolution_deadline.
         """
         if now is None:
             now = timezone.now()
 
-        response_breached = (
-            now > sla.response_deadline and sla.response_completed_at is None
-        )
-        resolution_breached = (
-            now > sla.resolution_deadline and sla.resolution_completed_at is None
-        )
-
-        # If the SLA was completed before the deadline it cannot be breached.
         if sla.response_completed_at is not None:
-            response_breached = False
+            response_breached = (
+                sla.response_completed_at > sla.response_deadline
+                or sla.response_breached
+            )
+        else:
+            response_breached = (
+                now > sla.response_deadline
+                or sla.response_breached
+            )
+
         if sla.resolution_completed_at is not None:
-            resolution_breached = False
+            resolution_breached = (
+                sla.resolution_completed_at > sla.resolution_deadline
+                or sla.resolution_breached
+            )
+        else:
+            resolution_breached = (
+                now > sla.resolution_deadline
+                or sla.resolution_breached
+            )
 
         changed = (
             sla.response_breached != response_breached
@@ -433,8 +451,10 @@ class SLACalculationService:
             now = timezone.now()
 
         if sla.response_completed_at is not None:
+            if sla.response_completed_at > sla.response_deadline or sla.response_breached:
+                return SLAStatus.BREACHED
             return SLAStatus.COMPLETED
-        if now > sla.response_deadline:
+        if now > sla.response_deadline or sla.response_breached:
             return SLAStatus.BREACHED
         return SLAStatus.ON_TRACK
 
@@ -445,8 +465,10 @@ class SLACalculationService:
             now = timezone.now()
 
         if sla.resolution_completed_at is not None:
+            if sla.resolution_completed_at > sla.resolution_deadline or sla.resolution_breached:
+                return SLAStatus.BREACHED
             return SLAStatus.COMPLETED
-        if now > sla.resolution_deadline:
+        if now > sla.resolution_deadline or sla.resolution_breached:
             return SLAStatus.BREACHED
         return SLAStatus.ON_TRACK
 
@@ -466,8 +488,13 @@ class SLACalculationService:
             # Already completed — idempotent.
             return sla
 
-        sla.response_completed_at = timezone.now()
-        sla.response_breached = False  # Completed before or at deadline — not breached
+        now = timezone.now()
+        sla.response_completed_at = now
+        if now > sla.response_deadline or sla.response_breached:
+            sla.response_breached = True
+        else:
+            sla.response_breached = False
+
         sla.save(
             update_fields=["response_completed_at", "response_breached", "updated_at"]
         )
@@ -489,8 +516,13 @@ class SLACalculationService:
             # Already completed — idempotent.
             return sla
 
-        sla.resolution_completed_at = timezone.now()
-        sla.resolution_breached = False  # Mark as not breached since it completed
+        now = timezone.now()
+        sla.resolution_completed_at = now
+        if now > sla.resolution_deadline or sla.resolution_breached:
+            sla.resolution_breached = True
+        else:
+            sla.resolution_breached = False
+
         sla.save(
             update_fields=[
                 "resolution_completed_at",
@@ -926,12 +958,17 @@ class SLAMonitoringService:
         """
         from notifications.services import NotificationService
 
-        # Only notify if there's an assignee
-        if not incident.assignee:
+        # Notify assignee if present, otherwise notify reporter
+        recipient = None
+        if incident.assignee and hasattr(incident.assignee, "user"):
+            recipient = incident.assignee.user
+        elif incident.reporter:
+            recipient = incident.reporter
+
+        if not recipient:
             return
 
         organization = incident.organization
-        recipient = incident.assignee.user
         notification_service = NotificationService()
 
         # Use the appropriate deadline based on which one is approaching
@@ -970,7 +1007,7 @@ class SLAMonitoringService:
         now,
     ) -> None:
         """
-        Create SLA breach notification for incident assignee.
+        Create SLA breach notification for incident assignee or reporter.
 
         Args:
             incident: The incident with SLA breach
@@ -979,12 +1016,17 @@ class SLAMonitoringService:
         """
         from notifications.services import NotificationService
 
-        # Only notify if there's an assignee
-        if not incident.assignee:
+        # Notify assignee if present, otherwise notify reporter
+        recipient = None
+        if incident.assignee and hasattr(incident.assignee, "user"):
+            recipient = incident.assignee.user
+        elif incident.reporter:
+            recipient = incident.reporter
+
+        if not recipient:
             return
 
         organization = incident.organization
-        recipient = incident.assignee.user
         notification_service = NotificationService()
 
         # Determine which deadline was breached

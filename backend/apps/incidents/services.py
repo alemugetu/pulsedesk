@@ -173,6 +173,7 @@ class IncidentService:
         category_id: str | None = None,
         priority: str = IncidentPriority.P3,
         assignee_membership_id: str | None = None,
+        sla_policy_id: str | None = None,
     ) -> Incident:
         clean_title = title.strip() if title else ""
         if not clean_title:
@@ -256,7 +257,9 @@ class IncidentService:
 
         from sla.services import SLACalculationService
 
-        SLACalculationService.calculate_incident_sla(incident)
+        SLACalculationService.calculate_incident_sla(
+            incident, sla_policy_id=sla_policy_id
+        )
 
         # Audit log
         from audit_logs.models import AuditAction
@@ -487,9 +490,13 @@ class IncidentService:
         from sla.services import SLACalculationService
 
         if new_status == IncidentStatus.ACKNOWLEDGED:
-            SLACalculationService.complete_response_sla(incident)
+            sla_record = SLACalculationService.complete_response_sla(incident)
+            if sla_record:
+                incident.sla = sla_record
         elif new_status == IncidentStatus.RESOLVED:
-            SLACalculationService.complete_resolution_sla(incident)
+            sla_record = SLACalculationService.complete_resolution_sla(incident)
+            if sla_record:
+                incident.sla = sla_record
 
         # Audit log — use specific action for resolved/closed states
         from audit_logs.models import AuditAction

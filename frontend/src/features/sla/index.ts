@@ -20,7 +20,7 @@ export { SlaEscalationSection } from './components/SlaEscalationSection';
 // Hooks
 export { useSlaPolicies, getSlaPoliciesQueryKey } from './hooks/useSlaPolicies';
 export { useSlaPolicy, getSlaPolicyQueryKey } from './hooks/useSlaPolicy';
-export { useIncidentSla, formatTimeRemaining } from './hooks/useIncidentSla';
+export { useIncidentSla, formatTimeRemaining, useSlaCountdown } from './hooks/useIncidentSla';
 export { useEscalationPolicies, getEscalationPoliciesQueryKey } from './hooks/useEscalationPolicies';
 export { useEscalationPolicy, getEscalationPolicyQueryKey } from './hooks/useEscalationPolicy';
 

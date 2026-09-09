@@ -146,6 +146,7 @@ class IncidentCreateSerializer(serializers.Serializer):
     )
     category_id = serializers.UUIDField(required=False, allow_null=True)
     assignee_id = serializers.UUIDField(required=False, allow_null=True)
+    sla_policy_id = serializers.UUIDField(required=False, allow_null=True)
 
     def validate_title(self, value):
         if not value.strip():

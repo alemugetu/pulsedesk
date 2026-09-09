@@ -241,6 +241,7 @@ export function IncidentForm({
       priority,
       category_id: categoryId || null,
       assignee_id: assigneeId || null,
+      ...(selectedSlaPolicyId ? { sla_policy_id: selectedSlaPolicyId } : {}),
     };
 
     onSubmit(data, stagedFiles);

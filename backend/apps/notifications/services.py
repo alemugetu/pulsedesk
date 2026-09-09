@@ -198,6 +198,7 @@ class NotificationService:
         # Only publish for important notification types
         important_types = {
             "SLA_BREACH",
+            "SLA_WARNING",
             "ESCALATION_TRIGGERED",
             "INCIDENT_ASSIGNED",
         }

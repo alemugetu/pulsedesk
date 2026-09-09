@@ -1,18 +1,11 @@
-/**
- * SlaProgress component.
- * 
- * Displays SLA timing/progress information with visual indicators.
- * Handles loading, active/on-track, breached, completed, and unavailable data states.
- * Uses accessible visual indicators.
- */
-
 import type { SLAStatus } from '../types/sla.types';
-import { formatTimeRemaining } from '../hooks/useIncidentSla';
+import { useSlaCountdown } from '../hooks/useIncidentSla';
 
 interface SlaProgressProps {
   deadline: string;
   completedAt: string | null;
   status: SLAStatus;
+  breached?: boolean;
   className?: string;
 }
 
@@ -32,9 +25,33 @@ function getStatusAccentClass(status: SLAStatus): string {
   }
 }
 
-export function SlaProgress({ deadline, completedAt, status, className = '' }: SlaProgressProps) {
+function formatTimestamp(dateStr: string): string {
+  const d = new Date(dateStr);
+  return Number.isNaN(d.getTime())
+    ? ''
+    : d.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+}
+
+export function SlaProgress({
+  deadline,
+  completedAt,
+  status,
+  breached,
+  className = '',
+}: SlaProgressProps) {
+  const { timeRemaining, isBreached, isCompleted } = useSlaCountdown(
+    deadline,
+    completedAt,
+    status,
+    breached
+  );
   const deadlineDate = new Date(deadline);
-  const timeRemaining = formatTimeRemaining(deadline);
 
   if (Number.isNaN(deadlineDate.getTime())) {
     return (
@@ -44,16 +61,33 @@ export function SlaProgress({ deadline, completedAt, status, className = '' }: S
     );
   }
 
-  const timingText = status === 'COMPLETED'
-    ? `Completed${completedAt ? ` ${new Date(completedAt).toLocaleString()}` : ''}`
-    : status === 'BREACHED'
-      ? 'Deadline breached'
+  const effectiveStatus: SLAStatus = isCompleted
+    ? 'COMPLETED'
+    : isBreached
+      ? 'BREACHED'
+      : status;
+
+  const timingText = isCompleted
+    ? `Completed${completedAt ? ` at ${formatTimestamp(completedAt)}` : ''}`
+    : isBreached
+      ? `Deadline breached at ${formatTimestamp(deadline)}`
       : `${timeRemaining} remaining`;
 
   return (
     <div className={`flex items-center gap-2 text-sm ${className}`} role="status">
-      <span className={`h-2 w-2 shrink-0 rounded-full ${getStatusAccentClass(status)}`} aria-hidden="true" />
-      <span className="text-muted-foreground">{timingText}</span>
+      <span
+        className={`h-2 w-2 shrink-0 rounded-full ${getStatusAccentClass(effectiveStatus)}`}
+        aria-hidden="true"
+      />
+      <span
+        className={
+          effectiveStatus === 'BREACHED'
+            ? 'text-destructive font-medium'
+            : 'text-muted-foreground'
+        }
+      >
+        {timingText}
+      </span>
     </div>
   );
 }

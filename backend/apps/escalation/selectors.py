@@ -66,16 +66,21 @@ def get_default_escalation_policy(
     """
     Return the single active default escalation policy for an organization, or None.
 
-    The partial unique index guarantees at most one record satisfies this query.
+    The partial unique index guarantees at most one active-default record.
+    If no policy is explicitly marked as default, falls back to the first
+    active policy for the organization to maintain continuous escalation.
     """
-    try:
-        return EscalationPolicy.objects.prefetch_related("levels", "rules").get(
+    policy = EscalationPolicy.objects.prefetch_related("levels", "rules").filter(
+        organization=organization,
+        is_active=True,
+        is_default=True,
+    ).first()
+    if policy is None:
+        policy = EscalationPolicy.objects.prefetch_related("levels", "rules").filter(
             organization=organization,
             is_active=True,
-            is_default=True,
-        )
-    except EscalationPolicy.DoesNotExist:
-        return None
+        ).first()
+    return policy
 
 
 # ---------------------------------------------------------------------------

@@ -107,6 +107,7 @@ export interface CreateIncidentRequest {
   priority?: IncidentPriority;
   category_id?: string | null;
   assignee_id?: string | null;
+  sla_policy_id?: string | null;
 }
 
 /**

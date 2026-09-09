@@ -116,6 +116,8 @@ class IncidentSLASummarySerializer(serializers.Serializer):
     resolution_deadline = serializers.DateTimeField(read_only=True)
     response_status = serializers.SerializerMethodField()
     resolution_status = serializers.SerializerMethodField()
+    response_breached = serializers.BooleanField(read_only=True)
+    resolution_breached = serializers.BooleanField(read_only=True)
     response_completed_at = serializers.DateTimeField(read_only=True, allow_null=True)
     resolution_completed_at = serializers.DateTimeField(read_only=True, allow_null=True)
 

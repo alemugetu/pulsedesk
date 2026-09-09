@@ -49,9 +49,12 @@ class NotificationListSerializer(serializers.ModelSerializer):
         model = Notification
         fields: ClassVar[tuple[str, ...]] = (
             "id",
+            "organization",
             "notification_type",
             "title",
+            "message",
             "severity",
+            "incident_id",
             "is_read",
             "created_at",
         )

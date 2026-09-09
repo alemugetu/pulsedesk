@@ -1,5 +1,3 @@
-from typing import ClassVar
-
 from drf_spectacular.utils import (
     OpenApiParameter,
     OpenApiResponse,
@@ -56,7 +54,7 @@ class IncidentCategoryListCreateView(APIView):
     GET/POST /api/v1/organizations/<organization_id>/incident-categories/
     """
 
-    permission_classes: ClassVar = [IsAuthenticated, IsOrganizationMember]
+    permission_classes = (IsAuthenticated, IsOrganizationMember)
 
     @extend_schema(
         summary="List incident categories",
@@ -135,7 +133,7 @@ class IncidentCategoryDetailView(APIView):
     GET/PATCH /api/v1/organizations/<organization_id>/incident-categories/<category_id>/
     """
 
-    permission_classes: ClassVar = [IsAuthenticated, IsOrganizationMember]
+    permission_classes = (IsAuthenticated, IsOrganizationMember)
 
     @extend_schema(
         summary="Get incident category detail",
@@ -207,7 +205,7 @@ class IncidentListCreateView(APIView):
     GET/POST /api/v1/organizations/<organization_id>/incidents/
     """
 
-    permission_classes: ClassVar = [IsAuthenticated, IsOrganizationMember]
+    permission_classes = (IsAuthenticated, IsOrganizationMember)
     pagination_class = PageNumberPagination
 
     @extend_schema(
@@ -384,6 +382,7 @@ class IncidentListCreateView(APIView):
             category_id=serializer.validated_data.get("category_id"),
             priority=serializer.validated_data.get("priority"),
             assignee_membership_id=serializer.validated_data.get("assignee_id"),
+            sla_policy_id=serializer.validated_data.get("sla_policy_id"),
         )
 
         output_serializer = IncidentSerializer(incident)
@@ -397,7 +396,7 @@ class IncidentDetailView(APIView):
     GET/PATCH /api/v1/organizations/<organization_id>/incidents/<incident_id>/
     """
 
-    permission_classes: ClassVar = [IsAuthenticated, IsOrganizationMember]
+    permission_classes = (IsAuthenticated, IsOrganizationMember)
 
     @extend_schema(
         summary="Get incident detail",

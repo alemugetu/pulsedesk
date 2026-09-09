@@ -56,6 +56,8 @@ export interface IncidentSLASummary {
   resolution_deadline: string;
   response_status: SLAStatus;
   resolution_status: SLAStatus;
+  response_breached?: boolean;
+  resolution_breached?: boolean;
   response_completed_at: string | null;
   resolution_completed_at: string | null;
 }

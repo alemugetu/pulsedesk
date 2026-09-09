@@ -45,6 +45,15 @@ export function SlaSummaryCard({ sla, className = '' }: SlaSummaryCardProps) {
     );
   }
 
+  const isResponseBreached = sla.response_status === 'BREACHED' || Boolean(sla.response_breached);
+  const isResolutionBreached = sla.resolution_status === 'BREACHED' || Boolean(sla.resolution_breached);
+  const isAllCompleted = sla.response_status === 'COMPLETED' && sla.resolution_status === 'COMPLETED';
+  const overallStatus = (isResponseBreached || isResolutionBreached)
+    ? 'BREACHED'
+    : isAllCompleted
+      ? 'COMPLETED'
+      : 'ON_TRACK';
+
   return (
     <Card className={className}>
       <CardHeader>
@@ -56,7 +65,7 @@ export function SlaSummaryCard({ sla, className = '' }: SlaSummaryCardProps) {
             <p className="text-sm text-muted-foreground">Policy</p>
             <p className="font-medium">{sla.policy}</p>
           </div>
-          <SlaStatusBadge status={sla.response_status} />
+          <SlaStatusBadge status={overallStatus} />
         </div>
 
         <div className="space-y-3">
@@ -67,6 +76,7 @@ export function SlaSummaryCard({ sla, className = '' }: SlaSummaryCardProps) {
               deadline={sla.response_deadline}
               completedAt={sla.response_completed_at}
               status={sla.response_status}
+              breached={sla.response_breached}
             />
           </div>
 
@@ -77,23 +87,34 @@ export function SlaSummaryCard({ sla, className = '' }: SlaSummaryCardProps) {
               deadline={sla.resolution_deadline}
               completedAt={sla.resolution_completed_at}
               status={sla.resolution_status}
+              breached={sla.resolution_breached}
             />
           </div>
         </div>
 
-        {sla.response_completed_at && (
+        {sla.response_completed_at ? (
           <div className="text-sm">
-            <span className="text-muted-foreground">Response completed at: </span>
+            <span className="text-muted-foreground">Response acknowledged at: </span>
             <span className="font-medium">{formatDate(sla.response_completed_at)}</span>
           </div>
-        )}
+        ) : isResponseBreached ? (
+          <div className="text-sm text-destructive">
+            <span>Response breached at: </span>
+            <span className="font-medium">{formatDate(sla.response_deadline)}</span>
+          </div>
+        ) : null}
 
-        {sla.resolution_completed_at && (
+        {sla.resolution_completed_at ? (
           <div className="text-sm">
             <span className="text-muted-foreground">Resolution completed at: </span>
             <span className="font-medium">{formatDate(sla.resolution_completed_at)}</span>
           </div>
-        )}
+        ) : isResolutionBreached ? (
+          <div className="text-sm text-destructive">
+            <span>Resolution breached at: </span>
+            <span className="font-medium">{formatDate(sla.resolution_deadline)}</span>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

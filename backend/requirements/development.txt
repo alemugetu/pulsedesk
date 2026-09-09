@@ -3,3 +3,8 @@
 # ASGI development server for Channels WebSockets (Channels 4.x removed
 # `manage.py runserver` support, so Daphne is required to serve /ws/ paths).
 daphne==4.2.3
+
+# Type stubs for Django & DRF IDE support / type checking
+django-stubs==6.1.0
+django-stubs-ext==6.1.0
+djangorestframework-stubs==3.18.1
