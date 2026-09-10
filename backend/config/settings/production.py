@@ -19,13 +19,15 @@ SECRET_KEY = env("SECRET_KEY")
 
 ALLOWED_HOSTS = env.list(
     "ALLOWED_HOSTS",
-    default=["127.0.0.1", "localhost", ".onrender.com"],
+    default=["127.0.0.1", "localhost", ".onrender.com", ".vercel.app"],
 )
 
-# Automatically trust all Render subdomains (.onrender.com) and the specific
-# Render service hostname injected by Render (RENDER_EXTERNAL_HOSTNAME).
+# Automatically trust all Render subdomains (.onrender.com), Vercel subdomains (.vercel.app),
+# and the specific Render service hostname injected by Render (RENDER_EXTERNAL_HOSTNAME).
 if ".onrender.com" not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(".onrender.com")
+if ".vercel.app" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(".vercel.app")
 
 _render_hostname = env("RENDER_EXTERNAL_HOSTNAME", default=None)
 if _render_hostname and _render_hostname not in ALLOWED_HOSTS:
@@ -87,9 +89,14 @@ CSRF_COOKIE_SECURE = True
 # Allows cross-origin API and WebSocket communication from the Vercel frontend.
 # ---------------------------------------------------------------------------
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https:\/\/.*\.vercel\.app$",
+]
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+if "https://*.vercel.app" not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append("https://*.vercel.app")
 if _render_hostname:
     _render_origin = f"https://{_render_hostname}"
     if _render_origin not in CSRF_TRUSTED_ORIGINS:
