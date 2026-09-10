@@ -22,6 +22,15 @@ ALLOWED_HOSTS = env.list(
     default=["127.0.0.1", "localhost", ".onrender.com"],
 )
 
+# Automatically trust all Render subdomains (.onrender.com) and the specific
+# Render service hostname injected by Render (RENDER_EXTERNAL_HOSTNAME).
+if ".onrender.com" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(".onrender.com")
+
+_render_hostname = env("RENDER_EXTERNAL_HOSTNAME", default=None)
+if _render_hostname and _render_hostname not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(_render_hostname)
+
 # ---------------------------------------------------------------------------
 # Database — Render Managed PostgreSQL (or external DB_URL)
 # Supports DB_URL (or standard DATABASE_URL) from Render.
@@ -81,6 +90,10 @@ CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+if _render_hostname:
+    _render_origin = f"https://{_render_hostname}"
+    if _render_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_render_origin)
 
 CORS_ALLOW_HEADERS = [
     "accept",
