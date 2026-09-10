@@ -23,15 +23,19 @@ ALLOWED_HOSTS = env.list(
 )
 
 # ---------------------------------------------------------------------------
-# Database — Supabase PostgreSQL
-# DB_URL must be present in the production environment.
+# Database — Render Managed PostgreSQL (or external DB_URL)
+# DB_URL is automatically injected by Render from pulsedesk-db.
+# Uses 'prefer' as default sslmode so both internal Render private network
+# connections and SSL-enforced connections work smoothly.
 # ---------------------------------------------------------------------------
 DATABASES = {
     "default": env.db("DB_URL"),
 }
 
 DATABASES["default"].setdefault("OPTIONS", {})
-DATABASES["default"]["OPTIONS"].setdefault("sslmode", "require")
+DATABASES["default"]["OPTIONS"].setdefault(
+    "sslmode", env("DB_SSLMODE", default="prefer")
+)
 
 # ---------------------------------------------------------------------------
 # Static Files & WhiteNoise
