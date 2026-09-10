@@ -11,27 +11,15 @@ backend/.mypy_cache/
 backend/.ruff_cache/
 backend/docs
 .agents/skills/supabase-postgres-best-practices/
-PHASE_13.3_IMPLEMENTATION_REPORT.md
-PHASE_13.7_ENGINEERING_REPORT.md
-PHASE_13_8_SENIOR_ENGINEERING_REPORT.md
-PHASE_13_9_SENIOR_ENGINEERING_REPORT.md
-PHASE_13_10_SENIOR_ENGINEERING_REPORT.md
-PHASE_13_10_WEBSOCKET_404_FIX_REPORT.md
-backend/WEBSOCKET_FIX_INSTRUCTIONS.md
-PHASE_13_11_SENIOR_ENGINEERING_REPORT.md
-PHASE_13_12_SENIOR_ENGINEERING_REPORT.md
-frontend/PHASE_13.13_SENIOR_ENGINEERING_REPORT.md
-frontend/PHASE_13.5_COMPLETION_REPORT.md
-PHASE_13_FRONTEND_FEATURE_COMPLETION_AUDIT.md
-PHASE_13_14_CORRECTIVE_FIX_REPORT.md
-PHASE_13_REPORT_EXPORT_BRANDING_REPORT.md
-PHASE_13_INCIDENT_WORKFLOW_NOTIFICATION_INTEGRATION_REPORT.md   
+
 # ==========================
-# Django
+# Django / Celery
 # ==========================
 backend/db.sqlite3
 backend/media/
 backend/staticfiles/
+backend/celerybeat-schedule*
+celerybeat-schedule*
 .venv
 
 

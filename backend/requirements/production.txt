@@ -1,1 +1,7 @@
 -r base.txt
+
+# Production ASGI server for HTTP & Channels WebSockets
+daphne==4.2.3
+
+# Efficient static file serving for Render PaaS without Nginx
+whitenoise==6.9.0

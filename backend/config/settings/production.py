@@ -14,17 +14,88 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 env = environ.Env()
 env.read_env(BASE_DIR / ".env")
 
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["127.0.0.1", "localhost"])
+# In production, SECRET_KEY must come from the environment.
+SECRET_KEY = env("SECRET_KEY")
 
+ALLOWED_HOSTS = env.list(
+    "ALLOWED_HOSTS",
+    default=["127.0.0.1", "localhost", ".onrender.com"],
+)
+
+# ---------------------------------------------------------------------------
+# Database — Supabase PostgreSQL
 # DB_URL must be present in the production environment.
-# The production deployment environment provides its own DB_URL pointing
-# to the production database — NOT the same as the development Supabase instance.
+# ---------------------------------------------------------------------------
 DATABASES = {
     "default": env.db("DB_URL"),
 }
 
 DATABASES["default"].setdefault("OPTIONS", {})
 DATABASES["default"]["OPTIONS"].setdefault("sslmode", "require")
+
+# ---------------------------------------------------------------------------
+# Static Files & WhiteNoise
+# WhiteNoise enables the production ASGI server (Daphne) to serve static files
+# without requiring an external web server or Nginx.
+# ---------------------------------------------------------------------------
+STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Insert WhiteNoiseMiddleware directly after SecurityMiddleware
+MIDDLEWARE = list(MIDDLEWARE)
+if "whitenoise.middleware.WhiteNoiseMiddleware" not in MIDDLEWARE:
+    try:
+        sec_idx = MIDDLEWARE.index("django.middleware.security.SecurityMiddleware")
+        MIDDLEWARE.insert(sec_idx + 1, "whitenoise.middleware.WhiteNoiseMiddleware")
+    except ValueError:
+        MIDDLEWARE.insert(0, "whitenoise.middleware.WhiteNoiseMiddleware")
+
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
+# ---------------------------------------------------------------------------
+# Security & Reverse Proxy (Render terminates SSL at its load balancer)
+# ---------------------------------------------------------------------------
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=True)
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
+# ---------------------------------------------------------------------------
+# CORS & CSRF — Production
+# Allows cross-origin API and WebSocket communication from the Vercel frontend.
+# ---------------------------------------------------------------------------
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
+CORS_ALLOW_CREDENTIALS = True
+
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
+
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
 
 # ---------------------------------------------------------------------------
 # Email — production SMTP (all values from environment, no hard-coded defaults)
@@ -39,13 +110,11 @@ DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL")
 
 # ---------------------------------------------------------------------------
 # Celery — production Redis (credentials from environment only)
-# Redis must not be publicly exposed; restrict network access in deployment.
+# Supports CELERY_BROKER_URL with fallback to REDIS_URL (Render default)
 # ---------------------------------------------------------------------------
-CELERY_BROKER_URL = env("CELERY_BROKER_URL")
-CELERY_RESULT_BACKEND = env(
-    "CELERY_RESULT_BACKEND",
-    default=env("CELERY_BROKER_URL"),
-)
+_default_redis = env("REDIS_URL", default="")
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=_default_redis)
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=CELERY_BROKER_URL)
 
 # ---------------------------------------------------------------------------
 # Channels — production Redis channel layer
@@ -55,7 +124,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [env("CELERY_BROKER_URL")],
+            "hosts": [env("CHANNEL_REDIS_URL", default=CELERY_BROKER_URL)],
         },
     },
 }

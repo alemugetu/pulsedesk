@@ -352,7 +352,7 @@ class IncidentTrendTests(TestCase):
         # Create incidents on different dates to test daily grouping
         base_date = django_timezone.now()
         for i in range(3):
-            Incident.objects.create(
+            incident = Incident.objects.create(
                 organization=self.organization,
                 incident_number=f"INC-{i}",
                 title=f"Test Incident {i}",
@@ -360,7 +360,9 @@ class IncidentTrendTests(TestCase):
                 priority=IncidentPriority.P3,
                 reporter=self.user,
                 assignee=self.membership,
-                created_at=base_date - django_timezone.timedelta(days=i),
+            )
+            Incident.objects.filter(id=incident.id).update(
+                created_at=base_date - django_timezone.timedelta(days=i)
             )
 
         trend = get_incident_trend(self.organization, granularity="daily")

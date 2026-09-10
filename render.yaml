@@ -1,0 +1,139 @@
+# ==============================================================================
+# PulseDesk — Render Infrastructure as Code Blueprint (render.yaml)
+# ==============================================================================
+# Deploys Django (Daphne ASGI + Channels), Celery Worker, Celery Beat, and
+# Render Managed Redis without Docker.
+# Supabase PostgreSQL is connected via the DB_URL environment variable.
+# ==============================================================================
+
+services:
+  # ── 1. Django Web Service (HTTP + WebSockets) ──────────────────────────────
+  - type: web
+    name: pulsedesk-backend
+    runtime: python
+    plan: starter
+    region: oregon
+    buildCommand: "./render-build.sh"
+    startCommand: "cd backend && daphne -b 0.0.0.0 -p $PORT config.asgi:application"
+    healthCheckPath: "/api/v1/health/"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        sync: false
+      - key: DB_URL
+        sync: false
+      - key: CELERY_BROKER_URL
+        fromRedis:
+          name: pulsedesk-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromRedis:
+          name: pulsedesk-redis
+          property: connectionString
+      - key: CHANNEL_REDIS_URL
+        fromRedis:
+          name: pulsedesk-redis
+          property: connectionString
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: CSRF_TRUSTED_ORIGINS
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_PORT
+        value: "587"
+      - key: EMAIL_USE_TLS
+        value: "True"
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        sync: false
+
+  # ── 2. Celery Worker (Background Task Processing) ─────────────────────────
+  - type: worker
+    name: pulsedesk-worker
+    runtime: python
+    plan: starter
+    region: oregon
+    buildCommand: "pip install -r backend/requirements/production.txt"
+    startCommand: "cd backend && celery -A config worker --loglevel=INFO"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.production
+      - key: SECRET_KEY
+        fromService:
+          type: web
+          name: pulsedesk-backend
+          envVarKey: SECRET_KEY
+      - key: DB_URL
+        sync: false
+      - key: CELERY_BROKER_URL
+        fromRedis:
+          name: pulsedesk-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromRedis:
+          name: pulsedesk-redis
+          property: connectionString
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_PORT
+        value: "587"
+      - key: EMAIL_USE_TLS
+        value: "True"
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        sync: false
+
+  # ── 3. Celery Beat (Periodic SLA and Task Scheduler) ──────────────────────
+  - type: worker
+    name: pulsedesk-beat
+    runtime: python
+    plan: starter
+    region: oregon
+    buildCommand: "pip install -r backend/requirements/production.txt"
+    startCommand: "cd backend && celery -A config beat --loglevel=INFO"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.production
+      - key: SECRET_KEY
+        fromService:
+          type: web
+          name: pulsedesk-backend
+          envVarKey: SECRET_KEY
+      - key: DB_URL
+        sync: false
+      - key: CELERY_BROKER_URL
+        fromRedis:
+          name: pulsedesk-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromRedis:
+          name: pulsedesk-redis
+          property: connectionString
+      - key: SLA_MONITOR_INTERVAL_SECONDS
+        value: "60"
+
+  # ── 4. Managed Redis Broker & Result Backend ──────────────────────────────
+  - type: redis
+    name: pulsedesk-redis
+    plan: starter
+    region: oregon
+    ipAllowList: [] # internal connections only
+    maxmemoryPolicy: allkeys-lru

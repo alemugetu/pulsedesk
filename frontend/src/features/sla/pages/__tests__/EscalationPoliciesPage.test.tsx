@@ -18,7 +18,10 @@ const mockOrganization = {
   slug: 'acme-corp',
 };
 
-const mockHasPermission = vi.fn((_perm: string) => true);
+const mockHasPermission = vi.fn((perm: string) => {
+  void perm;
+  return true;
+});
 
 vi.mock('../../../organizations/context/organizationContextDef', () => ({
   useCurrentOrganization: () => mockOrganization,
