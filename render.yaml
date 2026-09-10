@@ -38,15 +38,18 @@ services:
           name: pulsedesk-db
           property: connectionString
       - key: CELERY_BROKER_URL
-        fromRedis:
+        fromService:
+          type: redis
           name: pulsedesk-redis
           property: connectionString
       - key: CELERY_RESULT_BACKEND
-        fromRedis:
+        fromService:
+          type: redis
           name: pulsedesk-redis
           property: connectionString
       - key: CHANNEL_REDIS_URL
-        fromRedis:
+        fromService:
+          type: redis
           name: pulsedesk-redis
           property: connectionString
       - key: CORS_ALLOWED_ORIGINS
@@ -91,11 +94,13 @@ services:
           name: pulsedesk-db
           property: connectionString
       - key: CELERY_BROKER_URL
-        fromRedis:
+        fromService:
+          type: redis
           name: pulsedesk-redis
           property: connectionString
       - key: CELERY_RESULT_BACKEND
-        fromRedis:
+        fromService:
+          type: redis
           name: pulsedesk-redis
           property: connectionString
       - key: EMAIL_HOST
@@ -134,11 +139,13 @@ services:
           name: pulsedesk-db
           property: connectionString
       - key: CELERY_BROKER_URL
-        fromRedis:
+        fromService:
+          type: redis
           name: pulsedesk-redis
           property: connectionString
       - key: CELERY_RESULT_BACKEND
-        fromRedis:
+        fromService:
+          type: redis
           name: pulsedesk-redis
           property: connectionString
       - key: SLA_MONITOR_INTERVAL_SECONDS
