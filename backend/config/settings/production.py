@@ -24,13 +24,15 @@ ALLOWED_HOSTS = env.list(
 
 # ---------------------------------------------------------------------------
 # Database — Render Managed PostgreSQL (or external DB_URL)
-# DB_URL is automatically injected by Render from pulsedesk-db.
+# Supports DB_URL (or standard DATABASE_URL) from Render.
 # Uses 'prefer' as default sslmode so both internal Render private network
 # connections and SSL-enforced connections work smoothly.
 # ---------------------------------------------------------------------------
-DATABASES = {
-    "default": env.db("DB_URL"),
-}
+_db_url = env("DB_URL", default=env("DATABASE_URL", default=None))
+if not _db_url:
+    DATABASES = {"default": env.db("DB_URL")}
+else:
+    DATABASES = {"default": env.db_url_config(_db_url)}
 
 DATABASES["default"].setdefault("OPTIONS", {})
 DATABASES["default"]["OPTIONS"].setdefault(
