@@ -1,6 +1,8 @@
 # PulseDesk — Production Deployment & CI/CD Guide (Containerless)
 
-This document provides complete instructions for deploying and maintaining PulseDesk across **Render**, **Supabase**, **Vercel**, and **GitHub Actions** without Docker.
+This document provides complete instructions for deploying and maintaining PulseDesk across **Render**, **Vercel**, and **GitHub Actions** without Docker.
+
+All backend infrastructure (Django Web Service, Celery Worker, Celery Beat, Redis, and PostgreSQL Database) is hosted directly on **Render** within a secure private network.
 
 ---
 
@@ -19,13 +21,13 @@ This document provides complete instructions for deploying and maintaining Pulse
                           │   https://api.example.com │
                           └──────┬─────────────┬──────┘
                                  │             │
-        Internal Redis           │             │ PostgreSQL (SSL)
+        Internal Redis           │             │ PostgreSQL (Internal)
         ┌────────────────────────┼────────┐    │
         │                        │        │    ▼
         ▼                        ▼        │ ┌─────────────────────────┐
-┌───────────────┐        ┌──────────────┐ │ │ Supabase PostgreSQL     │
-│ Render Worker │        │ Render Beat  │ │ │ (Port 5432 for session/ │
-│ (Celery)      │        │ (Scheduler)  │ │ │ migrations; 6543 pool)  │
+┌───────────────┐        ┌──────────────┐ │ │ Render Managed          │
+│ Render Worker │        │ Render Beat  │ │ │ PostgreSQL Database     │
+│ (Celery)      │        │ (Scheduler)  │ │ │ (pulsedesk-db)          │
 └───────────────┘        └──────────────┘ │ └─────────────────────────┘
         ▲                        ▲        │
         │                        │        │
@@ -38,58 +40,53 @@ This document provides complete instructions for deploying and maintaining Pulse
 | **Celery Worker** | Render | Python Background Worker | Processes asynchronous jobs (emails, escalations, SLAs) |
 | **Celery Beat** | Render | Python Background Worker | Dispatches periodic SLA monitoring and keep-alive pings |
 | **Redis Broker** | Render | Managed Redis | Serves as Celery broker/result backend and Channel layer |
-| **Database** | Supabase | Managed PostgreSQL | Tenant data, users, and audit logs |
+| **Database** | Render | Managed PostgreSQL | Managed Postgres (`pulsedesk-db`) with internal private connectivity |
 | **Frontend** | Vercel | Static / SPA | React + Vite + TypeScript with client-side rewrites |
 | **CI Automation** | GitHub Actions | Ubuntu / Node 22 / Python 3.12 | Automated checks, linting, and tests |
 
 ---
 
-## 2. Supabase PostgreSQL Configuration
+## 2. Render Deployment (1-Click Blueprint)
 
-1. Create a project in [Supabase](https://supabase.com).
-2. Go to **Project Settings > Database**.
-3. Under **Connection string**, note:
-   - **Direct Connection / Session Pooler (Port 5432)**:
-     `postgresql://postgres:[YOUR-PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres`
-     *(Recommended for Render web service to allow transactional DDL migrations without PgBouncer statement timeouts).*
-   - **Transaction Mode Pooler (Port 6543)**:
-     `postgresql://postgres.[PROJECT-REF]:[YOUR-PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres`
-     *(Note: If used for migrations, PgBouncer may drop connections during complex schema changes. Use port 5432 for `render-build.sh` migrations).*
-4. The backend settings automatically apply `sslmode=require`.
-
----
-
-## 3. Render Deployment (Backend, Celery & Redis)
+Render Infrastructure as Code is defined in [render.yaml](file:///home/alex/Documents/ProjectCatagory/pulsedesk/render.yaml).
 
 ### Option A: Using Render Blueprints (Recommended)
 
 1. Push this repository to your GitHub account.
 2. In the [Render Dashboard](https://dashboard.render.com/), click **New > Blueprint**.
 3. Connect your repository. Render will automatically parse [render.yaml](file:///home/alex/Documents/ProjectCatagory/pulsedesk/render.yaml).
-4. Render will prompt you for the un-synced environment variables:
-   - `DB_URL`: Your Supabase connection string.
+4. Render automatically provisions and links:
+   - `pulsedesk-db` (Managed PostgreSQL Database)
+   - `pulsedesk-redis` (Managed Redis)
+   - Injects the `DB_URL` connection string automatically into Backend, Worker, and Beat.
+   - Injects the `CELERY_BROKER_URL` connection string automatically into Backend, Worker, and Beat.
+5. Render will only prompt you for the remaining application variables:
    - `ALLOWED_HOSTS`: `pulsedesk-backend.onrender.com` (and your custom domain if applicable).
    - `CORS_ALLOWED_ORIGINS`: Your Vercel frontend URL, e.g. `https://pulsedesk.vercel.app`.
    - `CSRF_TRUSTED_ORIGINS`: `https://pulsedesk-backend.onrender.com,https://pulsedesk.vercel.app`.
    - `FRONTEND_URL`: `https://pulsedesk.vercel.app`.
    - `EMAIL_HOST`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL`: SMTP credentials.
-5. Click **Apply**. Render will create:
-   - `pulsedesk-redis` (Managed Redis)
-   - `pulsedesk-backend` (Web Service with `render-build.sh` build script)
-   - `pulsedesk-worker` (Background Worker)
-   - `pulsedesk-beat` (Background Worker)
+6. Click **Apply**. Render will build and deploy all services.
 
 ### Option B: Manual Configuration on Render
 
-If configuring services manually:
+If configuring services individually without the Blueprint:
 
-#### 1. Redis (`pulsedesk-redis`)
+#### 1. PostgreSQL Database (`pulsedesk-db`)
+- **Type**: PostgreSQL
+- **Name**: `pulsedesk-db`
+- **Database**: `pulsedesk`
+- **User**: `pulsedesk`
+- **Plan**: Starter (or Free)
+- Copy the **Internal Database URL** (`postgres://...`).
+
+#### 2. Redis (`pulsedesk-redis`)
 - **Type**: Redis
 - **Name**: `pulsedesk-redis`
-- **Plan**: Free or Starter
-- Copy the **Internal Redis URL** (`redis://red-...:6379`).
+- **Plan**: Starter (or Free)
+- Copy the **Internal Redis URL** (`redis://...`).
 
-#### 2. Django Web Service (`pulsedesk-backend`)
+#### 3. Django Web Service (`pulsedesk-backend`)
 - **Type**: Web Service
 - **Runtime**: Python 3
 - **Build Command**: `./render-build.sh`
@@ -97,14 +94,14 @@ If configuring services manually:
 - **Health Check Path**: `/api/v1/health/`
 - **Environment Variables**: See Environment Variables Matrix below.
 
-#### 3. Celery Worker (`pulsedesk-worker`)
+#### 4. Celery Worker (`pulsedesk-worker`)
 - **Type**: Background Worker
 - **Runtime**: Python 3
 - **Build Command**: `pip install -r backend/requirements/production.txt`
 - **Start Command**: `cd backend && celery -A config worker --loglevel=INFO`
 - **Environment Variables**: Same `DB_URL`, `CELERY_BROKER_URL`, `SECRET_KEY`, and email settings as backend.
 
-#### 4. Celery Beat (`pulsedesk-beat`)
+#### 5. Celery Beat (`pulsedesk-beat`)
 - **Type**: Background Worker
 - **Runtime**: Python 3
 - **Build Command**: `pip install -r backend/requirements/production.txt`
@@ -113,7 +110,7 @@ If configuring services manually:
 
 ---
 
-## 4. Vercel Deployment (Frontend)
+## 3. Vercel Deployment (Frontend)
 
 1. In the [Vercel Dashboard](https://vercel.com), click **Add New > Project**.
 2. Select your `pulsedesk` GitHub repository.
@@ -135,29 +132,29 @@ If configuring services manually:
 
 ---
 
-## 5. Environment Variables Reference
+## 4. Environment Variables Reference
 
 ### Backend (`pulsedesk-backend`, `pulsedesk-worker`, `pulsedesk-beat`)
 
-| Variable | Required In | Description | Example |
+| Variable | Injected Automatically by Blueprint | Description | Example |
 |---|---|---|---|
-| `DJANGO_SETTINGS_MODULE` | All | Django settings module | `config.settings.production` |
-| `SECRET_KEY` | All | Cryptographic signing key | `django-insecure-prod-key-xyz...` |
-| `DB_URL` | All | Supabase PostgreSQL connection string | `postgresql://user:pass@db.ref.supabase.co:5432/postgres` |
-| `CELERY_BROKER_URL` | All | Redis broker URL | `redis://red-xxxx:6379` |
-| `CELERY_RESULT_BACKEND`| All | Redis result backend | `redis://red-xxxx:6379` |
-| `CHANNEL_REDIS_URL` | Web | Channels Redis layer URL | `redis://red-xxxx:6379` |
-| `ALLOWED_HOSTS` | Web | Comma-separated list of allowed hostnames | `pulsedesk-backend.onrender.com,api.yourdomain.com` |
-| `CORS_ALLOWED_ORIGINS` | Web | Allowed frontend origins | `https://pulsedesk.vercel.app` |
-| `CSRF_TRUSTED_ORIGINS` | Web | Trusted origins for CSRF checks | `https://pulsedesk-backend.onrender.com,https://pulsedesk.vercel.app` |
-| `FRONTEND_URL` | Web | Base URL for password reset and verify emails | `https://pulsedesk.vercel.app` |
-| `EMAIL_HOST` | Web, Worker | SMTP server hostname | `smtp.sendgrid.net` or `smtp.gmail.com` |
-| `EMAIL_PORT` | Web, Worker | SMTP port | `587` |
-| `EMAIL_USE_TLS` | Web, Worker | Use TLS | `True` |
-| `EMAIL_HOST_USER` | Web, Worker | SMTP username | `apikey` or `your-email@gmail.com` |
-| `EMAIL_HOST_PASSWORD` | Web, Worker | SMTP password / API token | `your-secret-token` |
-| `DEFAULT_FROM_EMAIL` | Web, Worker | Sender email identity | `PulseDesk <noreply@pulsedesk.io>` |
-| `SLA_MONITOR_INTERVAL_SECONDS` | Beat | Frequency of SLA evaluation loop | `60` |
+| `DJANGO_SETTINGS_MODULE` | Yes | Django settings module | `config.settings.production` |
+| `SECRET_KEY` | Yes (Generated) | Cryptographic signing key | `django-insecure-prod-key-xyz...` |
+| `DB_URL` | Yes (from `pulsedesk-db`) | Render PostgreSQL connection string | `postgres://pulsedesk:pass@dpg-xxx-a/pulsedesk` |
+| `CELERY_BROKER_URL` | Yes (from `pulsedesk-redis`) | Redis broker URL | `redis://red-xxxx:6379` |
+| `CELERY_RESULT_BACKEND`| Yes (from `pulsedesk-redis`) | Redis result backend | `redis://red-xxxx:6379` |
+| `CHANNEL_REDIS_URL` | Yes (from `pulsedesk-redis`) | Channels Redis layer URL | `redis://red-xxxx:6379` |
+| `ALLOWED_HOSTS` | Manual | Comma-separated list of allowed hostnames | `pulsedesk-backend.onrender.com,api.yourdomain.com` |
+| `CORS_ALLOWED_ORIGINS` | Manual | Allowed frontend origins | `https://pulsedesk.vercel.app` |
+| `CSRF_TRUSTED_ORIGINS` | Manual | Trusted origins for CSRF checks | `https://pulsedesk-backend.onrender.com,https://pulsedesk.vercel.app` |
+| `FRONTEND_URL` | Manual | Base URL for password reset and verify emails | `https://pulsedesk.vercel.app` |
+| `EMAIL_HOST` | Manual | SMTP server hostname | `smtp.sendgrid.net` or `smtp.gmail.com` |
+| `EMAIL_PORT` | Yes (Default: 587) | SMTP port | `587` |
+| `EMAIL_USE_TLS` | Yes (Default: True) | Use TLS | `True` |
+| `EMAIL_HOST_USER` | Manual | SMTP username | `apikey` or `your-email@gmail.com` |
+| `EMAIL_HOST_PASSWORD` | Manual | SMTP password / API token | `your-secret-token` |
+| `DEFAULT_FROM_EMAIL` | Manual | Sender email identity | `PulseDesk <noreply@pulsedesk.io>` |
+| `SLA_MONITOR_INTERVAL_SECONDS` | Yes (Default: 60) | Frequency of SLA evaluation loop | `60` |
 
 ### Frontend (`pulsedesk-frontend` on Vercel)
 
@@ -172,7 +169,7 @@ If configuring services manually:
 
 ---
 
-## 6. Continuous Integration (GitHub Actions)
+## 5. Continuous Integration (GitHub Actions)
 
 Two independent GitHub Actions workflows run on changes:
 
@@ -194,7 +191,7 @@ Two independent GitHub Actions workflows run on changes:
 
 ---
 
-## 7. Verification & Health Monitoring
+## 6. Verification & Health Monitoring
 
 Once deployed:
 1. **API Health Check**:

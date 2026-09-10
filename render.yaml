@@ -1,10 +1,18 @@
 # ==============================================================================
 # PulseDesk — Render Infrastructure as Code Blueprint (render.yaml)
 # ==============================================================================
-# Deploys Django (Daphne ASGI + Channels), Celery Worker, Celery Beat, and
-# Render Managed Redis without Docker.
-# Supabase PostgreSQL is connected via the DB_URL environment variable.
+# Deploys Django (Daphne ASGI + Channels), Celery Worker, Celery Beat,
+# Render Managed Redis, and Render Managed PostgreSQL without Docker.
 # ==============================================================================
+
+databases:
+  # ── Render Managed PostgreSQL Database ─────────────────────────────────────
+  - name: pulsedesk-db
+    databaseName: pulsedesk
+    user: pulsedesk
+    plan: starter
+    region: oregon
+    ipAllowList: [] # internal connections only
 
 services:
   # ── 1. Django Web Service (HTTP + WebSockets) ──────────────────────────────
@@ -26,7 +34,9 @@ services:
       - key: ALLOWED_HOSTS
         sync: false
       - key: DB_URL
-        sync: false
+        fromDatabase:
+          name: pulsedesk-db
+          property: connectionString
       - key: CELERY_BROKER_URL
         fromRedis:
           name: pulsedesk-redis
@@ -77,7 +87,9 @@ services:
           name: pulsedesk-backend
           envVarKey: SECRET_KEY
       - key: DB_URL
-        sync: false
+        fromDatabase:
+          name: pulsedesk-db
+          property: connectionString
       - key: CELERY_BROKER_URL
         fromRedis:
           name: pulsedesk-redis
@@ -118,7 +130,9 @@ services:
           name: pulsedesk-backend
           envVarKey: SECRET_KEY
       - key: DB_URL
-        sync: false
+        fromDatabase:
+          name: pulsedesk-db
+          property: connectionString
       - key: CELERY_BROKER_URL
         fromRedis:
           name: pulsedesk-redis
