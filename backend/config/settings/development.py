@@ -8,12 +8,18 @@ from .base import *
 # Development settings
 # ---------------------------------------------------------------------------
 DEBUG = True
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 env = environ.Env()
 env.read_env(BASE_DIR / ".env")
+
+ALLOWED_HOSTS = env.list(
+    "ALLOWED_HOSTS",
+    default=["127.0.0.1", "localhost", ".onrender.com"],
+)
+if ".onrender.com" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(".onrender.com")
 
 # ---------------------------------------------------------------------------
 # CORS — Development

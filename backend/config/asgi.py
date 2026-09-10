@@ -13,7 +13,10 @@ from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.security.websocket import AllowedHostsOriginValidator
 from django.core.asgi import get_asgi_application
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+if os.environ.get("RENDER"):
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.production")
+else:
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
 # Initialize Django ASGI application early
 django_asgi_app = get_asgi_application()
